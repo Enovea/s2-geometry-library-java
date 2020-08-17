@@ -1,5 +1,7 @@
-/*
- * Copyright 2005 Google Inc.
+/**
+ * This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.common.geometry
+package dilivia.s2
 
+import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.DBL_EPSILON
-import dilivia.s2.MutableR1Interval
-import dilivia.s2.R1Interval
 import dilivia.s2.R1Interval.Companion.empty
 import dilivia.s2.R1Interval.Companion.fromPointPair
-import dilivia.s2.R2Vector
 
 
 @Strictfp

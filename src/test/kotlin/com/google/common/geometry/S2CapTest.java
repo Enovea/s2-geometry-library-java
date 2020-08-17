@@ -15,6 +15,8 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.S1Angle;
+
 public strictfp class S2CapTest extends GeometryTestCase {
 
   public S2Point getLatLngPoint(double latDegrees, double lngDegrees) {
@@ -49,7 +51,7 @@ public strictfp class S2CapTest extends GeometryTestCase {
     S2Cap xaxis = S2Cap.fromAxisHeight(new S2Point(1, 0, 0), 0);
     assertTrue(xaxis.contains(new S2Point(1, 0, 0)));
     assertTrue(!xaxis.contains(new S2Point(1, 1e-20, 0)));
-    assertEquals(xaxis.angle().radians(), 0.0);
+    assertEquals(xaxis.angle().getRadians(), 0.0);
 
     // Singleton cap containing the y-axis.
     S2Cap yaxis = S2Cap.fromAxisAngle(new S2Point(0, 1, 0), S1Angle.radians(0));

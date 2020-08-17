@@ -256,8 +256,8 @@ public strictfp class S2CellTest extends GeometryTestCase {
             }
           }
           assertTrue(capCount <= 2);
-          if (childRect.latLo().radians() > -S2.M_PI_2
-            && childRect.latHi().radians() < S2.M_PI_2) {
+          if (childRect.latLo().getRadians() > -S2.M_PI_2
+            && childRect.latHi().getRadians() < S2.M_PI_2) {
             // Bounding rectangles may be too large at the poles because the
             // pole itself has an arbitrary fixed longitude.
             assertTrue(rectCount <= 2);

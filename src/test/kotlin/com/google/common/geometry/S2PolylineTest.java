@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 
+import dilivia.s2.S1Angle;
 import junit.framework.Assert;
 
 import java.util.List;
@@ -62,7 +63,7 @@ public strictfp class S2PolylineTest extends GeometryTestCase {
       vertices.add(vertices.get(0));
       S2Polyline line = new S2Polyline(vertices);
       S1Angle length = line.getArclengthAngle();
-      assertTrue(Math.abs(length.radians() - 2 * S2.M_PI) < 2e-14);
+      assertTrue(Math.abs(length.getRadians() - 2 * S2.M_PI) < 2e-14);
     }
   }
 

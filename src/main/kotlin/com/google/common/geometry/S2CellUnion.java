@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
+import dilivia.s2.S1Angle;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -396,8 +397,8 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
     }
     // Find the maximum level such that all cells are at least "min_radius"
     // wide.
-    int radiusLevel = S2Projections.MIN_WIDTH.getMaxLevel(minRadius.radians());
-    if (radiusLevel == 0 && minRadius.radians() > S2Projections.MIN_WIDTH.getValue(0)) {
+    int radiusLevel = S2Projections.MIN_WIDTH.getMaxLevel(minRadius.getRadians());
+    if (radiusLevel == 0 && minRadius.getRadians() > S2Projections.MIN_WIDTH.getValue(0)) {
       // The requested expansion is greater than the width of a face cell.
       // The easiest way to handle this is to expand twice.
       expand(0);

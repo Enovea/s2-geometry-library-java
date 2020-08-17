@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 
 import dilivia.s2.R1Interval;
+import dilivia.s2.S1Angle;
 
 /**
  * This class represents a spherical cap, i.e. a portion of a sphere cut off by
@@ -78,7 +79,7 @@ public final strictfp class S2Cap implements S2Region {
     // Computing it as 2*(sin(angle/2)**2) gives much better precision.
 
     // assert (S2.isUnitLength(axis));
-    double d = Math.sin(0.5 * angle.radians());
+    double d = Math.sin(0.5 * angle.getRadians());
     return new S2Cap(axis, 2 * d * d);
 
   }
@@ -169,8 +170,8 @@ public final strictfp class S2Cap implements S2Region {
     if (isFull() || other.isEmpty()) {
       return true;
     }
-    return angle().radians() >= axis.angle(other.axis)
-      + other.angle().radians();
+    return angle().getRadians() >= axis.angle(other.axis)
+      + other.angle().getRadians();
   }
 
   /**
@@ -223,7 +224,7 @@ public final strictfp class S2Cap implements S2Region {
       // See comments for FromAxisAngle() and AddPoint(). This could be
       // optimized by doing the calculation in terms of cap heights rather
       // than cap opening angles.
-      double angle = axis.angle(other.axis) + other.angle().radians();
+      double angle = axis.angle(other.axis) + other.angle().getRadians();
       if (angle >= S2.M_PI) {
         return new S2Cap(axis, 2); //Full cap
       } else {
@@ -249,7 +250,7 @@ public final strictfp class S2Cap implements S2Region {
 
     // Convert the axis to a (lat,lng) pair, and compute the cap angle.
     S2LatLng axisLatLng = new S2LatLng(axis);
-    double capAngle = angle().radians();
+    double capAngle = angle().getRadians();
 
     boolean allLongitudes = false;
     double[] lat = new double[2], lng = new double[2];
@@ -257,13 +258,13 @@ public final strictfp class S2Cap implements S2Region {
     lng[1] = S2.M_PI;
 
     // Check whether cap includes the south pole.
-    lat[0] = axisLatLng.lat().radians() - capAngle;
+    lat[0] = axisLatLng.lat().getRadians() - capAngle;
     if (lat[0] <= -S2.M_PI_2) {
       lat[0] = -S2.M_PI_2;
       allLongitudes = true;
     }
     // Check whether cap includes the north pole.
-    lat[1] = axisLatLng.lat().radians() + capAngle;
+    lat[1] = axisLatLng.lat().getRadians() + capAngle;
     if (lat[1] >= S2.M_PI_2) {
       lat[1] = S2.M_PI_2;
       allLongitudes = true;
@@ -281,12 +282,12 @@ public final strictfp class S2Cap implements S2Region {
       // The formula for sin(a) follows from the relationship h = 1 - cos(a).
 
       double sinA = Math.sqrt(height * (2 - height));
-      double sinC = Math.cos(axisLatLng.lat().radians());
+      double sinC = Math.cos(axisLatLng.lat().getRadians());
       if (sinA <= sinC) {
         double angleA = Math.asin(sinA / sinC);
-        lng[0] = Math.IEEEremainder(axisLatLng.lng().radians() - angleA,
+        lng[0] = Math.IEEEremainder(axisLatLng.lng().getRadians() - angleA,
           2 * S2.M_PI);
-        lng[1] = Math.IEEEremainder(axisLatLng.lng().radians() + angleA,
+        lng[1] = Math.IEEEremainder(axisLatLng.lng().getRadians() + angleA,
           2 * S2.M_PI);
       }
     }

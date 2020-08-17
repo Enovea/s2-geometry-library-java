@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.ImmutableList;
 import dilivia.s2.R1Interval;
+import dilivia.s2.S1Angle;
 
 /**
  * Tests for {@link S2EdgeUtil}.
@@ -424,7 +425,7 @@ public strictfp class S2EdgeUtilTest extends GeometryTestCase {
     b = S2Point.normalize(b);
     expectedClosest = S2Point.normalize(expectedClosest);
 
-    assertEquals(distanceRadians, S2EdgeUtil.getDistance(x, a, b).radians(), kEpsilon);
+    assertEquals(distanceRadians, S2EdgeUtil.getDistance(x, a, b).getRadians(), kEpsilon);
 
     S2Point closest = S2EdgeUtil.getClosestPoint(x, a, b);
     if (expectedClosest.equals(new S2Point(0, 0, 0))) {

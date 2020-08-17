@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
 import dilivia.s2.R1Interval;
+import dilivia.s2.S1Angle;
 
 /**
  * This class contains various utility functions related to edges. It collects
@@ -351,7 +352,7 @@ public strictfp class S2EdgeUtil {
      */
     public LongitudePruner(S1Interval interval, S2Point v0) {
       this.interval = interval;
-      this.lng0 = S2LatLng.longitude(v0).radians();
+      this.lng0 = S2LatLng.longitude(v0).getRadians();
     }
 
     /**
@@ -359,7 +360,7 @@ public strictfp class S2EdgeUtil {
      * interval, and then saves 'v1' to be used as the next 'v0'.
      */
     public boolean intersects(S2Point v1) {
-      double lng1 = S2LatLng.longitude(v1).radians();
+      double lng1 = S2LatLng.longitude(v1).getRadians();
       boolean result = interval.intersects(S1Interval.fromPointPair(lng0, lng1));
       lng0 = lng1;
       return result;

@@ -15,6 +15,8 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.S1Angle;
+
 /**
  * This class represents a point on the unit sphere as a pair of
  * latitude-longitude coordinates. Like the rest of the "geometry" package, the
@@ -41,6 +43,10 @@ public strictfp class S2LatLng {
   }
 
   public static S2LatLng fromDegrees(double latDegrees, double lngDegrees) {
+    return new S2LatLng(S1Angle.degrees(latDegrees), S1Angle.degrees(lngDegrees));
+  }
+
+  public static S2LatLng fromDegrees(int latDegrees, int lngDegrees) {
     return new S2LatLng(S1Angle.degrees(latDegrees), S1Angle.degrees(lngDegrees));
   }
 
@@ -81,7 +87,7 @@ public strictfp class S2LatLng {
    * TODO(dbeaumont): Make this a static factory method (fromLatLng() ?).
    */
   public S2LatLng(S1Angle lat, S1Angle lng) {
-    this(lat.radians(), lng.radians());
+    this(lat.getRadians(), lng.getRadians());
   }
 
   /**
@@ -141,7 +147,7 @@ public strictfp class S2LatLng {
    * longitude is between -180 and 180 degrees inclusive.
    */
   public boolean isValid() {
-    return Math.abs(lat().radians()) <= S2.M_PI_2 && Math.abs(lng().radians()) <= S2.M_PI;
+    return Math.abs(lat().getRadians()) <= S2.M_PI_2 && Math.abs(lng().getRadians()) <= S2.M_PI;
   }
 
   /**
@@ -157,8 +163,8 @@ public strictfp class S2LatLng {
   public S2LatLng normalized() {
     // drem(x, 2 * S2.M_PI) reduces its argument to the range
     // [-S2.M_PI, S2.M_PI] inclusive, which is what we want here.
-    return new S2LatLng(Math.max(-S2.M_PI_2, Math.min(S2.M_PI_2, lat().radians())),
-        Math.IEEEremainder(lng().radians(), 2 * S2.M_PI));
+    return new S2LatLng(Math.max(-S2.M_PI_2, Math.min(S2.M_PI_2, lat().getRadians())),
+        Math.IEEEremainder(lng().getRadians(), 2 * S2.M_PI));
   }
 
   // Clamps the latitude to the range [-90, 90] degrees, and adds or subtracts
@@ -167,8 +173,8 @@ public strictfp class S2LatLng {
 
   /** Convert an S2LatLng to the equivalent unit-length vector (S2Point). */
   public S2Point toPoint() {
-    double phi = lat().radians();
-    double theta = lng().radians();
+    double phi = lat().getRadians();
+    double theta = lng().getRadians();
     double cosphi = Math.cos(phi);
     return new S2Point(Math.cos(theta) * cosphi, Math.sin(theta) * cosphi, Math.sin(phi));
   }
@@ -188,10 +194,10 @@ public strictfp class S2LatLng {
     // distance that way (which gives about 15 digits of accuracy for all
     // distances).
 
-    double lat1 = lat().radians();
-    double lat2 = o.lat().radians();
-    double lng1 = lng().radians();
-    double lng2 = o.lng().radians();
+    double lat1 = lat().getRadians();
+    double lat2 = o.lat().getRadians();
+    double lng1 = lng().getRadians();
+    double lng2 = o.lng().getRadians();
     double dlat = Math.sin(0.5 * (lat2 - lat1));
     double dlng = Math.sin(0.5 * (lng2 - lng1));
     double x = dlat * dlat + dlng * dlng * Math.cos(lat1) * Math.cos(lat2);
@@ -209,7 +215,7 @@ public strictfp class S2LatLng {
    */
   public double getDistance(final S2LatLng o, double radius) {
     // TODO(dbeaumont): Maybe check that radius >= 0 ?
-    return getDistance(o).radians() * radius;
+    return getDistance(o).getRadians() * radius;
   }
 
   /**

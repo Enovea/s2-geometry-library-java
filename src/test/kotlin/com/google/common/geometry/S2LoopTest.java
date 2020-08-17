@@ -112,7 +112,7 @@ public strictfp class S2LoopTest extends GeometryTestCase {
     arctic80.invert();
     // The highest latitude of each edge is attained at its midpoint.
     S2Point mid = S2Point.mul(S2Point.add(arctic80.vertex(0), arctic80.vertex(1)), 0.5);
-    assertDoubleNear(arctic80.getRectBound().latHi().radians(), new S2LatLng(mid).lat().radians());
+    assertDoubleNear(arctic80.getRectBound().latHi().getRadians(), new S2LatLng(mid).lat().getRadians());
     arctic80.invert();
 
     assertTrue(southHemi.getRectBound().lng().isFull());
@@ -486,11 +486,11 @@ public strictfp class S2LoopTest extends GeometryTestCase {
 
     // All the vertices should be distance 0
     for (int i = 0; i < s1.numVertices(); i++) {
-      assertEquals(0d, s1.getDistance(s1.vertex(i)).radians(), epsilon);
+      assertEquals(0d, s1.getDistance(s1.vertex(i)).getRadians(), epsilon);
     }
 
     // A point on one of the edges should be distance 0
-    assertEquals(0d, s1.getDistance(S2LatLng.fromDegrees(0.5, 1).toPoint()).radians(), epsilon);
+    assertEquals(0d, s1.getDistance(S2LatLng.fromDegrees(0.5, 1).toPoint()).getRadians(), epsilon);
 
     // In all three cases, the closest point to the origin is (0,1), which is at
     // a distance of 1 degree.

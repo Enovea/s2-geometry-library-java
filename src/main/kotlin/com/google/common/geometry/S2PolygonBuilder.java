@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
+import dilivia.s2.S1Angle;
 
 import java.util.Collection;
 import java.util.List;
@@ -293,7 +294,7 @@ public strictfp class S2PolygonBuilder {
    * This method resets the S2PolygonBuilder state so that it can be reused.
    */
   public boolean assembleLoops(List<S2Loop> loops, List<S2Edge> unusedEdges) {
-    if (options.getMergeDistance().radians() > 0) {
+    if (options.getMergeDistance().getRadians() > 0) {
       mergeVertices();
     }
 
@@ -571,7 +572,7 @@ public strictfp class S2PolygonBuilder {
     // creating new vertex pairs that need to be merged. (We guarantee that all
     // vertex pairs are separated by at least merge_distance in the output.)
 
-    PointIndex index = new PointIndex(options.getMergeDistance().radians());
+    PointIndex index = new PointIndex(options.getMergeDistance().getRadians());
 
     for (Map.Entry<S2Point, Multiset<S2Point>> edge : edges.entrySet()) {
       index.add(edge.getKey());

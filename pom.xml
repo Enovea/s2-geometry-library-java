@@ -132,6 +132,7 @@
                             </multi>
                             <includes>
                                 <include>src/main/kotlin/**/*.kt</include>
+                                <include>src/test/kotlin/**/*.kt</include>
                             </includes>
                             <excludes>
                                 <exclude>**/README</exclude>

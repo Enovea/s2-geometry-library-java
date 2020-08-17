@@ -444,7 +444,7 @@ public final strictfp class S2RegionCoverer {
       // Find the maximum level such that the bounding cap contains at most one
       // cell vertex at that level.
       S2Cap cap = region.getCapBound();
-      int level = Math.min(S2Projections.MIN_WIDTH.getMaxLevel(2 * cap.angle().radians()),
+      int level = Math.min(S2Projections.MIN_WIDTH.getMaxLevel(2 * cap.angle().getRadians()),
           Math.min(maxLevel(), S2CellId.MAX_LEVEL - 1));
       if (levelMod() > 1 && level > minLevel()) {
         level -= (level - minLevel()) % levelMod();

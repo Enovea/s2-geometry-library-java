@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.geometry.S2EdgeIndex.DataEdgeIterator;
 import com.google.common.geometry.S2EdgeUtil.EdgeCrosser;
 import dilivia.s2.R1Interval;
+import dilivia.s2.S1Angle;
 
 import java.util.HashMap;
 import java.util.List;

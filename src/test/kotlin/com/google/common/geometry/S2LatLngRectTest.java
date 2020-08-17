@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import dilivia.s2.R1Interval;
+import dilivia.s2.S1Angle;
 
 public strictfp class S2LatLngRectTest extends GeometryTestCase {
 
@@ -457,8 +458,8 @@ public strictfp class S2LatLngRectTest extends GeometryTestCase {
     assertTrue(interval.isValid());
 
     // Is X inside the longitude interval?
-    if (interval.contains(x.lng().radians()))
-      return S1Angle.radians(Math.abs(x.lat().radians() - lat.radians()));
+    if (interval.contains(x.lng().getRadians()))
+      return S1Angle.radians(Math.abs(x.lat().getRadians() - lat.getRadians()));
 
     // Return the distance to the closer endpoint.
     return S1Angle.min(x.getDistance(new S2LatLng(lat, S1Angle.radians(interval.lo()))),
@@ -498,7 +499,7 @@ public strictfp class S2LatLngRectTest extends GeometryTestCase {
   private static void verifyGetRectPointDistance(S2LatLngRect a, S2LatLng p) {
     S1Angle distance1 = bruteForceRectPointDistance(a, p.normalized());
     S1Angle distance2 = a.getDistance(p.normalized());
-    assertEquals(distance1.radians(), distance2.radians(), 1e-10);
+    assertEquals(distance1.getRadians(), distance2.getRadians(), 1e-10);
   }
 
   /**
@@ -509,6 +510,6 @@ public strictfp class S2LatLngRectTest extends GeometryTestCase {
   private static void verifyGetDistance(S2LatLngRect a, S2LatLngRect b) {
     S1Angle distance1 = bruteForceDistance(a, b);
     S1Angle distance2 = a.getDistance(b);
-    assertEquals(distance1.radians(), distance2.radians(), 1e-10);
+    assertEquals(distance1.getRadians(), distance2.getRadians(), 1e-10);
   }
 }

@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
+import dilivia.s2.S1Angle;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -299,7 +300,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
     for (int i = 0; i < covering.size(); ++i) {
       S2Cell cell = new S2Cell(covering.cellId(i));
       S2Cap cellCap = cell.getCapBound();
-      double angle = axis.angle(cellCap.axis()) + cellCap.angle().radians();
+      double angle = axis.angle(cellCap.axis()) + cellCap.angle().getRadians();
       maxAngle = Math.max(maxAngle, angle);
     }
     return maxAngle;
@@ -323,7 +324,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
           S2Cap.fromAxisHeight(cap.axis(), Math.min(2.0, Math.pow(1e2, rand.nextDouble())
               * cap.height()));
 
-      double radius = expandedCap.angle().radians() - cap.angle().radians();
+      double radius = expandedCap.angle().getRadians() - cap.angle().getRadians();
       int maxLevelDiff = random(8);
 
       S2CellUnion covering = new S2CellUnion();

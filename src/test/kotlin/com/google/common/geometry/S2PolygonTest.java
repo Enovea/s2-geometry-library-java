@@ -17,6 +17,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
+import dilivia.s2.S1Angle;
 
 import java.util.List;
 
@@ -318,18 +319,18 @@ public strictfp class S2PolygonTest extends GeometryTestCase {
     // All of the vertices of a polygon should be distance 0
     for (int i = 0; i < shell.numLoops(); i++) {
       for (int j = 0; j < shell.loop(i).numVertices(); j++) {
-        assertEquals(0d, shell.getDistance(shell.loop(i).vertex(j)).radians(), epsilon);
+        assertEquals(0d, shell.getDistance(shell.loop(i).vertex(j)).getRadians(), epsilon);
       }
     }
 
     // A non-vertex point on an edge should be distance 0
     assertEquals(0d, rect.getDistance(
-        S2Point.normalize(S2Point.add(rect.loop(0).vertex(0), rect.loop(0).vertex(1)))).radians(),
+        S2Point.normalize(S2Point.add(rect.loop(0).vertex(0), rect.loop(0).vertex(1)))).getRadians(),
         epsilon);
 
     S2Point origin = S2LatLng.fromDegrees(0, 0).toPoint();
     // rect contains the origin
-    assertEquals(0d, rect.getDistance(origin).radians(), epsilon);
+    assertEquals(0d, rect.getDistance(origin).getRadians(), epsilon);
 
     // shell does NOT contain the origin, since it has a hole. The shortest
     // distance is to (1,0) or (-1,0), and should be 1 degree

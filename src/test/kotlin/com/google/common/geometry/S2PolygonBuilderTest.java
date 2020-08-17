@@ -17,6 +17,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
+import dilivia.s2.S1Angle;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -360,8 +361,8 @@ public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
       // This implies that p <= 0.25 * (max - min). We choose "p" so that it is
       // zero half of the time, and otherwise chosen randomly up to this limit.
 
-      double minMerge = S1Angle.degrees(test.minMerge).radians();
-      double maxMerge = S1Angle.degrees(test.maxMerge).radians();
+      double minMerge = S1Angle.degrees(test.minMerge).getRadians();
+      double maxMerge = S1Angle.degrees(test.maxMerge).getRadians();
       double r = Math.max(0.0, 2 * rand.nextDouble() - 1);
       double maxPerturbation = r * 0.25 * (maxMerge - minMerge);
 

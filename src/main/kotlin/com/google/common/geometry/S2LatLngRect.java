@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
 import dilivia.s2.R1Interval;
+import dilivia.s2.S1Angle;
 
 /**
  * An S2LatLngRect represents a latitude-longitude rectangle. It is capable of
@@ -34,8 +35,8 @@ public strictfp class S2LatLngRect implements S2Region {
    * lo.lng() > hi.lng(), the rectangle spans the 180 degree longitude line.
    */
   public S2LatLngRect(final S2LatLng lo, final S2LatLng hi) {
-    lat = new R1Interval(lo.lat().radians(), hi.lat().radians());
-    lng = new S1Interval(lo.lng().radians(), hi.lng().radians());
+    lat = new R1Interval(lo.lat().getRadians(), hi.lat().getRadians());
+    lng = new S1Interval(lo.lng().getRadians(), hi.lng().getRadians());
     // assert (isValid());
   }
 
@@ -93,9 +94,9 @@ public strictfp class S2LatLngRect implements S2Region {
    */
   public static S2LatLngRect fromPointPair(S2LatLng p1, S2LatLng p2) {
     // assert (p1.isValid() && p2.isValid());
-    return new S2LatLngRect(R1Interval.fromPointPair(p1.lat().radians(), p2
-      .lat().radians()), S1Interval.fromPointPair(p1.lng().radians(), p2.lng()
-      .radians()));
+    return new S2LatLngRect(R1Interval.fromPointPair(p1.lat().getRadians(), p2
+      .lat().getRadians()), S1Interval.fromPointPair(p1.lng().getRadians(), p2.lng()
+      .getRadians()));
   }
 
   /**
@@ -233,14 +234,14 @@ public strictfp class S2LatLngRect implements S2Region {
     Preconditions.checkState(!a.isEmpty());
     Preconditions.checkArgument(p.isValid());
 
-    if (a.lng().contains(p.lng().radians())) {
-      return S1Angle.radians(Math.max(0.0, Math.max(p.lat().radians() - a.lat().getHi(),
-                                                    a.lat().getLo() - p.lat().radians())));
+    if (a.lng().contains(p.lng().getRadians())) {
+      return S1Angle.radians(Math.max(0.0, Math.max(p.lat().getRadians() - a.lat().getHi(),
+                                                    a.lat().getLo() - p.lat().getRadians())));
     }
 
     S1Interval interval = new S1Interval(a.lng().hi(), a.lng().complement().getCenter());
     double aLng = a.lng().lo();
-    if (interval.contains(p.lng().radians())) {
+    if (interval.contains(p.lng().getRadians())) {
       aLng = a.lng().hi();
     }
 
@@ -280,7 +281,7 @@ public strictfp class S2LatLngRect implements S2Region {
         lo = a.latHi();
         hi = b.latLo();
       }
-      return S1Angle.radians(hi.radians() - lo.radians());
+      return S1Angle.radians(hi.getRadians() - lo.getRadians());
     }
 
     // The longitude intervals don't overlap. In this case, the closest points
@@ -305,11 +306,11 @@ public strictfp class S2LatLngRect implements S2Region {
     S2Point aLo = new S2LatLng(a.latLo(), aLng).toPoint();
     S2Point aHi = new S2LatLng(a.latHi(), aLng).toPoint();
     S2Point aLoCrossHi =
-        S2LatLng.fromRadians(0, aLng.radians() - S2.M_PI_2).normalized().toPoint();
+        S2LatLng.fromRadians(0, aLng.getRadians() - S2.M_PI_2).normalized().toPoint();
     S2Point bLo = new S2LatLng(b.latLo(), bLng).toPoint();
     S2Point bHi = new S2LatLng(b.latHi(), bLng).toPoint();
     S2Point bLoCrossHi =
-        S2LatLng.fromRadians(0, bLng.radians() - S2.M_PI_2).normalized().toPoint();
+        S2LatLng.fromRadians(0, bLng.getRadians() - S2.M_PI_2).normalized().toPoint();
 
     return S1Angle.min(S2EdgeUtil.getDistance(aLo, bLo, bHi, bLoCrossHi),
                        S1Angle.min(S2EdgeUtil.getDistance(aHi, bLo, bHi, bLoCrossHi),
@@ -331,8 +332,8 @@ public strictfp class S2LatLngRect implements S2Region {
    */
   public boolean contains(S2LatLng ll) {
     // assert (ll.isValid());
-    return (lat.contains(ll.lat().radians()) && lng.contains(ll.lng()
-      .radians()));
+    return (lat.contains(ll.lat().getRadians()) && lng.contains(ll.lng()
+      .getRadians()));
 
   }
 
@@ -351,8 +352,8 @@ public strictfp class S2LatLngRect implements S2Region {
    */
   public boolean interiorContains(S2LatLng ll) {
     // assert (ll.isValid());
-    return (lat.interiorContains(ll.lat().radians()) && lng
-      .interiorContains(ll.lng().radians()));
+    return (lat.interiorContains(ll.lat().getRadians()) && lng
+      .interiorContains(ll.lng().getRadians()));
   }
 
   /**
@@ -419,7 +420,7 @@ public strictfp class S2LatLngRect implements S2Region {
 
     for (int i = 0; i < 4; ++i) {
       S1Interval edgeLng = S1Interval.fromPointPair(
-        cellLl[i].lng().radians(), cellLl[(i + 1) & 3].lng().radians());
+        cellLl[i].lng().getRadians(), cellLl[(i + 1) & 3].lng().getRadians());
       if (!lng.intersects(edgeLng)) {
         continue;
       }
@@ -463,8 +464,8 @@ public strictfp class S2LatLngRect implements S2Region {
   // The rectangle is expanded by the minimum amount possible.
   public S2LatLngRect addPoint(S2LatLng ll) {
     // assert (ll.isValid());
-    R1Interval newLat = lat.addPoint(ll.lat().radians());
-    S1Interval newLng = lng.addPoint(ll.lng().radians());
+    R1Interval newLat = lat.addPoint(ll.lat().getRadians());
+    S1Interval newLng = lng.addPoint(ll.lng().getRadians());
     return new S2LatLngRect(newLat, newLng);
   }
 
@@ -480,12 +481,12 @@ public strictfp class S2LatLngRect implements S2Region {
    * sphere (e.g. 5km), use the ConvolveWithCap() method instead.
    */
   public S2LatLngRect expanded(S2LatLng margin) {
-    // assert (margin.lat().radians() >= 0 && margin.lng().radians() >= 0);
+    // assert (margin.lat().getRadians() >= 0 && margin.lng().getRadians() >= 0);
     if (isEmpty()) {
       return this;
     }
-    return new S2LatLngRect(lat.expanded(margin.lat().radians()).intersection(
-      fullLat()), lng.expanded(margin.lng().radians()));
+    return new S2LatLngRect(lat.expanded(margin.lat().getRadians()).intersection(
+      fullLat()), lng.expanded(margin.lng().getRadians()));
   }
 
   /**
@@ -544,7 +545,7 @@ public strictfp class S2LatLngRect implements S2Region {
 
     // This is the size difference of the two spherical caps, multiplied by
     // the longitude ratio.
-    return lng().getLength() * Math.abs(Math.sin(latHi().radians()) - Math.sin(latLo().radians()));
+    return lng().getLength() * Math.abs(Math.sin(latHi().getRadians()) - Math.sin(latLo().getRadians()));
   }
 
   /** Return true if two rectangles contains the same set of points. */
