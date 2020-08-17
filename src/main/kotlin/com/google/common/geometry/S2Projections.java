@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.geometry.S2.Metric;
+import dilivia.s2.R2Vector;
 
 /**
  * This class specifies the details of how the cube faces are projected onto the

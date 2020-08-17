@@ -15,6 +15,8 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.R2Vector;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

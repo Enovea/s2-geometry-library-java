@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import dilivia.s2.R2Vector;
 
 public final strictfp class S2 {
 
@@ -682,11 +683,11 @@ public final strictfp class S2 {
   public static int planarCCW(R2Vector a, R2Vector b) {
     // Return +1 if the edge AB is CCW around the origin, etc.
     double sab = (a.dotProd(b) > 0) ? -1 : 1;
-    R2Vector vab = R2Vector.add(a, R2Vector.mul(b, sab));
+    R2Vector vab = a.plus(b.times(sab));
     double da = a.norm2();
     double db = b.norm2();
     double sign;
-    if (da < db || (da == db && a.lessThan(b))) {
+    if (da < db || (da == db && a.compareTo(b) < 0)) {
       sign = a.crossProd(vab) * sab;
     } else {
       sign = vab.crossProd(b);

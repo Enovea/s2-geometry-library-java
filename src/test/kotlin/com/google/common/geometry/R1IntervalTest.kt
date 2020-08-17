@@ -20,6 +20,7 @@ import dilivia.s2.MutableR1Interval
 import dilivia.s2.R1Interval
 import dilivia.s2.R1Interval.Companion.empty
 import dilivia.s2.R1Interval.Companion.fromPointPair
+import dilivia.s2.R2Vector
 
 
 @Strictfp

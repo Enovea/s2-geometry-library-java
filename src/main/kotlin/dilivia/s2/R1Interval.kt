@@ -17,7 +17,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.R2Vector
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min

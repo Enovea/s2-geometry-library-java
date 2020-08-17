@@ -15,6 +15,8 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.R2Vector;
+
 import java.util.List;
 import java.util.Locale;
 
