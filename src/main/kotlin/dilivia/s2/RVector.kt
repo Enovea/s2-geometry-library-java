@@ -198,6 +198,8 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
     }
 }
 
+typealias R2Point = R2Vector
+
 @Strictfp
 class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : RVector<R3Vector>(doubleArrayOf(x, y, z)) {
 

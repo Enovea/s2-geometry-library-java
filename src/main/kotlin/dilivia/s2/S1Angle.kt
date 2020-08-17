@@ -17,6 +17,7 @@
  */
 package dilivia.s2
 
+import com.google.common.geometry.S2
 import com.google.common.geometry.S2.M_PI
 import com.google.common.geometry.S2LatLng
 import com.google.common.geometry.S2Point
@@ -64,7 +65,7 @@ import kotlin.math.roundToLong
  *
  */
 @Strictfp
-class S1Angle private constructor(var radians: Double) : Comparable<S1Angle> {
+open class S1Angle protected constructor(open val radians: Double) : Comparable<S1Angle> {
 
     /**
      * The default constructor yields a zero angle.
@@ -190,24 +191,15 @@ class S1Angle private constructor(var radians: Double) : Comparable<S1Angle> {
      * @return The tangent of this angle.
      */
     fun tan(): Double = kotlin.math.tan(radians)
-
-    /**
-     * Normalize this angle to the range (-180, 180] degrees.
-     */
-    fun normalize() {
-        radians = radians.IEEErem(2.0 * M_PI)
-        if (radians <= - M_PI) radians = M_PI
-    }
-
     /**
      * Get a normalized instance of this angle.
      *
      * @return the angle normalized to the range (-180, 180] degrees.
      */
     fun normalized(): S1Angle {
-        val angle = S1Angle(radians)
-        angle.normalize()
-        return angle
+        var rad = radians.IEEErem(2.0 * M_PI)
+        if (rad <= -M_PI) rad = M_PI
+        return S1Angle(rad)
     }
 
     /**

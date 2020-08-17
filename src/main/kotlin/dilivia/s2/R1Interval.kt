@@ -253,6 +253,8 @@ open class R1Interval(open val lo: Double, open val hi: Double) {
         return false
     }
 
+    fun toMutable(): MutableR1Interval = MutableR1Interval(this)
+
     override fun hashCode(): Int {
         if (isEmpty) {
             return 17
