@@ -58,13 +58,13 @@ class S1AngleTest : TestCase() {
     }
 
     fun testInfinity() {
-        assertTrue(radians(1e30) < S1Angle.infinity())
-        assertTrue(-S1Angle.infinity() < S1Angle.zero())
-        assertEquals(S1Angle.infinity(), S1Angle.infinity())
+        assertTrue(radians(1e30) < S1Angle.infinity)
+        assertTrue(-S1Angle.infinity < S1Angle.zero)
+        assertEquals(S1Angle.infinity, S1Angle.infinity)
     }
 
     fun testZero() {
-        assertEquals(radians(0), S1Angle.zero())
+        assertEquals(radians(0), S1Angle.zero)
     }
 
     fun testPiRadiansExactly180Degrees() {

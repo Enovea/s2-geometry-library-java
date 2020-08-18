@@ -17,47 +17,87 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2Point
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
-abstract class RVector<T>(val coords: DoubleArray) : Comparable<RVector<T>> where T : RVector<T> {
+interface FloatingPointType<T: Number> {
+
+    fun sqrt(v: T): T
+
+    fun plus(a: T, b: T): T
+
+    fun minus(a: T, b: T): T
+
+    fun inv(a: T): T
+
+    fun times(a: T, b: T): T
+
+    fun div(a: T, b: T): T
+
+    fun abs(a: T): T
+
+    fun sum(values: List<T>): T
+}
+
+class DoubleType() : FloatingPointType<Double> {
+    override fun sqrt(v: Double): Double = sqrt(v)
+
+    override fun plus(a: Double, b: Double): Double = a + b
+
+    override fun minus(a: Double, b: Double): Double = a - b
+
+    override fun inv(a: Double): Double = 1.0 / a
+
+    override fun times(a: Double, b: Double): Double = a * b
+
+    override fun div(a: Double, b: Double): Double = a / b
+
+    override fun abs(a: Double): Double = abs(a)
+
+    override fun sum(values: List<Double>): Double = values.sum()
+
+}
+
+/**
+ *
+ */
+abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>) : Comparable<RVector<V, T>> where V : RVector<V, T>, T : Number,  T: Comparable<T> {
 
     val size: Int
         get() = coords.size
 
 
-    operator fun get(index: Int): Double {
+    operator fun get(index: Int): T {
         check(index in 0 until size) { "Coordinate index $index is not in range 0..${size - 1}" }
         return coords[index]
     }
 
-    fun norm2(): Double {
+    fun norm2(): T {
         return this.dotProd(this)
     }
 
-    fun norm(): Double = sqrt(norm2())
+    fun norm(): T = type.sqrt(norm2())
 
-    abstract fun angle(v: T): Double
+    abstract fun angle(v: V): Double
 
-    abstract fun ortho(): T
+    abstract fun ortho(): V
 
-    abstract fun sqrt(): T
+    abstract fun sqrt(): V
 
-    protected fun sqrtCoordinates() = coords.map { sqrt(it) }.toDoubleArray()
+    protected fun sqrtCoordinates() = coords.map { type.sqrt(it) }
 
     // Normalized vector if the norm is nonzero. Not for integer types.
-    abstract fun normalize(): T
+    abstract fun normalize(): V
 
-    protected fun normalizedCoordinates(): DoubleArray {
+    protected fun normalizedCoordinates(): List<T> {
         var n = norm()
         check(n != 0.0)
-        n = 1.0 / n
-        return coords.map { it * n }.toDoubleArray()
+        n = type.inv(n)
+        return coords.map { type.times(it, n) }
     }
 
-    override operator fun compareTo(other: RVector<T>): Int {
+    override operator fun compareTo(other: RVector<V, T>): Int {
         require(size == other.size)
         for (i in 0 until size) {
             val compareTo = this[i].compareTo(other[i])
@@ -66,47 +106,47 @@ abstract class RVector<T>(val coords: DoubleArray) : Comparable<RVector<T>> wher
         throw IllegalStateException("Return should have been called in the for loop.")
     }
 
-    abstract operator fun plus(other: T): T
+    abstract operator fun plus(other: V): V
 
-    protected fun sumCoordinates(other: T): DoubleArray {
+    protected fun sumCoordinates(other: V): List<T> {
         require(size == other.size)
-        return coords.indices.map { i -> this[i] + other[i] }.toDoubleArray()
+        return coords.indices.map { i -> type.plus(this[i], other[i]) }
     }
 
-    abstract operator fun minus(other: T): T
+    abstract operator fun minus(other: V): V
 
-    protected fun subtractCoordinates(other: T): DoubleArray {
+    protected fun subtractCoordinates(other: V): List<T> {
         require(size == other.size)
-        return coords.indices.map { i -> this[i] - other[i] }.toDoubleArray()
+        return coords.indices.map { i -> type.minus(this[i], other[i]) }
     }
 
-    abstract operator fun times(other: Double): T
+    abstract operator fun times(other: Double): V
 
-    protected fun scalarMulCoordinates(other: Double): DoubleArray = coords.indices.map { i -> this[i] * other }.toDoubleArray()
+    protected fun scalarMulCoordinates(other: T): List<T> = coords.indices.map { i -> type.times(this[i], other) }
 
-    abstract operator fun div(other: Double): T
+    abstract operator fun div(other: Double): V
 
-    protected fun scalarDivCoordinates(other: Double) = coords.indices.map { i -> this[i] / other }.toDoubleArray()
+    protected fun scalarDivCoordinates(other: T) = coords.indices.map { i -> type.div(this[i], other) }
 
-    fun dotProd(other: RVector<T>): Double {
-        return coords.indices.map { this[it] * other[it] }.sum()
+    fun dotProd(other: RVector<V, T>): T {
+        return type.sum(coords.indices.map { type.times(this[it], other[it]) })
     }
 
-    abstract fun abs(): T
+    abstract fun abs(): V
 
-    protected fun absCoordinates(): DoubleArray {
-        return coords.indices.map { i -> abs(this[i]) }.toDoubleArray()
+    protected fun absCoordinates(): List<T> {
+        return coords.indices.map { i -> type.abs(this[i]) }
     }
 
     override fun equals(other: Any?): Boolean {
         if (!this::class.isInstance(other)) {
             return false
         }
-        return this.size == (other as T).size && this.coords.indices.all { i -> this[i] == other[i] }
+        return this.size == (other as V).size && this.coords.indices.all { i -> this[i] == other[i] }
     }
 
-    fun approxEquals(other: T, margin: Double = 1e-15): Boolean {
-        return coords.indices.all { i -> abs(this[i] - other[i]) < margin }
+    fun approxEquals(other: V, margin: Double = 1e-15): Boolean {
+        return coords.indices.all { i -> type.abs(type.minus(this[i], other[i])).toDouble() < margin }
     }
 
     /**
@@ -116,7 +156,7 @@ abstract class RVector<T>(val coords: DoubleArray) : Comparable<RVector<T>> wher
     override fun hashCode(): Int {
         var value: Long = 17
         coords.forEach { c ->
-            value += 37 * value + java.lang.Double.doubleToLongBits(abs(c))
+            value += 37 * value + java.lang.Double.doubleToLongBits(type.abs(c).toDouble())
         }
         return (value xor (value ushr 32)).toInt()
     }
@@ -137,7 +177,7 @@ abstract class RVector<T>(val coords: DoubleArray) : Comparable<RVector<T>> wher
  * @since 1.0
  */
 @Strictfp
-class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVector<R2Vector>(doubleArrayOf(x, y)) {
+class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVector<R2Vector, Double>(listOf(x, y), DoubleType()) {
 
     /**
      * Create a R2Vector instance from Int values.
@@ -147,7 +187,7 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
      */
     constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
 
-    constructor(coord: DoubleArray) : this(coord[0], coord[1]) {
+    constructor(coord: List<Double>) : this(coord[0], coord[1]) {
         require(coord.size == 2) { "Points must have exactly 2 coordinates" }
     }
 
@@ -201,7 +241,7 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
 typealias R2Point = R2Vector
 
 @Strictfp
-class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : RVector<R3Vector>(doubleArrayOf(x, y, z)) {
+class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : RVector<R3Vector, Double>(listOf(x, y, z), DoubleType()) {
 
     /**
      * Create a R3Vector instance from Int values.
@@ -212,7 +252,7 @@ class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Do
      */
     constructor(x: Int, y: Int, z: Int) : this(x.toDouble(), y.toDouble(), z.toDouble())
 
-    constructor(coord: DoubleArray) : this(coord[0], coord[1], coord[2]) {
+    constructor(coord: List<Double>) : this(coord[0], coord[1], coord[2]) {
         require(coord.size == 3) { "Points must have exactly 3 coordinates" }
     }
 

@@ -184,8 +184,7 @@ public strictfp class S2PolygonTest extends GeometryTestCase {
     assertRelation(nf2n2f210s210ab, n32s0b, 1, true);
   }
 
-  private void assertPointApproximatelyEquals(
-      S2Loop s2Loop, int vertexIndex, double lat, double lng, double error) {
+  private void assertPointApproximatelyEquals(S2Loop s2Loop, int vertexIndex, double lat, double lng, double error) {
     S2LatLng latLng = new S2LatLng(s2Loop.vertex(vertexIndex));
     assertDoubleNear(latLng.latDegrees(), lat, error);
     assertDoubleNear(latLng.lngDegrees(), lng, error);

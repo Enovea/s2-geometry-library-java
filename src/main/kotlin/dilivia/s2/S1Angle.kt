@@ -268,7 +268,7 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
          * @return an angle larger than any finite angle.
          */
         @JvmStatic
-        fun infinity(): S1Angle = S1Angle(Double.MAX_VALUE)
+        val infinity: S1Angle = S1Angle(Double.MAX_VALUE)
 
         /**
          * An explicit shorthand for the default constructor.
@@ -276,7 +276,7 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
          * @return A 0.0 radians angle instance.
          */
         @JvmStatic
-        fun zero(): S1Angle = S1Angle(0.0)
+        val zero: S1Angle = S1Angle(0.0)
 
         @JvmStatic
         fun max(left: S1Angle, right: S1Angle): S1Angle {
