@@ -69,7 +69,7 @@ public final strictfp class S2Polyline implements S2Region {
     // All vertices must be unit length.
     int n = vertices.size();
     for (int i = 0; i < n; ++i) {
-      if (!S2.isUnitLength(vertices.get(i))) {
+      if (!S2Point.isUnitLength(vertices.get(i))) {
         log.info("Vertex " + i + " is not unit length");
         return false;
       }

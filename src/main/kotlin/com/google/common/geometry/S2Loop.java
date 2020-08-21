@@ -562,7 +562,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     int iThis = firstLogicalVertex;
     int iOther = b.firstLogicalVertex;
     for (int i = 0; i < maxVertices; ++i, ++iThis, ++iOther) {
-      if (!S2.approxEquals(vertex(iThis), b.vertex(iOther), maxError)) {
+      if (!S2Point.approxEquals(vertex(iThis), b.vertex(iOther), maxError)) {
         return false;
       }
     }
@@ -630,7 +630,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     }
 
     boolean inside = originInside;
-    S2Point origin = S2.origin();
+    S2Point origin = S2Point.origin();
     S2EdgeUtil.EdgeCrosser crosser = new S2EdgeUtil.EdgeCrosser(origin, p,
         vertices[numVertices - 1]);
 
@@ -713,7 +713,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
 
     // All vertices must be unit length.
     for (int i = 0; i < numVertices; ++i) {
-      if (!S2.isUnitLength(vertex(i))) {
+      if (!S2Point.isUnitLength(vertex(i))) {
         log.info("Vertex " + i + " is not unit length");
         return false;
       }
@@ -833,7 +833,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     // The test below is written so that B is inside if C=R but not if A=R.
 
     originInside = false; // Initialize before calling Contains().
-    boolean v1Inside = S2.orderedCCW(S2.ortho(vertex(1)), vertex(0), vertex(2), vertex(1));
+    boolean v1Inside = S2.orderedCCW(S2Point.ortho(vertex(1)), vertex(0), vertex(2), vertex(1));
     if (v1Inside != contains(vertex(1))) {
       originInside = true;
     }

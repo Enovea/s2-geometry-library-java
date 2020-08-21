@@ -510,10 +510,10 @@ public strictfp class S2LoopTest extends GeometryTestCase {
   @SuppressWarnings("unused")
   private void dumpCrossings(S2Loop loop) {
 
-    System.out.println("Ortho(v1): " + S2.ortho(loop.vertex(1)));
-    System.out.printf("Contains(kOrigin): %b\n", loop.contains(S2.origin()));
+    System.out.println("Ortho(v1): " + S2Point.ortho(loop.vertex(1)));
+    System.out.printf("Contains(kOrigin): %b\n", loop.contains(S2Point.origin()));
     for (int i = 1; i <= loop.numVertices(); ++i) {
-      S2Point a = S2.ortho(loop.vertex(i));
+      S2Point a = S2Point.ortho(loop.vertex(i));
       S2Point b = loop.vertex(i - 1);
       S2Point c = loop.vertex(i + 1);
       S2Point o = loop.vertex(i);
@@ -536,7 +536,7 @@ public strictfp class S2LoopTest extends GeometryTestCase {
           S2.orderedCCW(a, b, c, o));
     }
     for (int i = 0; i < loop.numVertices() + 2; ++i) {
-      S2Point orig = S2.origin();
+      S2Point orig = S2Point.origin();
       S2Point dest;
       if (i < loop.numVertices()) {
         dest = loop.vertex(i);
@@ -556,9 +556,9 @@ public strictfp class S2LoopTest extends GeometryTestCase {
     }
     for (int i = 0; i <= 2; i += 2) {
       System.out.printf("Origin->v1 crossing v%d->v1: ", i);
-      S2Point a = S2.ortho(loop.vertex(1));
+      S2Point a = S2Point.ortho(loop.vertex(1));
       S2Point b = loop.vertex(i);
-      S2Point c = S2.origin();
+      S2Point c = S2Point.origin();
       S2Point o = loop.vertex(1);
       System.out.printf("%d1R=%d, M1%d=%d, R1M=%d, crosses: %b\n",
           i,

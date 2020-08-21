@@ -137,7 +137,7 @@ public final strictfp class S2Cap implements S2Region {
    * than 2.
    */
   public boolean isValid() {
-    return S2.isUnitLength(axis) && height <= 2;
+    return S2Point.isUnitLength(axis) && height <= 2;
   }
 
   /** Return true if the cap is empty, i.e. it contains no points. */

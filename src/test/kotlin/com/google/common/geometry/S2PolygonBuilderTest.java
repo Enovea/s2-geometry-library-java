@@ -268,10 +268,10 @@ public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
       return false;
     }
     for (int offset = 0; offset < a.numVertices(); ++offset) {
-      if (S2.approxEquals(a.vertex(offset), b.vertex(0), maxError)) {
+      if (S2Point.approxEquals(a.vertex(offset), b.vertex(0), maxError)) {
         boolean success = true;
         for (int i = 0; i < a.numVertices(); ++i) {
-          if (!S2.approxEquals(a.vertex(i + offset), b.vertex(i), maxError)) {
+          if (!S2Point.approxEquals(a.vertex(i + offset), b.vertex(i), maxError)) {
             success = false;
             break;
           }

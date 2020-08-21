@@ -432,7 +432,7 @@ public strictfp class S2EdgeUtilTest extends GeometryTestCase {
             // This special value says that the result should be A or B.
             assertTrue(closest == a || closest == b);
         } else {
-            assertTrue(S2.approxEquals(closest, expectedClosest));
+            assertTrue(S2Point.approxEquals(closest, expectedClosest));
         }
     }
 

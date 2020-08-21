@@ -606,16 +606,16 @@ public strictfp class S2EdgeUtil {
     // if orderedCCW() indicates that the edge AB is further CCW around the
     // shared vertex than the edge CD.
     if (a.equals(d)) {
-      return S2.orderedCCW(S2.ortho(a), c, b, a);
+      return S2.orderedCCW(S2Point.ortho(a), c, b, a);
     }
     if (b.equals(c)) {
-      return S2.orderedCCW(S2.ortho(b), d, a, b);
+      return S2.orderedCCW(S2Point.ortho(b), d, a, b);
     }
     if (a.equals(c)) {
-      return S2.orderedCCW(S2.ortho(a), d, b, a);
+      return S2.orderedCCW(S2Point.ortho(a), d, b, a);
     }
     if (b.equals(d)) {
-      return S2.orderedCCW(S2.ortho(b), c, a, b);
+      return S2.orderedCCW(S2Point.ortho(b), c, a, b);
     }
 
     // assert (false);
@@ -760,9 +760,9 @@ public strictfp class S2EdgeUtil {
    * most accurate results.
    */
   public static S1Angle getDistance(S2Point x, S2Point a, S2Point b, S2Point aCrossB) {
-    Preconditions.checkArgument(S2.isUnitLength(x));
-    Preconditions.checkArgument(S2.isUnitLength(a));
-    Preconditions.checkArgument(S2.isUnitLength(b));
+    Preconditions.checkArgument(S2Point.isUnitLength(x));
+    Preconditions.checkArgument(S2Point.isUnitLength(a));
+    Preconditions.checkArgument(S2Point.isUnitLength(b));
 
     // There are three cases. If X is located in the spherical wedge defined by
     // A, B, and the axis A x B, then the closest point is on the segment AB.
@@ -794,9 +794,9 @@ public strictfp class S2EdgeUtil {
    *
    */
   public static S2Point getClosestPoint(S2Point x, S2Point a, S2Point b) {
-    Preconditions.checkArgument(S2.isUnitLength(x));
-    Preconditions.checkArgument(S2.isUnitLength(a));
-    Preconditions.checkArgument(S2.isUnitLength(b));
+    Preconditions.checkArgument(S2Point.isUnitLength(x));
+    Preconditions.checkArgument(S2Point.isUnitLength(a));
+    Preconditions.checkArgument(S2Point.isUnitLength(b));
 
     S2Point crossProd = S2.robustCrossProd(a, b);
     // Find the closest point to X along the great circle through AB.

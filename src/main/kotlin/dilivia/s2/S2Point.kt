@@ -13,7 +13,7 @@ import kotlin.math.atan2
 class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleType()) {
 
     @JvmOverloads
-    constructor(x: Double = 0.0, y: Double = 0.0, z: Double= 0.0) : this(listOf<Double>(x, y, z)) {}
+    constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : this(listOf<Double>(x, y, z)) {}
 
     constructor(x: Int, y: Int, z: Int) : this(x.toDouble(), y.toDouble(), z.toDouble())
 
@@ -102,7 +102,40 @@ class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleTyp
 
     override fun abs(): S2Point = S2Point(absCoordinates())
 
+
+    /**
+     * Return true if the given point is approximately unit length (this is mainly
+     * useful for assertions).
+     */
+    fun isUnitLength(): Boolean = kotlin.math.abs(norm2() - 1) <= 1e-15
+
+
     companion object {
+
+        /**
+         * Return a unit-length vector that is orthogonal to "a". Satisfies Ortho(-a)
+         * = -Ortho(a) for all a.
+         */
+        @JvmStatic
+        fun ortho(a: S2Point): S2Point? {
+            // The current implementation in S2Point has the property we need,
+            // i.e. Ortho(-a) = -Ortho(a) for all a.
+            return a.ortho()
+        }
+
+        /**
+         * Return a unique "origin" on the sphere for operations that need a fixed
+         * reference point. It should *not* be a point that is commonly used in edge
+         * tests in order to avoid triggering code to handle degenerate cases. (This
+         * rules out the north and south poles.)
+         */
+        @JvmStatic
+        fun origin(): S2Point {
+            return S2Point(0, 1, 0)
+        }
+
+        @JvmStatic
+        fun isUnitLength(p: S2Point): Boolean = p.isUnitLength()
 
         @JvmStatic
         fun minus(p1: S2Point, p2: S2Point): S2Point = p1.minus(p2)
@@ -133,6 +166,17 @@ class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleTyp
             }
             return times(p, norm)
         }
+
+        /**
+         * Return true if two points are within the given distance of each other
+         * (mainly useful for testing).
+         */
+        @JvmStatic
+        fun approxEquals(a: S2Point, b: S2Point, maxError: Double): Boolean = a.angle(b) <= maxError
+
+        @JvmStatic
+        fun approxEquals(a: S2Point, b: S2Point): Boolean = approxEquals(a, b, 1e-15)
+
     }
 
 }

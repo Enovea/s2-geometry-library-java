@@ -85,9 +85,8 @@ public strictfp class S2PolylineTest extends GeometryTestCase {
         S2Polyline line = new S2Polyline(vertices);
 
         assertEquals(line.interpolate(-0.1), vertices.get(0));
-        assertTrue(S2.approxEquals(
-                line.interpolate(0.1), S2Point.normalize(new S2Point(1, Math.tan(0.2 * S2.M_PI / 2), 0))));
-        assertTrue(S2.approxEquals(line.interpolate(0.25), S2Point.normalize(new S2Point(1, 1, 0))));
+        assertTrue(S2Point.approxEquals(line.interpolate(0.1), S2Point.normalize(new S2Point(1, Math.tan(0.2 * S2.M_PI / 2), 0))));
+        assertTrue(S2Point.approxEquals(line.interpolate(0.25), S2Point.normalize(new S2Point(1, 1, 0))));
 
         assertEquals(line.interpolate(0.5), vertices.get(1));
         assertEquals(line.interpolate(0.75), vertices.get(2));
@@ -130,32 +129,27 @@ public strictfp class S2PolylineTest extends GeometryTestCase {
 
         testPoint = S2LatLng.fromDegrees(0.5, -0.5).toPoint();
         edgeIndex = line.getNearestEdgeIndex(testPoint);
-        assertTrue(S2.approxEquals(
-                line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 0).toPoint()));
+        assertTrue(S2Point.approxEquals(line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 0).toPoint()));
         assertEquals(0, edgeIndex);
 
         testPoint = S2LatLng.fromDegrees(0.5, 0.5).toPoint();
         edgeIndex = line.getNearestEdgeIndex(testPoint);
-        assertTrue(S2.approxEquals(
-                line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 0.5).toPoint()));
+        assertTrue(S2Point.approxEquals(line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 0.5).toPoint()));
         assertEquals(0, edgeIndex);
 
         testPoint = S2LatLng.fromDegrees(0.5, 1).toPoint();
         edgeIndex = line.getNearestEdgeIndex(testPoint);
-        assertTrue(S2.approxEquals(
-                line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 1).toPoint()));
+        assertTrue(S2Point.approxEquals(line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 1).toPoint()));
         assertEquals(0, edgeIndex);
 
         testPoint = S2LatLng.fromDegrees(-0.5, 2.5).toPoint();
         edgeIndex = line.getNearestEdgeIndex(testPoint);
-        assertTrue(S2.approxEquals(
-                line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 2).toPoint()));
+        assertTrue(S2Point.approxEquals(line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(0, 2).toPoint()));
         assertEquals(1, edgeIndex);
 
         testPoint = S2LatLng.fromDegrees(2, 2).toPoint();
         edgeIndex = line.getNearestEdgeIndex(testPoint);
-        assertTrue(S2.approxEquals(
-                line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(1, 2).toPoint()));
+        assertTrue(S2Point.approxEquals(line.projectToEdge(testPoint, edgeIndex), S2LatLng.fromDegrees(1, 2).toPoint()));
         assertEquals(2, edgeIndex);
     }
 

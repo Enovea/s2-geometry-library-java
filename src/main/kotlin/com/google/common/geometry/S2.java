@@ -233,24 +233,6 @@ public final strictfp class S2 {
   }
 
   /**
-   * Return a unique "origin" on the sphere for operations that need a fixed
-   * reference point. It should *not* be a point that is commonly used in edge
-   * tests in order to avoid triggering code to handle degenerate cases. (This
-   * rules out the north and south poles.)
-   */
-  public static S2Point origin() {
-    return new S2Point(0, 1, 0);
-  }
-
-  /**
-   * Return true if the given point is approximately unit length (this is mainly
-   * useful for assertions).
-   */
-  public static boolean isUnitLength(S2Point p) {
-    return Math.abs(p.norm2() - 1) <= 1e-15;
-  }
-
-  /**
    * Return true if edge AB crosses CD at a point that is interior to both
    * edges. Properties:
    *
@@ -305,17 +287,7 @@ public final strictfp class S2 {
 
     // The only result that makes sense mathematically is to return zero, but
     // we find it more convenient to return an arbitrary orthogonal vector.
-    return ortho(a);
-  }
-
-  /**
-   * Return a unit-length vector that is orthogonal to "a". Satisfies Ortho(-a)
-   * = -Ortho(a) for all a.
-   */
-  public static S2Point ortho(S2Point a) {
-    // The current implementation in S2Point has the property we need,
-    // i.e. Ortho(-a) = -Ortho(a) for all a.
-    return a.ortho();
+    return S2Point.ortho(a);
   }
 
   /**
@@ -778,18 +750,6 @@ public final strictfp class S2 {
     // it ensures that turnAngle(a,b,c) == -turnAngle(c,b,a) for all a,b,c.
     double outAngle = S2Point.crossProd(b, a).angle(S2Point.crossProd(c, b));
     return (robustCCW(a, b, c) > 0) ? outAngle : -outAngle;
-  }
-
-  /**
-   * Return true if two points are within the given distance of each other
-   * (mainly useful for testing).
-   */
-  public static boolean approxEquals(S2Point a, S2Point b, double maxError) {
-    return a.angle(b) <= maxError;
-  }
-
-  public static boolean approxEquals(S2Point a, S2Point b) {
-    return approxEquals(a, b, 1e-15);
   }
 
   public static boolean approxEquals(double a, double b, double maxError) {

@@ -67,7 +67,7 @@ public strictfp class S2LatLngTest extends GeometryTestCase {
     // Test a bunch of random points.
     for (int i = 0; i < 100000; ++i) {
       S2Point p = randomPoint();
-      assertTrue(S2.approxEquals(p, new S2LatLng(p).toPoint()));
+      assertTrue(S2Point.approxEquals(p, new S2LatLng(p).toPoint()));
     }
 
     // Test generation from E5
