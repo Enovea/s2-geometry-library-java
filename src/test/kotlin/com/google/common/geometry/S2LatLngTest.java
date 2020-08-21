@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 public strictfp class S2LatLngTest extends GeometryTestCase {
 

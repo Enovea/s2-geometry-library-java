@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.base.Preconditions;
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 /**
  * This class contains various utility functions related to edges. It collects
@@ -267,16 +268,16 @@ public strictfp class S2EdgeUtil {
     public void addEdgeToBounds(S2Point from, S2Point to) {
       if (!boundSet) {
         boundSet = true;
-        xmin = xmax = from.x;
-        ymin = ymax = from.y;
-        zmin = zmax = from.z;
+        xmin = xmax = from.x();
+        ymin = ymax = from.y();
+        zmin = zmax = from.z();
       }
-      xmin = Math.min(xmin, Math.min(to.x, from.x));
-      ymin = Math.min(ymin, Math.min(to.y, from.y));
-      zmin = Math.min(zmin, Math.min(to.z, from.z));
-      xmax = Math.max(xmax, Math.max(to.x, from.x));
-      ymax = Math.max(ymax, Math.max(to.y, from.y));
-      zmax = Math.max(zmax, Math.max(to.z, from.z));
+      xmin = Math.min(xmin, Math.min(to.x(), from.x()));
+      ymin = Math.min(ymin, Math.min(to.y(), from.y()));
+      zmin = Math.min(zmin, Math.min(to.z(), from.z()));
+      xmax = Math.max(xmax, Math.max(to.x(), from.x()));
+      ymax = Math.max(ymax, Math.max(to.y(), from.y()));
+      zmax = Math.max(zmax, Math.max(to.z(), from.z()));
 
       // Because our arcs are really geodesics on the surface of the earth
       // an edge can have intermediate points outside the xyz bounds implicit
@@ -285,8 +286,7 @@ public strictfp class S2EdgeUtil {
       // it will be very small but for some large arcs (ie. from (1N,90W) to
       // (1N,90E) the path can be wildly deformed.  I did a bunch of
       // experiments with geodesics to get safe bounds for the deformation.
-      double approxArcLen =
-          Math.abs(from.x - to.x) + Math.abs(from.y - to.y) + Math.abs(from.z - to.z);
+      double approxArcLen = Math.abs(from.x() - to.x()) + Math.abs(from.y() - to.y()) + Math.abs(from.z() - to.z());
       if (approxArcLen < 0.025) { // less than 2 degrees
         maxDeformation = Math.max(maxDeformation, approxArcLen * 0.0025);
       } else if (approxArcLen < 1.0) { // less than 90 degrees
@@ -315,11 +315,11 @@ public strictfp class S2EdgeUtil {
     public boolean intersects(S2Point v1) {
       boolean result = true;
 
-      if ((v1.x < xmin && lastVertex.x < xmin) || (v1.x > xmax && lastVertex.x > xmax)) {
+      if ((v1.x() < xmin && lastVertex.x() < xmin) || (v1.x() > xmax && lastVertex.x() > xmax)) {
         result = false;
-      } else if ((v1.y < ymin && lastVertex.y < ymin) || (v1.y > ymax && lastVertex.y > ymax)) {
+      } else if ((v1.y() < ymin && lastVertex.y() < ymin) || (v1.y() > ymax && lastVertex.y() > ymax)) {
         result = false;
-      } else if ((v1.z < zmin && lastVertex.z < zmin) || (v1.z > zmax && lastVertex.z > zmax)) {
+      } else if ((v1.z() < zmin && lastVertex.z() < zmin) || (v1.z() > zmax && lastVertex.z() > zmax)) {
         result = false;
       }
 
@@ -661,7 +661,7 @@ public strictfp class S2EdgeUtil {
       // If the squared distance from x to y is less than dmin2, then replace
       // vmin by y and update dmin2 accordingly.
       double d2 = S2Point.minus(x, y).norm2();
-      if (d2 < dmin2 || (d2 == dmin2 && y.lessThan(vmin))) {
+      if (d2 < dmin2 || (d2 == dmin2 && y.compareTo(vmin) < 0)) {
         dmin2 = d2;
         vmin = y;
       }
@@ -695,8 +695,8 @@ public strictfp class S2EdgeUtil {
     // (a0 + a1) and (b0 + b1) both have positive dot product with the
     // intersection point. We use the sum of all vertices to make sure that the
     // result is unchanged when the edges are reversed or exchanged.
-    if (x.dotProd(S2Point.add(S2Point.add(a0, a1), S2Point.add(b0, b1))) < 0) {
-      x = S2Point.neg(x);
+    if (x.dotProd(S2Point.plus(S2Point.plus(a0, a1), S2Point.plus(b0, b1))) < 0) {
+      x = S2Point.unaryMinus(x);
     }
 
     // The calculation above is sufficient to ensure that "x" is within
@@ -800,7 +800,7 @@ public strictfp class S2EdgeUtil {
 
     S2Point crossProd = S2.robustCrossProd(a, b);
     // Find the closest point to X along the great circle through AB.
-    S2Point p = S2Point.minus(x, S2Point.mul(crossProd, x.dotProd(crossProd) / crossProd.norm2()));
+    S2Point p = S2Point.minus(x, S2Point.times(crossProd, x.dotProd(crossProd) / crossProd.norm2()));
 
     // If p is on the edge AB, then it's the closest point.
     if (S2.simpleCCW(crossProd, a, p) && S2.simpleCCW(p, b, crossProd)) {

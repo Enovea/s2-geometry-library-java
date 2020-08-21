@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -325,19 +326,19 @@ public abstract strictfp class S2EdgeIndex {
         // 'needs covering' case, so we won't try to thicken the edge.
         containingCellId = (new S2CellId(0xFFF0)).parent(3);
       } else {
-        S2Point pq = S2Point.mul(S2Point.minus(b, a), THICKENING);
+        S2Point pq = S2Point.times(S2Point.minus(b, a), THICKENING);
         S2Point ortho =
-            S2Point.mul(S2Point.normalize(S2Point.crossProd(pq, a)), edgeLength * THICKENING);
+            S2Point.times(S2Point.normalize(S2Point.crossProd(pq, a)), edgeLength * THICKENING);
         S2Point p = S2Point.minus(a, pq);
-        S2Point q = S2Point.add(b, pq);
+        S2Point q = S2Point.plus(b, pq);
         // If p and q were antipodal, the edge wouldn't be lengthened,
         // and it could even flip! This is not a problem because
         // idealLevel != 0 here. The farther p and q can be is roughly
         // a quarter Earth away from each other, so we remain
         // Theta(THICKENING).
         containingCellId =
-            containingCell(S2Point.minus(p, ortho), S2Point.add(p, ortho), S2Point.minus(q, ortho),
-                S2Point.add(q, ortho));
+            containingCell(S2Point.minus(p, ortho), S2Point.plus(p, ortho), S2Point.minus(q, ortho),
+                S2Point.plus(q, ortho));
       }
     }
 
@@ -367,7 +368,7 @@ public abstract strictfp class S2EdgeIndex {
     // Cover the edge by a cap centered at the edge midpoint, then cover
     // the cap by four big-enough cells around the cell vertex closest to the
     // cap center.
-    S2Point middle = S2Point.normalize(S2Point.div(S2Point.add(a, b), 2));
+    S2Point middle = S2Point.normalize(S2Point.div(S2Point.plus(a, b), 2));
     int actualLevel = Math.min(idealLevel, S2CellId.MAX_LEVEL - 1);
     S2CellId.fromPoint(middle).getVertexNeighbors(actualLevel, edgeCovering);
     return actualLevel;

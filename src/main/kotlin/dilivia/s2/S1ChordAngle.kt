@@ -3,7 +3,6 @@ package dilivia.s2
 import com.google.common.geometry.S2
 import com.google.common.geometry.S2.DBL_EPSILON
 import com.google.common.geometry.S2.M_PI
-import com.google.common.geometry.S2Point
 import kotlin.math.*
 
 /**
@@ -26,6 +25,7 @@ import kotlin.math.*
  * @author Fabien Meurisse <fabien.meurisse@enovea.net>
  * @since 1.0
  */
+@Strictfp
 open class S1ChordAngle protected constructor(open val length2: Double) : Comparable<S1ChordAngle> {
 
     init {
@@ -38,7 +38,7 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
 
     // Construct the S1ChordAngle corresponding to the distance between the two
     // given points.  The points must be unit length.
-    constructor(x: S2Point, y: S2Point) : this(min(4.0, S2Point.sub(x, y).norm2())) {
+    constructor(x: S2Point, y: S2Point) : this(min(4.0, S2Point.minus(x, y).norm2())) {
         check(S2.isUnitLength(x))
         check(S2.isUnitLength(y))
         // The squared distance may slightly exceed 4.0 due to roundoff errors.

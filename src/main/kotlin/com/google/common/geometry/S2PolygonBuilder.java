@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.Collection;
 import java.util.List;
@@ -532,7 +533,7 @@ public strictfp class S2PolygonBuilder {
         if (mergeMap.get(v0) != null || mergeMap.get(v1) != null) {
 
           // We only need to modify one copy of each undirected edge.
-          if (!options.getUndirectedEdges() || v0.lessThan(v1)) {
+          if (!options.getUndirectedEdges() || v0.compareTo(v1) < 0) {
             edgesCopy.add(new S2Edge(v0, v1));
           }
         }

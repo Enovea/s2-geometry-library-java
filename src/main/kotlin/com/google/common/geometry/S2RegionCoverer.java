@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
+import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -314,7 +315,7 @@ public final strictfp class S2RegionCoverer {
    * given level that cover the region.
    */
   public static void getSimpleCovering(
-      S2Region region, S2Point start, int level, ArrayList<S2CellId> output) {
+          S2Region region, S2Point start, int level, ArrayList<S2CellId> output) {
     floodFill(region, S2CellId.fromPoint(start).parent(level), output);
   }
 

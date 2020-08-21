@@ -18,6 +18,7 @@ package com.google.common.geometry;
 import com.google.common.base.Preconditions;
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 /**
  * An S2LatLngRect represents a latitude-longitude rectangle. It is capable of
@@ -123,7 +124,7 @@ public strictfp class S2LatLngRect implements S2Region {
     }
     // Minimum/maximum latitude occurs in the edge interior. This affects the
     // latitude bounds but not the longitude bounds.
-    double absLat = Math.acos(Math.abs(ab.z / ab.norm()));
+    double absLat = Math.acos(Math.abs(ab.z() / ab.norm()));
     if (da < 0) {
       return new S2LatLngRect(new R1Interval(r.lat().getLo(), absLat), r.lng());
     } else {
@@ -684,8 +685,8 @@ public strictfp class S2LatLngRect implements S2Region {
 
     // First, compute the normal to the plane AB that points vaguely north.
     S2Point z = S2Point.normalize(S2.robustCrossProd(a, b));
-    if (z.z < 0) {
-      z = S2Point.neg(z);
+    if (z.z() < 0) {
+      z = S2Point.unaryMinus(z);
     }
 
     // Extend this to an orthonormal frame (x,y,z) where x is the direction
@@ -697,11 +698,11 @@ public strictfp class S2LatLngRect implements S2Region {
     // Compute the angle "theta" from the x-axis (in the x-y plane defined
     // above) where the great circle intersects the given line of latitude.
     double sinLat = Math.sin(lat);
-    if (Math.abs(sinLat) >= x.z) {
+    if (Math.abs(sinLat) >= x.z()) {
       return false; // The great circle does not reach the given latitude.
     }
     // assert (x.z > 0);
-    double cosTheta = sinLat / x.z;
+    double cosTheta = sinLat / x.z();
     double sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
     double theta = Math.atan2(sinTheta, cosTheta);
 
@@ -716,16 +717,16 @@ public strictfp class S2LatLngRect implements S2Region {
 
     if (abTheta.contains(theta)) {
       // Check if the intersection point is also in the given "lng" interval.
-      S2Point isect = S2Point.add(S2Point.mul(x, cosTheta), S2Point.mul(y,
+      S2Point isect = S2Point.plus(S2Point.times(x, cosTheta), S2Point.times(y,
         sinTheta));
-      if (lng.contains(Math.atan2(isect.y, isect.x))) {
+      if (lng.contains(Math.atan2(isect.y(), isect.x()))) {
         return true;
       }
     }
     if (abTheta.contains(-theta)) {
       // Check if the intersection point is also in the given "lng" interval.
-      S2Point intersection = S2Point.sub(S2Point.mul(x, cosTheta), S2Point.mul(y, sinTheta));
-      if (lng.contains(Math.atan2(intersection.y, intersection.x))) {
+      S2Point intersection = S2Point.minus(S2Point.times(x, cosTheta), S2Point.times(y, sinTheta));
+      if (lng.contains(Math.atan2(intersection.y(), intersection.x()))) {
         return true;
       }
     }

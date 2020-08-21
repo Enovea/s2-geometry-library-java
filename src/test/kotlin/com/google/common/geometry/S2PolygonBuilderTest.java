@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -254,7 +255,7 @@ public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
       S2Point p = line.vertex(i);
       // (p[0]*x + p[1]*y + p[2]*z).Normalize()
       S2Point axis = S2Point.normalize(
-          S2Point.add(S2Point.add(S2Point.mul(x, p.x), S2Point.mul(y, p.y)), S2Point.mul(z, p.z)));
+          S2Point.plus(S2Point.plus(S2Point.times(x, p.x()), S2Point.times(y, p.y())), S2Point.times(z, p.z())));
       S2Cap cap = S2Cap.fromAxisAngle(axis, S1Angle.radians(maxPerturbation));
       vertices.add(samplePoint(cap));
     }
@@ -306,7 +307,7 @@ public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
       S2Loop loop = actual.get(i);
       for (int j = 0; j < loop.numVertices(); ++j) {
         S2Point p = loop.vertex(j);
-        System.err.print("   [" + p.x + ", " + p.y + ", " + p.z + "]\n");
+        System.err.print("   [" + p.x() + ", " + p.y() + ", " + p.z() + "]\n");
       }
       found = true;
     }

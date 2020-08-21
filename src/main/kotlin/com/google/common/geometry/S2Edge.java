@@ -16,6 +16,8 @@
 
 package com.google.common.geometry;
 
+import dilivia.s2.S2Point;
+
 /**
  * An abstract directed edge from one S2Point to another S2Point.
  *

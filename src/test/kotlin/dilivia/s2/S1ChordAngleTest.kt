@@ -1,14 +1,11 @@
 package dilivia.s2
 
 import com.google.common.geometry.GeometryTestCase
-import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Point
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tan
-import kotlin.random.Random
 
 class S1ChordAngleTest : GeometryTestCase() {
 
@@ -25,9 +22,9 @@ class S1ChordAngleTest : GeometryTestCase() {
             val y = frame[1]
             val z = frame[2]
             assertEquals(S1Angle.zero, S1ChordAngle(z, z).toAngle())
-            assertEquals(M_PI, S1ChordAngle(S2Point.neg(z), z).radians(), 1e-7)
+            assertEquals(M_PI, S1ChordAngle(S2Point.unaryMinus(z), z).radians(), 1e-7)
             assertEquals(M_PI_2, S1ChordAngle(x, z).radians(), 1e-15)
-            val w = S2Point.normalize(S2Point.add(y, z))
+            val w = S2Point.normalize(S2Point.plus(y, z))
             assertEquals(M_PI_4, S1ChordAngle(w, z).radians(), 1e-15)
         }
     }

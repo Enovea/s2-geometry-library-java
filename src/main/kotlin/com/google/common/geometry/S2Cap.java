@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 /**
  * This class represents a spherical cap, i.e. a portion of a sphere cut off by
@@ -159,7 +160,7 @@ public final strictfp class S2Cap implements S2Region {
     // The complement of a full cap is an empty cap, not a singleton.
     // Also make sure that the complement of an empty cap has height 2.
     double cHeight = isFull() ? -1 : 2 - Math.max(height, 0.0);
-    return S2Cap.fromAxisHeight(S2Point.neg(axis), cHeight);
+    return S2Cap.fromAxisHeight(S2Point.unaryMinus(axis), cHeight);
   }
 
   /**
@@ -192,7 +193,7 @@ public final strictfp class S2Cap implements S2Region {
    */
   public boolean interiorContains(S2Point p) {
     // assert (S2.isUnitLength(p));
-    return isFull() || S2Point.sub(axis, p).norm2() < 2 * height;
+    return isFull() || S2Point.minus(axis, p).norm2() < 2 * height;
   }
 
   /**
@@ -209,7 +210,7 @@ public final strictfp class S2Cap implements S2Region {
       // To make sure that the resulting cap actually includes this point,
       // we need to round up the distance calculation. That is, after
       // calling cap.AddPoint(p), cap.Contains(p) should be true.
-      double dist2 = S2Point.sub(axis, p).norm2();
+      double dist2 = S2Point.minus(axis, p).norm2();
       double newHeight = Math.max(height, ROUND_UP * 0.5 * dist2);
       return new S2Cap(axis, newHeight);
     }
@@ -387,7 +388,7 @@ public final strictfp class S2Cap implements S2Region {
   public boolean contains(S2Point p) {
     // The point 'p' should be a unit-length vector.
     // assert (S2.isUnitLength(p));
-    return S2Point.sub(axis, p).norm2() <= 2 * height;
+    return S2Point.minus(axis, p).norm2() <= 2 * height;
 
   }
 
@@ -429,7 +430,7 @@ public final strictfp class S2Cap implements S2Region {
    * the given cap "other".
    */
   boolean approxEquals(S2Cap other, double maxError) {
-    return (axis.aequal(other.axis, maxError) && Math.abs(height - other.height) <= maxError)
+    return (axis.approxEquals(other.axis, maxError) && Math.abs(height - other.height) <= maxError)
       || (isEmpty() && other.height <= maxError)
       || (other.isEmpty() && height <= maxError)
       || (isFull() && other.height >= 2 - maxError)

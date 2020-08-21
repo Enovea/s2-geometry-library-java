@@ -17,10 +17,8 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
 import com.google.common.geometry.S2.M_PI
 import com.google.common.geometry.S2LatLng
-import com.google.common.geometry.S2Point
 import java.util.*
 import kotlin.math.IEEErem
 import kotlin.math.roundToLong

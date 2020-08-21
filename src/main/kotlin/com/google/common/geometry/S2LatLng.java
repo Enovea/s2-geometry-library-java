@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 /**
  * This class represents a point on the unit sphere as a pair of
@@ -105,7 +106,7 @@ public strictfp class S2LatLng {
    * TODO(dbeaumont): Make this a static factory method (fromPoint() ?).
    */
   public S2LatLng(S2Point p) {
-    this(Math.atan2(p.z, Math.sqrt(p.x * p.x + p.y * p.y)), Math.atan2(p.y, p.x));
+    this(Math.atan2(p.z(), Math.sqrt(p.x() * p.x() + p.y() * p.y())), Math.atan2(p.y(), p.x()));
     // The latitude and longitude are already normalized. We use atan2 to
     // compute the latitude because the input vector is not necessarily unit
     // length, and atan2 is much more accurate than asin near the poles.

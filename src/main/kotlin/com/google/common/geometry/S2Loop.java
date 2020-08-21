@@ -22,6 +22,7 @@ import com.google.common.geometry.S2EdgeIndex.DataEdgeIterator;
 import com.google.common.geometry.S2EdgeUtil.EdgeCrosser;
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.HashMap;
 import java.util.List;
@@ -307,8 +308,8 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     int axis = (origin.largestAbsComponent() + 1) % 3;
     double slightlyDisplaced = origin.get(axis) + S2.M_E * 1e-10;
     origin =
-        new S2Point((axis == 0) ? slightlyDisplaced : origin.x,
-            (axis == 1) ? slightlyDisplaced : origin.y, (axis == 2) ? slightlyDisplaced : origin.z);
+        new S2Point((axis == 0) ? slightlyDisplaced : origin.x(),
+            (axis == 1) ? slightlyDisplaced : origin.y(), (axis == 2) ? slightlyDisplaced : origin.z());
     origin = S2Point.normalize(origin);
 
     double areaSum = 0;
@@ -318,7 +319,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
       if (doCentroid) {
         // The true centroid is already premultiplied by the triangle area.
         S2Point trueCentroid = S2.trueCentroid(origin, vertex(i - 1), vertex(i));
-        centroidSum = S2Point.add(centroidSum, trueCentroid);
+        centroidSum = S2Point.plus(centroidSum, trueCentroid);
       }
     }
     // The calculated area at this point should be between -4*Pi and 4*Pi,

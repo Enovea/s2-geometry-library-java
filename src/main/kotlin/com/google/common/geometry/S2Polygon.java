@@ -23,6 +23,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.TreeMultimap;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -297,9 +298,9 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
       if (doCentroid) {
         S2Point currentCentroid = areaCentroid.getCentroid();
         centroidSum =
-            new S2Point(centroidSum.x + loopSign * currentCentroid.x,
-                centroidSum.y + loopSign * currentCentroid.y,
-                centroidSum.z + loopSign * currentCentroid.z);
+            new S2Point(centroidSum.x() + loopSign * currentCentroid.x(),
+                centroidSum.y() + loopSign * currentCentroid.y(),
+                centroidSum.z() + loopSign * currentCentroid.z());
       }
     }
 

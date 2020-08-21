@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import dilivia.s2.S2Point;
 import junit.framework.TestCase;
 
 import java.util.List;
@@ -39,7 +40,7 @@ public abstract strictfp class GeometryTestCase extends TestCase {
   }
 
   public void assertDoubleNear(double a, double b, double error) {
-    assertTrue(a + error > b);
+    assertTrue("a (=" + a + ") + error (=" + error + ") is not > b (=" + b + ")", a + error > b);
     assertTrue(a < b + error);
   }
 
@@ -157,9 +158,9 @@ public abstract strictfp class GeometryTestCase extends TestCase {
     double r = Math.sqrt(h * (2 - h)); // Radius of circle.
 
     // (cos(theta)*r*x + sin(theta)*r*y + (1-h)*z).Normalize()
-    return S2Point.normalize(S2Point.add(
-        S2Point.add(S2Point.mul(x, Math.cos(theta) * r), S2Point.mul(y, Math.sin(theta) * r)),
-        S2Point.mul(z, (1 - h))));
+    return S2Point.normalize(S2Point.plus(
+        S2Point.plus(S2Point.times(x, Math.cos(theta) * r), S2Point.times(y, Math.sin(theta) * r)),
+        S2Point.times(z, (1 - h))));
   }
 
   static void parseVertices(String str, List<S2Point> vertices) {

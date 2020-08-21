@@ -38,10 +38,13 @@ interface FloatingPointType<T: Number> {
     fun abs(a: T): T
 
     fun sum(values: List<T>): T
+
+    fun equals(v1: T, v2: T): Boolean
 }
 
+@Strictfp
 class DoubleType() : FloatingPointType<Double> {
-    override fun sqrt(v: Double): Double = sqrt(v)
+    override fun sqrt(v: Double): Double = kotlin.math.sqrt(v)
 
     override fun plus(a: Double, b: Double): Double = a + b
 
@@ -53,15 +56,19 @@ class DoubleType() : FloatingPointType<Double> {
 
     override fun div(a: Double, b: Double): Double = a / b
 
-    override fun abs(a: Double): Double = abs(a)
+    override fun abs(a: Double): Double = kotlin.math.abs(a)
 
     override fun sum(values: List<Double>): Double = values.sum()
 
+    override fun equals(v1: Double, v2: Double): Boolean {
+        return v1 == v2
+    }
 }
 
 /**
  *
  */
+@Strictfp
 abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>) : Comparable<RVector<V, T>> where V : RVector<V, T>, T : Number,  T: Comparable<T> {
 
     val size: Int
@@ -122,6 +129,8 @@ abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>
 
     abstract operator fun times(other: Double): V
 
+    operator fun unaryMinus(): V = this * -1.0
+
     protected fun scalarMulCoordinates(other: T): List<T> = coords.indices.map { i -> type.times(this[i], other) }
 
     abstract operator fun div(other: Double): V
@@ -142,7 +151,7 @@ abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>
         if (!this::class.isInstance(other)) {
             return false
         }
-        return this.size == (other as V).size && this.coords.indices.all { i -> this[i] == other[i] }
+        return this.size == (other as V).size && this.coords.indices.all { i -> type.equals(this[i], other[i]) }
     }
 
     fun approxEquals(other: V, margin: Double = 1e-15): Boolean {
@@ -241,7 +250,7 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
 typealias R2Point = R2Vector
 
 @Strictfp
-class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : RVector<R3Vector, Double>(listOf(x, y, z), DoubleType()) {
+open class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : RVector<R3Vector, Double>(listOf(x, y, z), DoubleType()) {
 
     /**
      * Create a R3Vector instance from Int values.
@@ -256,11 +265,14 @@ class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Do
         require(coord.size == 3) { "Points must have exactly 3 coordinates" }
     }
 
-    fun x(): Double = coords[0]
+    val x: Double
+            get() = coords[0]
 
-    fun y(): Double = coords[1]
+    val y: Double
+        get()= coords[1]
 
-    fun z(): Double = coords[2]
+    val z: Double
+            get() = coords[2]
 
     override fun sqrt(): R3Vector = R3Vector(sqrtCoordinates())
 
@@ -275,9 +287,9 @@ class R3Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0, z: Do
     override operator fun div(other: Double): R3Vector = R3Vector(scalarDivCoordinates(other))
 
     fun crossProd(other: R3Vector): R3Vector = R3Vector(
-            x = y() * other.z() - z() * other.y(),
-            y = z() * other.x() - x() * other.z(),
-            z = x() * other.y() - y() * other.x()
+            x = y * other.z - z * other.y,
+            y = z * other.x - x * other.z,
+            z = x * other.y - y * other.x
     )
 
     override fun ortho(): R3Vector {

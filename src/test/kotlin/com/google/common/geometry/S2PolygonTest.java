@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.List;
 
@@ -324,7 +325,7 @@ public strictfp class S2PolygonTest extends GeometryTestCase {
 
     // A non-vertex point on an edge should be distance 0
     assertEquals(0d, rect.getDistance(
-        S2Point.normalize(S2Point.add(rect.loop(0).vertex(0), rect.loop(0).vertex(1)))).getRadians(),
+        S2Point.normalize(S2Point.plus(rect.loop(0).vertex(0), rect.loop(0).vertex(1)))).getRadians(),
         epsilon);
 
     S2Point origin = S2LatLng.fromDegrees(0, 0).toPoint();

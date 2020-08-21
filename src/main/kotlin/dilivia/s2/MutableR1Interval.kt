@@ -25,6 +25,7 @@ import kotlin.math.min
  * @author Fabien Meurisse <fabien.meurisse@enovea.net>
  * @since 1.0
  */
+@Strictfp
 class MutableR1Interval(override var lo: Double, override var hi: Double): R1Interval(lo, hi) {
 
     constructor(lo: Int, hi: Int): this(lo.toDouble(), hi.toDouble())

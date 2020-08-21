@@ -1,5 +1,6 @@
 package dilivia.s2
 
+@Strictfp
 class MutableR2Rect(override var x: MutableR1Interval, override var y: MutableR1Interval) : R2Rect(x, y) {
 
     operator fun set(idx: Int, v: MutableR1Interval) {

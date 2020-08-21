@@ -3,6 +3,7 @@ package dilivia.s2
 import com.google.common.geometry.S2
 import kotlin.math.IEEErem
 
+@Strictfp
 class MutableS1Angle(override var radians: Double) : S1Angle(radians) {
 
     /**

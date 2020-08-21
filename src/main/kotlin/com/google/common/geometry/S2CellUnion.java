@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -423,7 +424,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
     S2Point centroid = new S2Point(0, 0, 0);
     for (S2CellId id : this) {
       double area = S2Cell.averageArea(id.level());
-      centroid = S2Point.add(centroid, S2Point.mul(id.toPoint(), area));
+      centroid = S2Point.plus(centroid, S2Point.times(id.toPoint(), area));
     }
     if (centroid.equals(new S2Point(0, 0, 0))) {
       centroid = new S2Point(1, 0, 0);

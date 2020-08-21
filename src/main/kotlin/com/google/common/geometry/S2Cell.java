@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import dilivia.s2.R1Interval;
 import dilivia.s2.R2Vector;
+import dilivia.s2.S2Point;
 
 /**
  * An S2Cell is an S2Region object that represents a cell. Unlike S2CellIds, it
@@ -110,9 +111,9 @@ public final strictfp class S2Cell implements S2Region {
       case 1:
         return S2Projections.getUNorm(face, uv[0][1]); // East
       case 2:
-        return S2Point.neg(S2Projections.getVNorm(face, uv[1][1])); // North
+        return S2Point.unaryMinus(S2Projections.getVNorm(face, uv[1][1])); // North
       default:
-        return S2Point.neg(S2Projections.getUNorm(face, uv[0][0])); // West
+        return S2Point.unaryMinus(S2Projections.getUNorm(face, uv[0][0])); // West
     }
   }
 
@@ -230,7 +231,7 @@ public final strictfp class S2Cell implements S2Region {
     // perpendicular to its normal. The cross product of its diagonals gives
     // the normal, and the length of the normal is twice the projected area.
     double flatArea = 0.5 * S2Point.crossProd(
-        S2Point.sub(getVertex(2), getVertex(0)), S2Point.sub(getVertex(3), getVertex(1))).norm();
+        S2Point.minus(getVertex(2), getVertex(0)), S2Point.minus(getVertex(3), getVertex(1))).norm();
 
     // Now, compensate for the curvature of the cell surface by pretending
     // that the cell is shaped like a spherical cap. The ratio of the
@@ -319,8 +320,8 @@ public final strictfp class S2Cell implements S2Region {
       // coordinate based on the axis direction and the cell's (u,v) quadrant.
       double u = uv[0][0] + uv[0][1];
       double v = uv[1][0] + uv[1][1];
-      int i = S2Projections.getUAxis(face).z == 0 ? (u < 0 ? 1 : 0) : (u > 0 ? 1 : 0);
-      int j = S2Projections.getVAxis(face).z == 0 ? (v < 0 ? 1 : 0) : (v > 0 ? 1 : 0);
+      int i = S2Projections.getUAxis(face).z() == 0 ? (u < 0 ? 1 : 0) : (u > 0 ? 1 : 0);
+      int j = S2Projections.getVAxis(face).z() == 0 ? (v < 0 ? 1 : 0) : (v > 0 ? 1 : 0);
 
 
       R1Interval lat = R1Interval.fromPointPair(getLatitude(i, j), getLatitude(1 - i, 1 - j));
@@ -408,12 +409,12 @@ public final strictfp class S2Cell implements S2Region {
 
   private double getLatitude(int i, int j) {
     S2Point p = S2Projections.faceUvToXyz(face, uv[0][i], uv[1][j]);
-    return Math.atan2(p.z, Math.sqrt(p.x * p.x + p.y * p.y));
+    return Math.atan2(p.z(), Math.sqrt(p.x() * p.x() + p.y() * p.y()));
   }
 
   private double getLongitude(int i, int j) {
     S2Point p = S2Projections.faceUvToXyz(face, uv[0][i], uv[1][j]);
-    return Math.atan2(p.y, p.x);
+    return Math.atan2(p.y(), p.x());
   }
 
   // Return the latitude or longitude of the cell vertex given by (i,j),

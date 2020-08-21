@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 public strictfp class S2CapTest extends GeometryTestCase {
 
@@ -76,12 +77,12 @@ public strictfp class S2CapTest extends GeometryTestCase {
     S2Cap tiny =
         S2Cap.fromAxisAngle(S2Point.normalize(new S2Point(1, 2, 3)), S1Angle.radians(kTinyRad));
     S2Point tangent = S2Point.normalize(S2Point.crossProd(tiny.axis(), new S2Point(3, 2, 1)));
-    assertTrue(tiny.contains(S2Point.add(tiny.axis(), S2Point.mul(tangent, 0.99 * kTinyRad))));
-    assertTrue(!tiny.contains(S2Point.add(tiny.axis(), S2Point.mul(tangent, 1.01 * kTinyRad))));
+    assertTrue(tiny.contains(S2Point.plus(tiny.axis(), S2Point.times(tangent, 0.99 * kTinyRad))));
+    assertTrue(!tiny.contains(S2Point.plus(tiny.axis(), S2Point.times(tangent, 1.01 * kTinyRad))));
 
     // Basic tests on a hemispherical cap.
     S2Cap hemi = S2Cap.fromAxisHeight(S2Point.normalize(new S2Point(1, 0, 1)), 1);
-    assertEquals(hemi.complement().axis(), S2Point.neg(hemi.axis()));
+    assertEquals(hemi.complement().axis(), S2Point.unaryMinus(hemi.axis()));
     assertEquals(hemi.complement().height(), 1.0);
     assertTrue(hemi.contains(new S2Point(1, 0, 0)));
     assertTrue(!hemi.complement().contains(new S2Point(1, 0, 0)));
@@ -113,7 +114,7 @@ public strictfp class S2CapTest extends GeometryTestCase {
         S2Cap.fromAxisAngle(new S2Point(1, 0, 0), S1Angle.radians(S2.M_PI_4 + EPS))));
     assertTrue(concave.contains(hemi));
     assertTrue(concave.interiorIntersects(hemi.complement()));
-    assertTrue(!concave.contains(S2Cap.fromAxisHeight(S2Point.neg(concave.axis()), 0.1)));
+    assertTrue(!concave.contains(S2Cap.fromAxisHeight(S2Point.unaryMinus(concave.axis()), 0.1)));
   }
 
   public void testRectBound() {

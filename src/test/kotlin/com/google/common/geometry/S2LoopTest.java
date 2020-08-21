@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import dilivia.s2.R1Interval;
+import dilivia.s2.S2Point;
 
 import java.util.List;
 import java.util.Map;
@@ -111,7 +112,7 @@ public strictfp class S2LoopTest extends GeometryTestCase {
 
     arctic80.invert();
     // The highest latitude of each edge is attained at its midpoint.
-    S2Point mid = S2Point.mul(S2Point.add(arctic80.vertex(0), arctic80.vertex(1)), 0.5);
+    S2Point mid = S2Point.times(S2Point.plus(arctic80.vertex(0), arctic80.vertex(1)), 0.5);
     assertDoubleNear(arctic80.getRectBound().latHi().getRadians(), new S2LatLng(mid).lat().getRadians());
     arctic80.invert();
 
@@ -151,11 +152,11 @@ public strictfp class S2LoopTest extends GeometryTestCase {
       List<S2Point> vertices = Lists.newArrayList();
       for (double theta = 0; theta < 2 * S2.M_PI; theta += rand.nextDouble() * maxDtheta) {
 
-        S2Point xCosThetaCosPhi = S2Point.mul(x, (Math.cos(theta) * Math.cos(phi)));
-        S2Point ySinThetaCosPhi = S2Point.mul(y, (Math.sin(theta) * Math.cos(phi)));
-        S2Point zSinPhi = S2Point.mul(z, Math.sin(phi));
+        S2Point xCosThetaCosPhi = S2Point.times(x, (Math.cos(theta) * Math.cos(phi)));
+        S2Point ySinThetaCosPhi = S2Point.times(y, (Math.sin(theta) * Math.cos(phi)));
+        S2Point zSinPhi = S2Point.times(z, Math.sin(phi));
 
-        S2Point sum = S2Point.add(S2Point.add(xCosThetaCosPhi, ySinThetaCosPhi), zSinPhi);
+        S2Point sum = S2Point.plus(S2Point.plus(xCosThetaCosPhi, ySinThetaCosPhi), zSinPhi);
 
         vertices.add(sum);
       }
@@ -173,9 +174,9 @@ public strictfp class S2LoopTest extends GeometryTestCase {
       // high probability
       assertTrue(Math.abs(area - expectedArea) >= 0.01 * kMaxDist);
 
-      S2Point expectedCentroid = S2Point.mul(z, expectedArea * (1 - 0.5 * height));
+      S2Point expectedCentroid = S2Point.times(z, expectedArea * (1 - 0.5 * height));
 
-      assertTrue(S2Point.sub(centroid, expectedCentroid).norm() <= 2 * kMaxDist);
+      assertTrue(S2Point.minus(centroid, expectedCentroid).norm() <= 2 * kMaxDist);
     }
   }
 
@@ -519,9 +520,9 @@ public strictfp class S2LoopTest extends GeometryTestCase {
       System.out.printf("Vertex %d: [%.17g, %.17g, %.17g], "
           + "%d%dR=%d, %d%d%d=%d, R%d%d=%d, inside: %b\n",
           i,
-          loop.vertex(i).x,
-          loop.vertex(i).y,
-          loop.vertex(i).z,
+          loop.vertex(i).x(),
+          loop.vertex(i).y(),
+          loop.vertex(i).z(),
           i - 1,
           i,
           S2.robustCCW(b, o, a),

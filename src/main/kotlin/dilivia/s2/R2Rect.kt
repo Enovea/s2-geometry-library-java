@@ -30,6 +30,7 @@ package dilivia.s2
  * @author Fabien Meurisse <fabien.meurisse@enovea.net>
  * @since 1.0
  */
+@Strictfp
 open class R2Rect(open val x: R1Interval, open val y: R1Interval) {
 
     init {

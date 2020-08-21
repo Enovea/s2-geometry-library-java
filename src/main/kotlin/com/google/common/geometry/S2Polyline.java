@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Point;
 
 import java.util.Arrays;
 import java.util.List;
@@ -77,7 +78,7 @@ public final strictfp class S2Polyline implements S2Region {
     // Adjacent vertices must not be identical or antipodal.
     for (int i = 1; i < n; ++i) {
       if (vertices.get(i - 1).equals(vertices.get(i))
-          || vertices.get(i - 1).equals(S2Point.neg(vertices.get(i)))) {
+          || vertices.get(i - 1).equals(S2Point.unaryMinus(vertices.get(i)))) {
         log.info("Vertices " + (i - 1) + " and " + i + " are identical or antipodal");
         return false;
       }
@@ -132,8 +133,8 @@ public final strictfp class S2Polyline implements S2Region {
         // This code interpolates with respect to arc length rather than
         // straight-line distance, and produces a unit-length result.
         double f = Math.sin(target) / Math.sin(length);
-        return S2Point.add(S2Point.mul(vertex(i - 1), (Math.cos(target) - f * Math.cos(length))),
-            S2Point.mul(vertex(i), f));
+        return S2Point.plus(S2Point.times(vertex(i - 1), (Math.cos(target) - f * Math.cos(length))),
+            S2Point.times(vertex(i), f));
       }
       target -= length;
     }

@@ -16,6 +16,8 @@
 
 package com.google.common.geometry;
 
+import dilivia.s2.S2Point;
+
 import javax.annotation.Nullable;
 
 /**

@@ -18,6 +18,7 @@ package com.google.common.geometry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import dilivia.s2.R2Vector;
+import dilivia.s2.S2Point;
 
 public final strictfp class S2 {
 
@@ -297,7 +298,7 @@ public final strictfp class S2 {
     // "a" and "b" even if they differ only in the lowest bit of one component.
 
     // assert (isUnitLength(a) && isUnitLength(b));
-    S2Point x = S2Point.crossProd(S2Point.add(b, a), S2Point.sub(b, a));
+    S2Point x = S2Point.crossProd(S2Point.plus(b, a), S2Point.minus(b, a));
     if (!x.equals(new S2Point(0, 0, 0))) {
       return x;
     }
@@ -451,7 +452,7 @@ public final strictfp class S2 {
    * intuitive "center" (see example above).
    */
   public static S2Point planarCentroid(S2Point a, S2Point b, S2Point c) {
-    return new S2Point((a.x + b.x + c.x) / 3.0, (a.y + b.y + c.y) / 3.0, (a.z + b.z + c.z) / 3.0);
+    return new S2Point((a.x() + b.x() + c.x()) / 3.0, (a.y() + b.y() + c.y()) / 3.0, (a.z() + b.z() + c.z()) / 3.0);
   }
 
   /**
@@ -475,9 +476,9 @@ public final strictfp class S2 {
     double rc = (sinc == 0) ? 1 : (Math.asin(sinc) / sinc);
 
     // Now compute a point M such that M.X = rX * det(ABC) / 2 for X in A,B,C.
-    S2Point x = new S2Point(a.x, b.x, c.x);
-    S2Point y = new S2Point(a.y, b.y, c.y);
-    S2Point z = new S2Point(a.z, b.z, c.z);
+    S2Point x = new S2Point(a.x(), b.x(), c.x());
+    S2Point y = new S2Point(a.y(), b.y(), c.y());
+    S2Point z = new S2Point(a.z(), b.z(), c.z());
     S2Point r = new S2Point(ra, rb, rc);
     return new S2Point(0.5 * S2Point.crossProd(y, z).dotProd(r),
         0.5 * S2Point.crossProd(z, x).dotProd(r), 0.5 * S2Point.crossProd(x, y).dotProd(r));
@@ -618,9 +619,9 @@ public final strictfp class S2 {
     double sab = (a.dotProd(b) > 0) ? -1 : 1;
     double sbc = (b.dotProd(c) > 0) ? -1 : 1;
     double sca = (c.dotProd(a) > 0) ? -1 : 1;
-    S2Point vab = S2Point.add(a, S2Point.mul(b, sab));
-    S2Point vbc = S2Point.add(b, S2Point.mul(c, sbc));
-    S2Point vca = S2Point.add(c, S2Point.mul(a, sca));
+    S2Point vab = S2Point.plus(a, S2Point.times(b, sab));
+    S2Point vbc = S2Point.plus(b, S2Point.times(c, sbc));
+    S2Point vca = S2Point.plus(c, S2Point.times(a, sca));
     double dab = vab.norm2();
     double dbc = vbc.norm2();
     double dca = vca.norm2();
@@ -630,8 +631,8 @@ public final strictfp class S2 {
     // length, we break ties deterministically to ensure that the symmetry
     // properties guaranteed in the header file will be true.
     double sign;
-    if (dca < dbc || (dca == dbc && a.lessThan(b))) {
-      if (dab < dbc || (dab == dbc && a.lessThan(c))) {
+    if (dca < dbc || (dca == dbc && a.compareTo(b) < 0)) {
+      if (dab < dbc || (dab == dbc && a.compareTo(c) < 0)) {
         // The "sab" factor converts A +/- B into B +/- A.
         sign = S2Point.crossProd(vab, vca).dotProd(a) * sab; // BC is longest
                                                              // edge
@@ -640,7 +641,7 @@ public final strictfp class S2 {
                                                              // edge
       }
     } else {
-      if (dab < dca || (dab == dca && b.lessThan(c))) {
+      if (dab < dca || (dab == dca && b.compareTo(c) < 0)) {
         sign = S2Point.crossProd(vbc, vab).dotProd(b) * sbc; // CA is longest
                                                              // edge
       } else {
@@ -666,13 +667,13 @@ public final strictfp class S2 {
     // the Y-Z plane, then in the Z-X plane, and then in the X-Y plane.
 
     int ccw =
-        planarOrderedCCW(new R2Vector(a.y, a.z), new R2Vector(b.y, b.z), new R2Vector(c.y, c.z));
+        planarOrderedCCW(new R2Vector(a.y(), a.z()), new R2Vector(b.y(), b.z()), new R2Vector(c.y(), c.z()));
     if (ccw == 0) {
       ccw =
-          planarOrderedCCW(new R2Vector(a.z, a.x), new R2Vector(b.z, b.x), new R2Vector(c.z, c.x));
+          planarOrderedCCW(new R2Vector(a.z(), a.x()), new R2Vector(b.z(), b.x()), new R2Vector(c.z(), c.x()));
       if (ccw == 0) {
         ccw = planarOrderedCCW(
-            new R2Vector(a.x, a.y), new R2Vector(b.x, b.y), new R2Vector(c.x, c.y));
+            new R2Vector(a.x(), a.y()), new R2Vector(b.x(), b.y()), new R2Vector(c.x(), c.y()));
         // assert (ccw != 0);
       }
     }

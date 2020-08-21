@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.geometry.S2.Metric;
 import dilivia.s2.R2Vector;
+import dilivia.s2.S2Point;
 
 /**
  * This class specifies the details of how the cube faces are projected onto the
@@ -292,28 +293,28 @@ public final strictfp class S2Projections {
     double pv;
     switch (face) {
       case 0:
-        pu = p.y / p.x;
-        pv = p.z / p.x;
+        pu = p.y() / p.x();
+        pv = p.z() / p.x();
         break;
       case 1:
-        pu = -p.x / p.y;
-        pv = p.z / p.y;
+        pu = -p.x() / p.y();
+        pv = p.z() / p.y();
         break;
       case 2:
-        pu = -p.x / p.z;
-        pv = -p.y / p.z;
+        pu = -p.x() / p.z();
+        pv = -p.y() / p.z();
         break;
       case 3:
-        pu = p.z / p.x;
-        pv = p.y / p.x;
+        pu = p.z() / p.x();
+        pv = p.y() / p.x();
         break;
       case 4:
-        pu = p.z / p.y;
-        pv = -p.x / p.y;
+        pu = p.z() / p.y();
+        pv = -p.x() / p.y();
         break;
       default:
-        pu = -p.y / p.z;
-        pv = -p.x / p.z;
+        pu = -p.y() / p.z();
+        pv = -p.x() / p.z();
         break;
     }
     return new R2Vector(pu, pv);
