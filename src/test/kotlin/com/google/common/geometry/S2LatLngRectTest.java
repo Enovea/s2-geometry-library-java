@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S1Interval;
 import dilivia.s2.S2Point;
 
 public strictfp class S2LatLngRectTest extends GeometryTestCase {
@@ -463,8 +464,8 @@ public strictfp class S2LatLngRectTest extends GeometryTestCase {
       return S1Angle.radians(Math.abs(x.lat().getRadians() - lat.getRadians()));
 
     // Return the distance to the closer endpoint.
-    return S1Angle.min(x.getDistance(new S2LatLng(lat, S1Angle.radians(interval.lo()))),
-        x.getDistance(new S2LatLng(lat, S1Angle.radians(interval.hi()))));
+    return S1Angle.min(x.getDistance(new S2LatLng(lat, S1Angle.radians(interval.getLo()))),
+        x.getDistance(new S2LatLng(lat, S1Angle.radians(interval.getHi()))));
   }
 
   private static S2LatLngRect getEdgeBound(double x1,

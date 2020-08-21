@@ -22,6 +22,7 @@ import com.google.common.geometry.S2EdgeIndex.DataEdgeIterator;
 import com.google.common.geometry.S2EdgeUtil.EdgeCrosser;
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S1Interval;
 import dilivia.s2.S2Point;
 
 import java.util.HashMap;
@@ -855,7 +856,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     // contains() does a bounding rectangle check before doing anything else.
     bound = S2LatLngRect.full();
     if (contains(new S2Point(0, 0, 1))) {
-      b = new S2LatLngRect(new R1Interval(b.lat().getLo(), S2.M_PI_2), S1Interval.full());
+      b = new S2LatLngRect(new R1Interval(b.lat().getLo(), S2.M_PI_2), S1Interval.getFull());
     }
     // If a loop contains the south pole, then either it wraps entirely
     // around the sphere (full longitude range), or it also contains the

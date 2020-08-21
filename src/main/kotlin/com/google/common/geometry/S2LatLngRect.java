@@ -18,6 +18,7 @@ package com.google.common.geometry;
 import com.google.common.base.Preconditions;
 import dilivia.s2.R1Interval;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S1Interval;
 import dilivia.s2.S2Point;
 
 /**
@@ -50,7 +51,7 @@ public strictfp class S2LatLngRect implements S2Region {
 
   /** The canonical empty rectangle */
   public static S2LatLngRect empty() {
-    return new S2LatLngRect(R1Interval.empty(), S1Interval.empty());
+    return new S2LatLngRect(R1Interval.empty(), S1Interval.getEmpty());
   }
 
   /** The canonical full rectangle. */
@@ -67,7 +68,7 @@ public strictfp class S2LatLngRect implements S2Region {
    * The full allowable range of longitudes.
    */
   public static S1Interval fullLng() {
-    return S1Interval.full();
+    return S1Interval.getFull();
   }
 
   /**
@@ -154,11 +155,11 @@ public strictfp class S2LatLngRect implements S2Region {
   }
 
   public S1Angle lngLo() {
-    return S1Angle.radians(lng.lo());
+    return S1Angle.radians(lng.getLo());
   }
 
   public S1Angle lngHi() {
-    return S1Angle.radians(lng.hi());
+    return S1Angle.radians(lng.getHi());
   }
 
   public R1Interval lat() {
@@ -190,7 +191,7 @@ public strictfp class S2LatLngRect implements S2Region {
   }
 
   /**
-   * Return true if lng_.getLo() > lng_.hi(), i.e. the rectangle crosses the 180
+   * Return true if lng_.getLo() > lng_.getHi(), i.e. the rectangle crosses the 180
    * degree latitude line.
    */
   public boolean isInverted() {
@@ -202,13 +203,13 @@ public strictfp class S2LatLngRect implements S2Region {
     // Return the points in CCW order (SW, SE, NE, NW).
     switch (k) {
       case 0:
-        return S2LatLng.fromRadians(lat.getLo(), lng.lo());
+        return S2LatLng.fromRadians(lat.getLo(), lng.getLo());
       case 1:
-        return S2LatLng.fromRadians(lat.getLo(), lng.hi());
+        return S2LatLng.fromRadians(lat.getLo(), lng.getHi());
       case 2:
-        return S2LatLng.fromRadians(lat.getHi(), lng.hi());
+        return S2LatLng.fromRadians(lat.getHi(), lng.getHi());
       case 3:
-        return S2LatLng.fromRadians(lat.getHi(), lng.lo());
+        return S2LatLng.fromRadians(lat.getHi(), lng.getLo());
       default:
         throw new IllegalArgumentException("Invalid vertex index.");
     }
@@ -240,10 +241,10 @@ public strictfp class S2LatLngRect implements S2Region {
                                                     a.lat().getLo() - p.lat().getRadians())));
     }
 
-    S1Interval interval = new S1Interval(a.lng().hi(), a.lng().complement().getCenter());
-    double aLng = a.lng().lo();
+    S1Interval interval = new S1Interval(a.lng().getHi(), a.lng().getComplementCenter());
+    double aLng = a.lng().getLo();
     if (interval.contains(p.lng().getRadians())) {
-      aLng = a.lng().hi();
+      aLng = a.lng().getHi();
     }
 
     S2Point lo = S2LatLng.fromRadians(a.lat().getLo(), aLng).toPoint();
@@ -289,8 +290,8 @@ public strictfp class S2LatLngRect implements S2Region {
     // occur somewhere on the pair of longitudinal edges which are nearest in
     // longitude-space.
     S1Angle aLng, bLng;
-    S1Interval loHi = S1Interval.fromPointPair(a.lng().lo(), b.lng().hi());
-    S1Interval hiLo = S1Interval.fromPointPair(a.lng().hi(), b.lng().lo());
+    S1Interval loHi = S1Interval.fromPointPair(a.lng().getLo(), b.lng().getHi());
+    S1Interval hiLo = S1Interval.fromPointPair(a.lng().getHi(), b.lng().getLo());
     if (loHi.getLength() < hiLo.getLength()) {
       aLng = a.lngLo();
       bLng = b.lngHi();
@@ -428,13 +429,13 @@ public strictfp class S2LatLngRect implements S2Region {
 
       final S2Point a = cellV[i];
       final S2Point b = cellV[(i + 1) & 3];
-      if (edgeLng.contains(lng.lo())) {
-        if (intersectsLngEdge(a, b, lat, lng.lo())) {
+      if (edgeLng.contains(lng.getLo())) {
+        if (intersectsLngEdge(a, b, lat, lng.getLo())) {
           return true;
         }
       }
-      if (edgeLng.contains(lng.hi())) {
-        if (intersectsLngEdge(a, b, lat, lng.hi())) {
+      if (edgeLng.contains(lng.getHi())) {
+        if (intersectsLngEdge(a, b, lat, lng.getHi())) {
           return true;
         }
       }
@@ -614,7 +615,7 @@ public strictfp class S2LatLngRect implements S2Region {
     // maximum cap size is achieved at one of the rectangle vertices. For
     // rectangles that are larger than 180 degrees, we punt and always return a
     // bounding cap centered at one of the two poles.
-    double lngSpan = lng.hi() - lng.lo();
+    double lngSpan = lng.getHi() - lng.getLo();
     if (Math.IEEEremainder(lngSpan, 2 * S2.M_PI) >= 0) {
       if (lngSpan < 2 * S2.M_PI) {
         S2Cap midCap = S2Cap.fromAxisAngle(getCenter().toPoint(), S1Angle

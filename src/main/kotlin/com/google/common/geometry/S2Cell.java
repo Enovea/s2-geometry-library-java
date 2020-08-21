@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import dilivia.s2.R1Interval;
 import dilivia.s2.R2Vector;
+import dilivia.s2.S1Interval;
 import dilivia.s2.S2Point;
 
 /**
@@ -327,7 +328,7 @@ public final strictfp class S2Cell implements S2Region {
       R1Interval lat = R1Interval.fromPointPair(getLatitude(i, j), getLatitude(1 - i, 1 - j));
       lat = lat.expanded(MAX_ERROR).intersection(S2LatLngRect.fullLat());
       if (lat.getLo() == -S2.M_PI_2 || lat.getHi() == S2.M_PI_2) {
-        return new S2LatLngRect(lat, S1Interval.full());
+        return new S2LatLngRect(lat, S1Interval.getFull());
       }
       S1Interval lng = S1Interval.fromPointPair(getLongitude(i, 1 - j), getLongitude(1 - i, j));
       return new S2LatLngRect(lat, lng.expanded(MAX_ERROR));
