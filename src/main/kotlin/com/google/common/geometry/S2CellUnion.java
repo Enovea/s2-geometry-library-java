@@ -18,6 +18,7 @@ package com.google.common.geometry;
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
 import dilivia.s2.S2Point;
+import dilivia.s2.S2Region;
 
 import java.util.ArrayList;
 import java.util.Collections;

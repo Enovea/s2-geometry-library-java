@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
+import dilivia.s2.S2Region;
 import junit.framework.TestCase;
 
 import java.util.List;

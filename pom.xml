@@ -90,6 +90,7 @@
                 </executions>
                 <configuration>
                     <jvmTarget>${java.version}</jvmTarget>
+                    <args>-Xjvm-default=enable</args>
                 </configuration>
             </plugin>
 
