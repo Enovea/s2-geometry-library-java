@@ -1,5 +1,6 @@
 /**
- * This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
@@ -103,9 +104,9 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
     // are needed inside loops.
     fun radians(): Double = toAngle().radians
     fun degrees(): Double = toAngle().degrees()
-    fun e5(): Long = toAngle().e5()
-    fun e6(): Long = toAngle().e6()
-    fun e7(): Long = toAngle().e7()
+    fun e5(): Int = toAngle().e5()
+    fun e6(): Int = toAngle().e6()
+    fun e7(): Int = toAngle().e7()
 
     // All operators and functions are declared here so that we can put them all
     // in one place.  (The compound assignment operators must be put here.)
@@ -320,9 +321,9 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         fun radians(radians: Double): S1ChordAngle = S1ChordAngle(S1Angle.radians(radians))
         fun degrees(degrees: Double): S1ChordAngle = S1ChordAngle(S1Angle.degrees(degrees))
         fun degrees(degrees: Int): S1ChordAngle = degrees(degrees.toDouble())
-        fun e5(e5: Long): S1ChordAngle = S1ChordAngle(S1Angle.e5(e5))
-        fun e6(e6: Long): S1ChordAngle = S1ChordAngle(S1Angle.e6(e6))
-        fun e7(e7: Long): S1ChordAngle = S1ChordAngle(S1Angle.e7(e7))
+        fun e5(e5: Int): S1ChordAngle = S1ChordAngle(S1Angle.e5(e5))
+        fun e6(e6: Int): S1ChordAngle = S1ChordAngle(S1Angle.e6(e6))
+        fun e7(e7: Int): S1ChordAngle = S1ChordAngle(S1Angle.e7(e7))
 
         // Construct an S1ChordAngle that is an upper bound on the given S1Angle,
         // i.e. such that FastUpperBoundFrom(x).ToAngle() >= x.  Unlike the S1Angle

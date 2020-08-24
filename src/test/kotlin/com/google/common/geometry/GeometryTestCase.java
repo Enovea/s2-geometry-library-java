@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 import junit.framework.TestCase;
 

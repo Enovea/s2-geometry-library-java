@@ -20,10 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.geometry.S2EdgeIndex.DataEdgeIterator;
 import com.google.common.geometry.S2EdgeUtil.EdgeCrosser;
-import dilivia.s2.R1Interval;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S1Interval;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -777,10 +774,10 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
           if (crosses ) {
             log.info("Edges " + a1 + " and " + b1 + " cross");
             log.info(String.format("Edge locations in degrees: " + "%s-%s and %s-%s",
-                new S2LatLng(vertex(a1)).toStringDegrees(),
-                new S2LatLng(vertex(a2)).toStringDegrees(),
-                new S2LatLng(vertex(b1)).toStringDegrees(),
-                new S2LatLng(vertex(b2)).toStringDegrees()));
+                S2LatLng.fromPoint(vertex(a1)).toStringDegrees(),
+                S2LatLng.fromPoint(vertex(a2)).toStringDegrees(),
+                S2LatLng.fromPoint(vertex(b1)).toStringDegrees(),
+                S2LatLng.fromPoint(vertex(b2)).toStringDegrees()));
             return false;
           }
         }

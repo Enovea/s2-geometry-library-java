@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import dilivia.s2.R2Vector;
+import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 
 import java.util.ArrayList;

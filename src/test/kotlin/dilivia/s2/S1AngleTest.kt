@@ -1,5 +1,6 @@
 /**
- * This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
@@ -18,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2LatLng
 import dilivia.s2.S1Angle.Companion.degrees
 import dilivia.s2.S1Angle.Companion.e5
 import dilivia.s2.S1Angle.Companion.e6
@@ -141,7 +141,7 @@ class S1AngleTest : TestCase() {
 // The current implementation guarantees exact conversions between
 // Degrees() and E6() when the Degrees() argument is an integer.
         for (i in 0..180) {
-            assertEquals(degrees(i), e6(1000000L * i))
+            assertEquals(degrees(i), e6(1000000 * i))
         }
     }
 
@@ -149,7 +149,7 @@ class S1AngleTest : TestCase() {
 // The current implementation guarantees exact conversions between
 // Degrees() and E7() when the Degrees() argument is an integer.
         for (i in 0..180) {
-            assertEquals(degrees(i), e7(10000000L * i))
+            assertEquals(degrees(i), e7(10000000 * i))
         }
     }
 
@@ -157,7 +157,7 @@ class S1AngleTest : TestCase() {
 // The current implementation guarantees exact conversions between
 // E6() and E7() when the E6() argument is an integer.
         for (iter in 0..1000) {
-            val i = Random.Default.nextLong(0, 180000000)
+            val i = Random.Default.nextInt(0, 180000000)
             assertEquals(e6(i), e7(10 * i))
         }
     }

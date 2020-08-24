@@ -127,7 +127,8 @@
                     <licenseSets>
                         <licenseSet>
                             <multi>
-                                <preamble><![CDATA[This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git  ]]></preamble>
+                                <preamble><![CDATA[This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+                                https://github.com/google/s2geometry.git  ]]></preamble>
                                 <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
                             </multi>
                             <includes>

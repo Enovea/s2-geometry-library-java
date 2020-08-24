@@ -17,10 +17,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.ImmutableList;
-import dilivia.s2.R1Interval;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S1Interval;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 /**
  * Tests for {@link S2EdgeUtil}.

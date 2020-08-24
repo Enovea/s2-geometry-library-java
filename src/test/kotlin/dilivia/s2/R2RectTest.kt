@@ -1,5 +1,6 @@
 /**
- * This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *

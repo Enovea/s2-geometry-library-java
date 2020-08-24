@@ -17,6 +17,7 @@
 package com.google.testing.util;
 
 import static java.util.Arrays.asList;
+import static junit.framework.TestCase.fail;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
@@ -144,7 +145,7 @@ public final class MoreAsserts {
   }
 
   private static void failWithMessage(String userMessage, String ourMessage) {
-    Assert.fail((userMessage == null)
+    fail((userMessage == null)
         ? ourMessage
         : userMessage + ' ' + ourMessage);
   }

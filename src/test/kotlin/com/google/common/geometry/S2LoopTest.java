@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import dilivia.s2.R1Interval;
+import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 
 import java.util.List;
@@ -113,7 +114,7 @@ public strictfp class S2LoopTest extends GeometryTestCase {
     arctic80.invert();
     // The highest latitude of each edge is attained at its midpoint.
     S2Point mid = S2Point.times(S2Point.plus(arctic80.vertex(0), arctic80.vertex(1)), 0.5);
-    assertDoubleNear(arctic80.getRectBound().latHi().getRadians(), new S2LatLng(mid).lat().getRadians());
+    assertDoubleNear(arctic80.getRectBound().latHi().getRadians(), S2LatLng.fromPoint(mid).lat().getRadians());
     arctic80.invert();
 
     assertTrue(southHemi.getRectBound().lng().isFull());

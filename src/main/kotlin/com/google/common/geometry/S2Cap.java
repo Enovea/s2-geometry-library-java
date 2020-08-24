@@ -16,10 +16,7 @@
 package com.google.common.geometry;
 
 
-import dilivia.s2.R1Interval;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S1Interval;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 /**
  * This class represents a spherical cap, i.e. a portion of a sphere cut off by
@@ -251,7 +248,7 @@ public final strictfp class S2Cap implements S2Region {
     }
 
     // Convert the axis to a (lat,lng) pair, and compute the cap angle.
-    S2LatLng axisLatLng = new S2LatLng(axis);
+    S2LatLng axisLatLng = S2LatLng.fromPoint(axis);
     double capAngle = angle().getRadians();
 
     boolean allLongitudes = false;

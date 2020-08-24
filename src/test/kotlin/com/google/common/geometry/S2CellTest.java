@@ -15,6 +15,7 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
@@ -232,7 +233,7 @@ public strictfp class S2CellTest extends GeometryTestCase {
                     System.out.println("Children " + i + ": " + children[i]);
                     System.out.println("Parent rect: " + parentRect);
                     System.out.println("Vertex raw(j) " + children[i].getVertex(j));
-                    System.out.println("Latlng of vertex: " + new S2LatLng(children[i].getVertex(j)));
+                    System.out.println("Latlng of vertex: " + S2LatLng.fromPoint(children[i].getVertex(j)));
                     cell.getRectBound();
                 }
                 assertTrue(parentRect.contains(children[i].getVertex(j)));
@@ -241,7 +242,7 @@ public strictfp class S2CellTest extends GeometryTestCase {
                     System.out.println("Children " + i + ": " + children[i]);
                     System.out.println("Parent rect: " + parentRect);
                     System.out.println("Vertex raw(j) " + children[i].getVertexRaw(j));
-                    System.out.println("Latlng of vertex: " + new S2LatLng(children[i].getVertexRaw(j)));
+                    System.out.println("Latlng of vertex: " + S2LatLng.fromPoint(children[i].getVertexRaw(j)));
                     cell.getRectBound();
                 }
                 assertTrue(parentRect.contains(children[i].getVertexRaw(j)));

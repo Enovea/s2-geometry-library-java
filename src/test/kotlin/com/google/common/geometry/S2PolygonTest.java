@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 
 import java.util.List;
@@ -186,7 +187,7 @@ public strictfp class S2PolygonTest extends GeometryTestCase {
   }
 
   private void assertPointApproximatelyEquals(S2Loop s2Loop, int vertexIndex, double lat, double lng, double error) {
-    S2LatLng latLng = new S2LatLng(s2Loop.vertex(vertexIndex));
+    S2LatLng latLng = S2LatLng.fromPoint(s2Loop.vertex(vertexIndex));
     assertDoubleNear(latLng.latDegrees(), lat, error);
     assertDoubleNear(latLng.lngDegrees(), lng, error);
   }

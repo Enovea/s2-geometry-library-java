@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import dilivia.s2.R2Vector;
+import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 
 import java.util.List;
@@ -203,7 +204,7 @@ public final strictfp class S2CellId implements Comparable<S2CellId> {
 
   /** Return the S2LatLng corresponding to the center of the given cell. */
   public S2LatLng toLatLng() {
-    return new S2LatLng(toPointRaw());
+    return S2LatLng.fromPoint(toPointRaw());
   }
 
 

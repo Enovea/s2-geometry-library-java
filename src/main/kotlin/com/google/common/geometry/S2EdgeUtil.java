@@ -17,10 +17,7 @@
 package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
-import dilivia.s2.R1Interval;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S1Interval;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 /**
  * This class contains various utility functions related to edges. It collects
@@ -185,7 +182,7 @@ public strictfp class S2EdgeUtil {
     public void addPoint(S2Point b) {
       // assert (S2.isUnitLength(b));
 
-      S2LatLng bLatLng = new S2LatLng(b);
+      S2LatLng bLatLng = S2LatLng.fromPoint(b);
 
       if (bound.isEmpty()) {
         bound = bound.addPoint(bLatLng);

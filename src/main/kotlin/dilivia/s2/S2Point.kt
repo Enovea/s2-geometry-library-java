@@ -1,5 +1,6 @@
 /**
- * This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
@@ -15,10 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package dilivia.s2
 
-import com.google.common.geometry.S2LatLng
 import kotlin.math.atan2
 
 /**
@@ -88,7 +87,7 @@ class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleTyp
     }
 
     fun toDegreesString(): String {
-        val s2LatLng = S2LatLng(this)
+        val s2LatLng = S2LatLng.fromPoint(this)
         return "(" + s2LatLng.latDegrees() + ", " + s2LatLng.lngDegrees() + ")"
     }
 

@@ -16,10 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
-import dilivia.s2.R1Interval;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S1Interval;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 /**
  * An S2LatLngRect represents a latitude-longitude rectangle. It is capable of
@@ -78,7 +75,7 @@ public strictfp class S2LatLngRect implements S2Region {
    * FromCenterSize((80,170),(20,20)) -> (lo=(60,150),hi=(90,-170)).
    */
   public static S2LatLngRect fromCenterSize(S2LatLng center, S2LatLng size) {
-    return fromPoint(center).expanded(size.mul(0.5));
+    return fromPoint(center).expanded(size.times(0.5));
   }
 
   /** Convenience method to construct a rectangle containing a single point. */
@@ -108,7 +105,7 @@ public strictfp class S2LatLngRect implements S2Region {
    */
   public static S2LatLngRect fromEdge(S2Point a, S2Point b) {
     // assert (S2.isUnitLength(a) && S2.isUnitLength(b));
-    S2LatLngRect r = fromPointPair(new S2LatLng(a), new S2LatLng(b));
+    S2LatLngRect r = fromPointPair(S2LatLng.fromPoint(a), S2LatLng.fromPoint(b));
 
     // Check whether the min/max latitude occurs in the edge interior.
     // We find the normal to the plane containing AB, and then a vector "dir" in
@@ -171,11 +168,11 @@ public strictfp class S2LatLngRect implements S2Region {
   }
 
   public S2LatLng lo() {
-    return new S2LatLng(latLo(), lngLo());
+    return S2LatLng.fromLatLng(latLo(), lngLo());
   }
 
   public S2LatLng hi() {
-    return new S2LatLng(latHi(), lngHi());
+    return S2LatLng.fromLatLng(latHi(), lngHi());
   }
 
   /**
@@ -305,12 +302,12 @@ public strictfp class S2LatLngRect implements S2Region {
     // to a single point-edge distance by comparing the relative latitudes of the
     // endpoints, but for the sake of clarity, we'll do all four point-edge
     // distance tests.
-    S2Point aLo = new S2LatLng(a.latLo(), aLng).toPoint();
-    S2Point aHi = new S2LatLng(a.latHi(), aLng).toPoint();
+    S2Point aLo = S2LatLng.fromLatLng(a.latLo(), aLng).toPoint();
+    S2Point aHi = S2LatLng.fromLatLng(a.latHi(), aLng).toPoint();
     S2Point aLoCrossHi =
         S2LatLng.fromRadians(0, aLng.getRadians() - S2.M_PI_2).normalized().toPoint();
-    S2Point bLo = new S2LatLng(b.latLo(), bLng).toPoint();
-    S2Point bHi = new S2LatLng(b.latHi(), bLng).toPoint();
+    S2Point bLo = S2LatLng.fromLatLng(b.latLo(), bLng).toPoint();
+    S2Point bHi = S2LatLng.fromLatLng(b.latHi(), bLng).toPoint();
     S2Point bLoCrossHi =
         S2LatLng.fromRadians(0, bLng.getRadians() - S2.M_PI_2).normalized().toPoint();
 
@@ -345,7 +342,7 @@ public strictfp class S2LatLngRect implements S2Region {
    * need to be normalized.
    */
   public boolean interiorContains(S2Point p) {
-    return interiorContains(new S2LatLng(p));
+    return interiorContains(S2LatLng.fromPoint(p));
   }
 
   /**
@@ -414,7 +411,7 @@ public strictfp class S2LatLngRect implements S2Region {
     S2LatLng[] cellLl = new S2LatLng[4];
     for (int i = 0; i < 4; ++i) {
       cellV[i] = cell.getVertex(i); // Must be normalized.
-      cellLl[i] = new S2LatLng(cellV[i]);
+      cellLl[i] = S2LatLng.fromPoint(cellV[i]);
       if (contains(cellLl[i])) {
         return true; // Quick acceptance test.
       }
@@ -459,7 +456,7 @@ public strictfp class S2LatLngRect implements S2Region {
   }
 
   public S2LatLngRect addPoint(S2Point p) {
-    return addPoint(new S2LatLng(p));
+    return addPoint(S2LatLng.fromPoint(p));
   }
 
   // Increase the size of the bounding rectangle to include the given point.
@@ -658,7 +655,7 @@ public strictfp class S2LatLngRect implements S2Region {
 
   /** The point 'p' does not need to be normalized. */
   public boolean contains(S2Point p) {
-    return contains(new S2LatLng(p));
+    return contains(S2LatLng.fromPoint(p));
   }
 
   /**

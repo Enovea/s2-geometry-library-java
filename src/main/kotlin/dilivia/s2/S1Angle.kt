@@ -1,5 +1,6 @@
 /**
- * This project is a kotlin port of the Google s2 geometry library: https://github.com/google/s2geometry.git
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
@@ -18,9 +19,9 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.M_PI
-import com.google.common.geometry.S2LatLng
 import java.util.*
 import kotlin.math.IEEErem
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 /**
@@ -103,21 +104,21 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
      *
      * @return e5 degrees value of the angle.
      */
-    fun e5(): Long = (degrees() * 1e5).roundToLong()
+    fun e5(): Int = (degrees() * 1e5).roundToInt()
 
     /**
      * Gets the e6 degrees value of the angle.
      *
      * @return e6 degrees value of the angle.
      */
-    fun e6(): Long = (degrees() * 1e6).roundToLong()
+    fun e6(): Int = (degrees() * 1e6).roundToInt()
 
     /**
      * Gets the e7 degrees value of the angle.
      *
      * @return e7 degrees value of the angle.
      */
-    fun e7(): Long = (degrees() * 1e7).roundToLong()
+    fun e7(): Int = (degrees() * 1e7).roundToInt()
 
     /**
      * Compute the absolute of this angle.
@@ -238,7 +239,7 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
          * @return The S1Angle instance.
          */
         @JvmStatic
-        fun e5(e5: Long): S1Angle = degrees(e5 * 1e-5)
+        fun e5(e5: Int): S1Angle = degrees(e5 * 1e-5)
 
         /**
          * Creates a S1Angle instance with this given measure in e6 degrees.
@@ -249,7 +250,7 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
         // Multiplying by 1e-6 isn't quite as accurate as dividing by 1e6, but it's about 10 times faster and more than
         // accurate enough.
         @JvmStatic
-        fun e6(e6: Long): S1Angle = degrees(e6 * 1e-6)
+        fun e6(e6: Int): S1Angle = degrees(e6 * 1e-6)
 
         /**
          * Creates a S1Angle instance with this given measure in e7 degrees.
@@ -258,7 +259,7 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
          * @return The S1Angle instance.
          */
         @JvmStatic
-        fun e7(e7: Long): S1Angle = degrees(e7 * 1e-7)
+        fun e7(e7: Int): S1Angle = degrees(e7 * 1e-7)
 
         /**
          * Creates an infinity S1Angle instance.
