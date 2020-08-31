@@ -18,6 +18,7 @@ package com.google.common.geometry;
 import dilivia.s2.R2Vector;
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Locale;
@@ -132,6 +133,11 @@ public final strictfp class S2CellId implements Comparable<S2CellId> {
    */
   public static S2CellId sentinel() {
     return new S2CellId(MAX_UNSIGNED); // -1
+  }
+
+  @NotNull
+  public static S2CellId fromFace(int face) {
+    return new S2CellId((((long) face) << POS_BITS) + lowestOnBitForLevel(0));
   }
 
   /**
@@ -963,4 +969,5 @@ public final strictfp class S2CellId implements Comparable<S2CellId> {
     return unsignedLongLessThan(this.id, that.id) ? -1 :
         unsignedLongGreaterThan(this.id, that.id) ? 1 : 0;
   }
+
 }

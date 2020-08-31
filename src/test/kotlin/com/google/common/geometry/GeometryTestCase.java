@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 import dilivia.s2.S2Region;
@@ -140,14 +141,14 @@ public abstract strictfp class GeometryTestCase extends TestCase {
     assertTrue(capArea >= minArea && capArea <= maxArea);
 
     // The surface area of a cap is 2*Pi times its height.
-    return S2Cap.fromAxisArea(randomPoint(), capArea);
+    return S2Cap.fromCenterArea(randomPoint(), capArea);
   }
 
   S2Point samplePoint(S2Cap cap) {
     // We consider the cap axis to be the "z" axis. We choose two other axes to
     // complete the coordinate frame.
 
-    S2Point z = cap.axis();
+    S2Point z = cap.getCenter();
     S2Point x = z.ortho();
     S2Point y = S2Point.crossProd(z, x);
 
@@ -155,7 +156,7 @@ public abstract strictfp class GeometryTestCase extends TestCase {
     // height. First we choose a random height, and then we choose a random
     // point along the circle at that height.
 
-    double h = rand.nextDouble() * cap.height();
+    double h = rand.nextDouble() * cap.getHeight();
     double theta = 2 * S2.M_PI * rand.nextDouble();
     double r = Math.sqrt(h * (2 - h)); // Radius of circle.
 

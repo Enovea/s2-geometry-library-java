@@ -56,7 +56,7 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
 
     // Construct the S1ChordAngle corresponding to the distance between the two
     // given points.  The points must be unit length.
-    constructor(x: S2Point, y: S2Point) : this(min(4.0, S2Point.minus(x, y).norm2())) {
+    private constructor(x: S2Point, y: S2Point) : this(min(4.0, S2Point.minus(x, y).norm2())) {
         check(S2Point.isUnitLength(x))
         check(S2Point.isUnitLength(y))
         // The squared distance may slightly exceed 4.0 due to roundoff errors.
@@ -338,6 +338,8 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         // roundoff errors.  The argument must be non-negative.
         fun fromLength2(length2: Double): S1ChordAngle = S1ChordAngle(min(4.0, length2))
         fun fromLength2(length2: Int) = fromLength2(length2.toDouble())
+
+        fun between(p1: S2Point, p2: S2Point): S1ChordAngle = S1ChordAngle(p1, p2)
     }
 }
 

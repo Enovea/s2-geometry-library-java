@@ -187,12 +187,18 @@ class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleTyp
          * Return true if two points are within the given distance of each other
          * (mainly useful for testing).
          */
-        @JvmStatic
-        fun approxEquals(a: S2Point, b: S2Point, maxError: Double): Boolean = a.angle(b) <= maxError
+        //@JvmStatic
+        //fun approxEquals(a: S2Point, b: S2Point, maxError: Double): Boolean = a.angle(b) <= maxError
+
+        //@JvmStatic
+        //fun approxEquals(a: S2Point, b: S2Point): Boolean = approxEquals(a, b, 1e-15)
 
         @JvmStatic
-        fun approxEquals(a: S2Point, b: S2Point): Boolean = approxEquals(a, b, 1e-15)
+        @JvmOverloads
+        fun approxEquals(a: S2Point, b: S2Point, maxErrorAngle: S1Angle= S1Angle.radians(1e-15)): Boolean = S1Angle(a, b) <= maxErrorAngle
 
     }
 
 }
+
+operator fun Double.times(point: S2Point): S2Point = point * this

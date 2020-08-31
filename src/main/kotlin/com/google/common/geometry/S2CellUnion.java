@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2Point;
 import dilivia.s2.S2Region;
 
@@ -420,7 +421,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
     // Compute the approximate centroid of the region. This won't produce the
     // bounding cap of minimal area, but it should be close enough.
     if (cellIds.isEmpty()) {
-      return S2Cap.empty();
+      return S2Cap.empty;
     }
     S2Point centroid = new S2Point(0, 0, 0);
     for (S2CellId id : this) {
@@ -437,7 +438,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
     // contains the bounding caps of all the individual cells. Note that it is
     // *not* sufficient to just bound all the cell vertices because the bounding
     // cap may be concave (i.e. cover more than one hemisphere).
-    S2Cap cap = S2Cap.fromAxisHeight(centroid, 0);
+    S2Cap cap = S2Cap.fromCenterHeight(centroid, 0);
     for (S2CellId id : this) {
       cap = cap.addCap(new S2Cell(id).getCapBound());
     }

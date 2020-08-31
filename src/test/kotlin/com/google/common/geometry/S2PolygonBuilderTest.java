@@ -18,6 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2Point;
 
 import java.util.List;
@@ -256,7 +257,7 @@ public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
       // (p[0]*x + p[1]*y + p[2]*z).Normalize()
       S2Point axis = S2Point.normalize(
           S2Point.plus(S2Point.plus(S2Point.times(x, p.x()), S2Point.times(y, p.y())), S2Point.times(z, p.z())));
-      S2Cap cap = S2Cap.fromAxisAngle(axis, S1Angle.radians(maxPerturbation));
+      S2Cap cap = S2Cap.fromCenterAngle(axis, S1Angle.radians(maxPerturbation));
       vertices.add(samplePoint(cap));
     }
   }
@@ -268,10 +269,10 @@ public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
       return false;
     }
     for (int offset = 0; offset < a.numVertices(); ++offset) {
-      if (S2Point.approxEquals(a.vertex(offset), b.vertex(0), maxError)) {
+      if (S2Point.approxEquals(a.vertex(offset), b.vertex(0), S1Angle.radians(maxError))) {
         boolean success = true;
         for (int i = 0; i < a.numVertices(); ++i) {
-          if (!S2Point.approxEquals(a.vertex(i + offset), b.vertex(i), maxError)) {
+          if (!S2Point.approxEquals(a.vertex(i + offset), b.vertex(i), S1Angle.radians(maxError))) {
             success = false;
             break;
           }

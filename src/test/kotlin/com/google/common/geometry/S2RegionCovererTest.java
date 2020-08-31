@@ -15,6 +15,7 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2Region;
 
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ public strictfp class S2RegionCovererTest extends GeometryTestCase {
       double maxArea = Math.min(4 * S2.M_PI, 1000 * S2Cell.averageArea(level));
       S2Cap cap = getRandomCap(0.1 * S2Cell.averageArea(kMaxLevel), maxArea);
       ArrayList<S2CellId> covering = new ArrayList<S2CellId>();
-      S2RegionCoverer.getSimpleCovering(cap, cap.axis(), level, covering);
+      S2RegionCoverer.getSimpleCovering(cap, cap.getCenter(), level, covering);
       checkCovering(coverer, cap, covering, false);
     }
   }

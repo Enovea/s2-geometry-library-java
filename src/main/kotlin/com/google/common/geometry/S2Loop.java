@@ -560,7 +560,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     int iThis = firstLogicalVertex;
     int iOther = b.firstLogicalVertex;
     for (int i = 0; i < maxVertices; ++i, ++iThis, ++iOther) {
-      if (!S2Point.approxEquals(vertex(iThis), b.vertex(iOther), maxError)) {
+      if (!S2Point.approxEquals(vertex(iThis), b.vertex(iOther), S1Angle.radians(maxError))) {
         return false;
       }
     }

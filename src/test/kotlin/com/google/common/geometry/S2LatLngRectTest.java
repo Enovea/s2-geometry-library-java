@@ -199,15 +199,15 @@ public strictfp class S2LatLngRectTest extends GeometryTestCase {
 
         // GetCapBound(), bounding cap at center is smaller:
         assertTrue(new S2LatLngRect(S2LatLng.fromDegrees(-45, -45), S2LatLng.fromDegrees(45, 45))
-                .getCapBound().approxEquals(S2Cap.fromAxisHeight(new S2Point(1, 0, 0), 0.5)));
+                .getCapBound().approxEquals(S2Cap.fromCenterHeight(new S2Point(1, 0, 0), 0.5)));
         // GetCapBound(), bounding cap at north pole is smaller:
         assertTrue(new S2LatLngRect(S2LatLng.fromDegrees(88, -80), S2LatLng.fromDegrees(89, 80))
-                .getCapBound().approxEquals(S2Cap.fromAxisAngle(new S2Point(0, 0, 1), S1Angle.degrees(2))));
+                .getCapBound().approxEquals(S2Cap.fromCenterAngle(new S2Point(0, 0, 1), S1Angle.degrees(2))));
         // GetCapBound(), longitude span > 180 degrees:
         assertTrue(
                 new S2LatLngRect(S2LatLng.fromDegrees(-30, -150), S2LatLng.fromDegrees(-10, 50))
                         .getCapBound()
-                        .approxEquals(S2Cap.fromAxisAngle(new S2Point(0, 0, -1), S1Angle.degrees(80))));
+                        .approxEquals(S2Cap.fromCenterAngle(new S2Point(0, 0, -1), S1Angle.degrees(80))));
 
         // Contains(S2Cell), MayIntersect(S2Cell), Intersects(S2Cell)
 

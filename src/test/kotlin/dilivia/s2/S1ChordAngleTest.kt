@@ -39,11 +39,11 @@ class S1ChordAngleTest : GeometryTestCase() {
             val x = frame[0]
             val y = frame[1]
             val z = frame[2]
-            assertEquals(S1Angle.zero, S1ChordAngle(z, z).toAngle())
-            assertEquals(M_PI, S1ChordAngle(S2Point.unaryMinus(z), z).radians(), 1e-7)
-            assertEquals(M_PI_2, S1ChordAngle(x, z).radians(), 1e-15)
+            assertEquals(S1Angle.zero, S1ChordAngle.between(z, z).toAngle())
+            assertEquals(M_PI, S1ChordAngle.between(S2Point.unaryMinus(z), z).radians(), 1e-7)
+            assertEquals(M_PI_2, S1ChordAngle.between(x, z).radians(), 1e-15)
             val w = S2Point.normalize(S2Point.plus(y, z))
-            assertEquals(M_PI_4, S1ChordAngle(w, z).radians(), 1e-15)
+            assertEquals(M_PI_4, S1ChordAngle.between(w, z).radians(), 1e-15)
         }
     }
 

@@ -16,6 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2Point;
 import dilivia.s2.S2Region;
 
@@ -446,7 +447,7 @@ public final strictfp class S2RegionCoverer {
       // Find the maximum level such that the bounding cap contains at most one
       // cell vertex at that level.
       S2Cap cap = region.getCapBound();
-      int level = Math.min(S2Projections.MIN_WIDTH.getMaxLevel(2 * cap.angle().getRadians()),
+      int level = Math.min(S2Projections.MIN_WIDTH.getMaxLevel(2 * cap.radius().getRadians()),
           Math.min(maxLevel(), S2CellId.MAX_LEVEL - 1));
       if (levelMod() > 1 && level > minLevel()) {
         level -= (level - minLevel()) % levelMod();
@@ -457,7 +458,7 @@ public final strictfp class S2RegionCoverer {
         // Find the leaf cell containing the cap axis, and determine which
         // subcell of the parent cell contains it.
         ArrayList<S2CellId> base = new ArrayList<S2CellId>(4);
-        S2CellId id = S2CellId.fromPoint(cap.axis());
+        S2CellId id = S2CellId.fromPoint(cap.getCenter());
         id.getVertexNeighbors(level, base);
         for (int i = 0; i < base.size(); ++i) {
           addCandidate(newCandidate(new S2Cell(base.get(i))));

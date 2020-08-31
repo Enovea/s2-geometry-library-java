@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
@@ -301,7 +302,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
     for (int i = 0; i < covering.size(); ++i) {
       S2Cell cell = new S2Cell(covering.cellId(i));
       S2Cap cellCap = cell.getCapBound();
-      double angle = axis.angle(cellCap.axis()) + cellCap.angle().getRadians();
+      double angle = axis.angle(cellCap.getCenter()) + cellCap.radius().getRadians();
       maxAngle = Math.max(maxAngle, angle);
     }
     return maxAngle;
@@ -322,10 +323,10 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
       // Expand the cap by a random factor whose log is uniformly distributed
       // between 0 and log(1e2).
       S2Cap expandedCap =
-          S2Cap.fromAxisHeight(cap.axis(), Math.min(2.0, Math.pow(1e2, rand.nextDouble())
-              * cap.height()));
+          S2Cap.fromCenterHeight(cap.getCenter(), Math.min(2.0, Math.pow(1e2, rand.nextDouble())
+              * cap.getHeight()));
 
-      double radius = expandedCap.angle().getRadians() - cap.angle().getRadians();
+      double radius = expandedCap.radius().getRadians() - cap.radius().getRadians();
       int maxLevelDiff = random(8);
 
       S2CellUnion covering = new S2CellUnion();
@@ -333,7 +334,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
       coverer.getCovering(cap, covering);
       checkCovering(cap, covering, true, new S2CellId());
 
-      double maxAngle = getMaxAngle(covering, cap.axis());
+      double maxAngle = getMaxAngle(covering, cap.getCenter());
       int minLevel = S2CellId.MAX_LEVEL;
       for (int j = 0; j < covering.size(); ++j) {
         minLevel = Math.min(minLevel, covering.cellId(j).level());
@@ -343,7 +344,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
 
       int expandLevel =
           Math.min(minLevel + maxLevelDiff, S2Projections.MIN_WIDTH.getMaxLevel(radius));
-      double expandedMaxAngle = getMaxAngle(covering, cap.axis());
+      double expandedMaxAngle = getMaxAngle(covering, cap.getCenter());
 
       // If the covering includes a tiny cell along the boundary, in theory the
       // maximum angle of the covering from the cap axis can increase by up to

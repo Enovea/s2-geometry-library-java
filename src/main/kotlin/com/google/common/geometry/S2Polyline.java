@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2Point;
 import dilivia.s2.S2Region;
 

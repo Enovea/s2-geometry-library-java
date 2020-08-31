@@ -54,6 +54,10 @@ public final strictfp class S2Cell implements S2Region {
     return new S2Cell(S2CellId.fromFacePosLevel(face, pos, level));
   }
 
+  public static S2Cell fromFace(int face) {
+    return new S2Cell(S2CellId.fromFace(face));
+  }
+
   // Convenience methods.
   public S2Cell(S2Point p) {
     init(S2CellId.fromPoint(p));
@@ -280,7 +284,7 @@ public final strictfp class S2Cell implements S2Region {
 
     double u = 0.5 * (uv[0][0] + uv[0][1]);
     double v = 0.5 * (uv[1][0] + uv[1][1]);
-    S2Cap cap = S2Cap.fromAxisHeight(S2Point.normalize(S2Projections.faceUvToXyz(face, u, v)), 0);
+    S2Cap cap = S2Cap.fromCenterHeight(S2Point.normalize(S2Projections.faceUvToXyz(face, u, v)), 0);
     for (int k = 0; k < 4; ++k) {
       cap = cap.addPoint(getVertex(k));
     }

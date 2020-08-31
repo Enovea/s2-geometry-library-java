@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import dilivia.s2.S1Angle;
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 
@@ -65,7 +66,7 @@ public strictfp class S2EdgeIndexTest extends GeometryTestCase {
     // Pick the edge center at random.
     S2Point edgeCenter = samplePoint(cap);
     // Pick two random points in a suitably sized cap about the edge center.
-    S2Cap edgeCap = S2Cap.fromAxisAngle(
+    S2Cap edgeCap = S2Cap.fromCenterAngle(
         edgeCenter, S1Angle.radians(maxLengthMeters / S2LatLng.EARTH_RADIUS_METERS / 2));
     S2Point p1 = samplePoint(edgeCap);
     S2Point p2 = samplePoint(edgeCap);
@@ -79,7 +80,7 @@ public strictfp class S2EdgeIndexTest extends GeometryTestCase {
    */
   private void generateRandomEarthEdges(
       double edgeLengthMetersMax, double capSpanMeters, int numEdges, List<S2Edge> edges) {
-    S2Cap cap = S2Cap.fromAxisAngle(
+    S2Cap cap = S2Cap.fromCenterAngle(
         randomPoint(), S1Angle.radians(capSpanMeters / S2LatLng.EARTH_RADIUS_METERS));
     for (int i = 0; i < numEdges; ++i) {
       edges.add(randomEdgeCrossingCap(edgeLengthMetersMax, cap));

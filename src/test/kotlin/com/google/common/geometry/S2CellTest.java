@@ -15,6 +15,7 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.S2Cap;
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
 

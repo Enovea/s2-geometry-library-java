@@ -525,12 +525,11 @@ public strictfp class S2LatLngRect implements S2Region {
     // original rectangle; this is necessary for very large rectangles).
 
     // Optimization: convert the angle to a height exactly once.
-    S2Cap cap = S2Cap.fromAxisAngle(new S2Point(1, 0, 0), angle);
+    S2Cap cap = S2Cap.fromCenterAngle(new S2Point(1, 0, 0), angle);
 
     S2LatLngRect r = this;
     for (int k = 0; k < 4; ++k) {
-      S2Cap vertexCap = S2Cap.fromAxisHeight(getVertex(k).toPoint(), cap
-        .height());
+      S2Cap vertexCap = S2Cap.fromCenterHeight(getVertex(k).toPoint(), cap.getHeight());
       r = r.union(vertexCap.getRectBound());
     }
     return r;
@@ -593,7 +592,7 @@ public strictfp class S2LatLngRect implements S2Region {
     // is the north or south pole. We return the smaller of the two caps.
 
     if (isEmpty()) {
-      return S2Cap.empty();
+      return S2Cap.empty;
     }
 
     double poleZ, poleAngle;
@@ -605,7 +604,7 @@ public strictfp class S2LatLngRect implements S2Region {
       poleZ = 1;
       poleAngle = S2.M_PI_2 - lat.getLo();
     }
-    S2Cap poleCap = S2Cap.fromAxisAngle(new S2Point(0, 0, poleZ), S1Angle
+    S2Cap poleCap = S2Cap.fromCenterAngle(new S2Point(0, 0, poleZ), S1Angle
       .radians(poleAngle));
 
     // For bounding rectangles that span 180 degrees or less in longitude, the
@@ -615,12 +614,12 @@ public strictfp class S2LatLngRect implements S2Region {
     double lngSpan = lng.getHi() - lng.getLo();
     if (Math.IEEEremainder(lngSpan, 2 * S2.M_PI) >= 0) {
       if (lngSpan < 2 * S2.M_PI) {
-        S2Cap midCap = S2Cap.fromAxisAngle(getCenter().toPoint(), S1Angle
+        S2Cap midCap = S2Cap.fromCenterAngle(getCenter().toPoint(), S1Angle
           .radians(0));
         for (int k = 0; k < 4; ++k) {
           midCap = midCap.addPoint(getVertex(k).toPoint());
         }
-        if (midCap.height() < poleCap.height()) {
+        if (midCap.getHeight() < poleCap.getHeight()) {
           return midCap;
         }
       }
