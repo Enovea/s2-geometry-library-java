@@ -19,10 +19,7 @@ package com.google.common.geometry;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import dilivia.s2.R1Interval;
-import dilivia.s2.S2LatLng;
-import dilivia.s2.S2LatLngRect;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 import java.util.List;
 import java.util.Map;
@@ -402,7 +399,7 @@ public strictfp class S2LoopTest extends GeometryTestCase {
       if (!begin.isValid()) {
         continue;
       }
-      begin = begin.parent((int) Math.round(rand.nextDouble() * S2CellId.MAX_LEVEL));
+      begin = begin.parent((int) Math.round(rand.nextDouble() * S2CellId.kMaxLevel));
       S2CellId aBegin = advance(begin, skewed(6));
       S2CellId aEnd = advance(aBegin, skewed(6) + 1);
       S2CellId bBegin = advance(begin, skewed(6));

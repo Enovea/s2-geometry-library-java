@@ -93,11 +93,11 @@ object S2EdgeCrossings {
         // arbitrary fixed reference point.
         //
         // Optimization: if AB=CD or AB=DC, we can avoid most of the calculations.
-        if (a == c) return (b == d) || S2.orderedCCW(a.ortho(), d, b, a)
-        if (b == d) return S2.orderedCCW(b.ortho(), c, a, b)
+        if (a == c) return (b == d) || S2Predicates.orderedCCW(a.ortho(), d, b, a)
+        if (b == d) return S2Predicates.orderedCCW(b.ortho(), c, a, b)
 
-        if (a == d) return (b == c) || S2.orderedCCW(a.ortho(), c, b, a);
-        if (b == c) return S2.orderedCCW(b.ortho(), d, a, b);
+        if (a == d) return (b == c) || S2Predicates.orderedCCW(a.ortho(), c, b, a);
+        if (b == c) return S2Predicates.orderedCCW(b.ortho(), d, a, b);
 
         logger.error("VertexCrossing called with 4 distinct vertices")
         return false;

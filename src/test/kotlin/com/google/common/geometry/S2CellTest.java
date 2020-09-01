@@ -15,10 +15,7 @@
  */
 package com.google.common.geometry;
 
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2LatLng;
-import dilivia.s2.S2LatLngRect;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -107,10 +104,10 @@ public strictfp class S2CellTest extends GeometryTestCase {
     }
 
     static List<LevelStats> levelStats = new ArrayList<LevelStats>(
-            S2CellId.MAX_LEVEL + 1);
+            S2CellId.kMaxLevel + 1);
 
     static {
-        for (int i = 0; i < S2CellId.MAX_LEVEL + 1; ++i) {
+        for (int i = 0; i < S2CellId.kMaxLevel + 1; ++i) {
             levelStats.add(new LevelStats());
         }
     }
@@ -368,7 +365,7 @@ public strictfp class S2CellTest extends GeometryTestCase {
                 .printf("Level    Area      Edge          Diag          Approx       Average\n");
         System.out
                 .printf("        Ratio  Ratio Aspect  Ratio Aspect    Min    Max    Min    Max\n");
-        for (int i = 0; i <= S2CellId.MAX_LEVEL; ++i) {
+        for (int i = 0; i <= S2CellId.kMaxLevel; ++i) {
             LevelStats s = levelStats.get(i);
             if (s.count > 0) {
                 s.avgArea /= s.count;
@@ -387,7 +384,7 @@ public strictfp class S2CellTest extends GeometryTestCase {
         }
 
         // Now check the validity of the S2 length and area metrics.
-        for (int i = 0; i <= S2CellId.MAX_LEVEL; ++i) {
+        for (int i = 0; i <= S2CellId.kMaxLevel; ++i) {
             LevelStats s = levelStats.get(i);
             if (s.count == 0) {
                 continue;

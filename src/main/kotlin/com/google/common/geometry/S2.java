@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import dilivia.s2.S2CellId;
 import dilivia.s2.math.R2Vector;
 import dilivia.s2.S2Point;
 
@@ -27,6 +28,7 @@ public final strictfp class S2 {
   public static final double M_1_PI = 1.0 / Math.PI;
   public static final double M_PI_2 = Math.PI / 2.0;
   public static final double M_PI_4 = Math.PI / 4.0;
+  public static final double M_SQRT1_2 = Math.sqrt(0.5);
   public static final double M_SQRT2 = Math.sqrt(2);
   public static final double M_SQRT3 = Math.sqrt(3);
   public static final double M_E = Math.E;
@@ -196,14 +198,14 @@ public final strictfp class S2 {
      */
     public int getMinLevel(double value) {
       if (value <= 0) {
-        return S2CellId.MAX_LEVEL;
+        return S2CellId.kMaxLevel;
       }
 
       // This code is equivalent to computing a floating-point "level"
       // value and rounding up.
       int exponent = exp(value / ((1 << dim) * deriv));
       int level = Math.max(0,
-          Math.min(S2CellId.MAX_LEVEL, -((exponent - 1) >> (dim - 1))));
+          Math.min(S2CellId.kMaxLevel, -((exponent - 1) >> (dim - 1))));
       // assert (level == S2CellId.MAX_LEVEL || getValue(level) <= value);
       // assert (level == 0 || getValue(level - 1) > value);
       return level;
@@ -218,14 +220,14 @@ public final strictfp class S2 {
      */
     public int getMaxLevel(double value) {
       if (value <= 0) {
-        return S2CellId.MAX_LEVEL;
+        return S2CellId.kMaxLevel;
       }
 
       // This code is equivalent to computing a floating-point "level"
       // value and rounding down.
       int exponent = exp((1 << dim) * deriv / value);
       int level = Math.max(0,
-          Math.min(S2CellId.MAX_LEVEL, ((exponent - 1) >> (dim - 1))));
+          Math.min(S2CellId.kMaxLevel, ((exponent - 1) >> (dim - 1))));
       // assert (level == 0 || getValue(level) >= value);
       // assert (level == S2CellId.MAX_LEVEL || getValue(level + 1) < value);
       return level;

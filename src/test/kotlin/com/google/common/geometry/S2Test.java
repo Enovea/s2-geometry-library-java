@@ -15,6 +15,7 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.S2CellId;
 import dilivia.s2.S2Point;
 
 import java.util.logging.Logger;
@@ -279,14 +280,14 @@ public strictfp class S2Test extends GeometryTestCase {
         // It is easier to check these properties in s2cell_unittest, since
         // S2Cell has methods to compute the cell vertices, etc.
 
-        for (int level = -2; level <= S2CellId.MAX_LEVEL + 3; ++level) {
+        for (int level = -2; level <= S2CellId.kMaxLevel + 3; ++level) {
             double dWidth = (2 * S2Projections.MIN_WIDTH.deriv()) * Math.pow(2, -level);
-            if (level >= S2CellId.MAX_LEVEL + 3) {
+            if (level >= S2CellId.kMaxLevel + 3) {
                 dWidth = 0;
             }
 
             // Check boundary cases (exactly equal to a threshold value).
-            int expectedLevel = Math.max(0, Math.min(S2CellId.MAX_LEVEL, level));
+            int expectedLevel = Math.max(0, Math.min(S2CellId.kMaxLevel, level));
             assertEquals(S2Projections.MIN_WIDTH.getMinLevel(dWidth), expectedLevel);
             assertEquals(S2Projections.MIN_WIDTH.getMaxLevel(dWidth), expectedLevel);
             assertEquals(S2Projections.MIN_WIDTH.getClosestLevel(dWidth), expectedLevel);

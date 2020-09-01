@@ -15,6 +15,8 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.FaceIJ;
+import dilivia.s2.S2CellId;
 import dilivia.s2.math.R2Vector;
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
@@ -35,7 +37,7 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
 
   private S2CellId getCellId(double latDegrees, double lngDegrees) {
     S2CellId id = S2CellId.fromLatLng(S2LatLng.fromDegrees(latDegrees, lngDegrees));
-    logger.info(Long.toString(id.id(), 16));
+    logger.info(Long.toString(id.getId(), 16));
     return id;
   }
 
@@ -43,15 +45,15 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
     logger.info("TestBasic");
     // Check default constructor.
     S2CellId id = new S2CellId();
-    assertEquals(id.id(), 0);
+    assertEquals(id.getId(), 0);
     assertTrue(!id.isValid());
 
     // Check basic accessor methods.
-    id = S2CellId.fromFacePosLevel(3, 0x12345678, S2CellId.MAX_LEVEL - 4);
+    id = S2CellId.fromFacePosLevel(3, 0x12345678, S2CellId.kMaxLevel - 4);
     assertTrue(id.isValid());
     assertEquals(id.face(), 3);
     // assertEquals(id.pos(), 0x12345700);
-    assertEquals(id.level(), S2CellId.MAX_LEVEL - 4);
+    assertEquals(id.level(), S2CellId.kMaxLevel - 4);
     assertTrue(!id.isLeaf());
 
     // Check face definitions
@@ -72,32 +74,32 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
     assertTrue(id.childBegin().lessThan(id));
     assertTrue(id.childEnd().greaterThan(id));
     assertEquals(id.childBegin().next().next().next().next(), id.childEnd());
-    assertEquals(id.childBegin(S2CellId.MAX_LEVEL), id.rangeMin());
-    assertEquals(id.childEnd(S2CellId.MAX_LEVEL), id.rangeMax().next());
+    assertEquals(id.childBegin(S2CellId.kMaxLevel), id.rangeMin());
+    assertEquals(id.childEnd(S2CellId.kMaxLevel), id.rangeMax().next());
 
     // Check wrapping from beginning of Hilbert curve to end and vice versa.
     assertEquals(S2CellId.begin(0).prevWrap(), S2CellId.end(0).prev());
 
-    assertEquals(S2CellId.begin(S2CellId.MAX_LEVEL).prevWrap(),
-        S2CellId.fromFacePosLevel(5, ~0L >>> S2CellId.FACE_BITS, S2CellId.MAX_LEVEL));
+    assertEquals(S2CellId.begin(S2CellId.kMaxLevel).prevWrap(),
+        S2CellId.fromFacePosLevel(5, ~0L >>> S2CellId.kFaceBits, S2CellId.kMaxLevel));
 
     assertEquals(S2CellId.end(4).prev().nextWrap(), S2CellId.begin(4));
-    assertEquals(S2CellId.end(S2CellId.MAX_LEVEL).prev().nextWrap(),
-        S2CellId.fromFacePosLevel(0, 0, S2CellId.MAX_LEVEL));
+    assertEquals(S2CellId.end(S2CellId.kMaxLevel).prev().nextWrap(),
+        S2CellId.fromFacePosLevel(0, 0, S2CellId.kMaxLevel));
 
     // Check that cells are represented by the position of their center
     // along the Hilbert curve.
-    assertEquals(id.rangeMin().id() + id.rangeMax().id(), 2 * id.id());
+    assertEquals(id.rangeMin().getId() + id.rangeMax().getId(), 2 * id.getId());
   }
 
   public void testInverses() {
     logger.info("TestInverses");
     // Check the conversion of random leaf cells to S2LatLngs and back.
     for (int i = 0; i < 200000; ++i) {
-      S2CellId id = getRandomCellId(S2CellId.MAX_LEVEL);
-      assertTrue(id.isLeaf() && id.level() == S2CellId.MAX_LEVEL);
+      S2CellId id = getRandomCellId(S2CellId.kMaxLevel);
+      assertTrue(id.isLeaf() && id.level() == S2CellId.kMaxLevel);
       S2LatLng center = id.toLatLng();
-      assertEquals(S2CellId.fromLatLng(center).id(), id.id());
+      assertEquals(S2CellId.fromLatLng(center).getId(), id.getId());
     }
   }
 
@@ -133,11 +135,9 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
     if (parent.level() == kMaxExpandLevel) {
       return;
     }
-    MutableInteger i = new MutableInteger(0);
-    MutableInteger j = new MutableInteger(0);
-    MutableInteger orientation = new MutableInteger(0);
-    int face = parent.toFaceIJOrientation(i, j, orientation);
-    assertEquals(face, parent.face());
+    FaceIJ faceIJ = parent.toFaceIJOrientation(true);
+    int face = faceIJ.getFace();
+    assertEquals(faceIJ.getFace(), parent.face());
 
     int pos = 0;
     for (S2CellId child = parent.childBegin(); !child.equals(parent.childEnd());
@@ -145,10 +145,9 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
       // Do some basic checks on the children
       assertEquals(child.level(), parent.level() + 1);
       assertTrue(!child.isLeaf());
-      MutableInteger childOrientation = new MutableInteger(0);
-      assertEquals(child.toFaceIJOrientation(i, j, childOrientation), face);
-      assertEquals(
-          childOrientation.intValue(), orientation.intValue() ^ S2.posToOrientation(pos));
+      FaceIJ childFaceIJ = child.toFaceIJOrientation(true);
+      assertEquals(childFaceIJ.getFace(), face);
+      assertEquals(childFaceIJ.getOrientation().intValue(), faceIJ.getOrientation() ^ S2.posToOrientation(pos));
 
       parentMap.put(child, parent);
       expandCell(child, cells, parentMap);
@@ -216,7 +215,7 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
     // the cells at the corners of each face are stretched -- they have 60 and
     // 120 degree angles.)
 
-    double maxDist = 0.5 * S2Projections.MAX_DIAG.getValue(S2CellId.MAX_LEVEL);
+    double maxDist = 0.5 * S2Projections.MAX_DIAG.getValue(S2CellId.kMaxLevel);
     for (int i = 0; i < 1000000; ++i) {
       // randomPoint();
       S2Point p = new S2Point(0.37861576725894824, 0.2772406863275093, 0.8830558887338725);
@@ -227,7 +226,7 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
   }
 
   public void testAllNeighbors(S2CellId id, int level) {
-    assertTrue(level >= id.level() && level < S2CellId.MAX_LEVEL);
+    assertTrue(level >= id.level() && level < S2CellId.kMaxLevel);
 
     // We compute GetAllNeighbors, and then add in all the children of "id"
     // at the given level. We then compare this against the result of finding
@@ -235,11 +234,11 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
     // given level. These should give the same result.
     ArrayList<S2CellId> all = new ArrayList<S2CellId>();
     ArrayList<S2CellId> expected = new ArrayList<S2CellId>();
-    id.getAllNeighbors(level, all);
+    id.appendAllNeighbors(level, all);
     S2CellId end = id.childEnd(level + 1);
     for (S2CellId c = id.childBegin(level + 1); !c.equals(end); c = c.next()) {
       all.add(c.parent());
-      c.getVertexNeighbors(level, expected);
+      c.appendVertexNeighbors(level, expected);
     }
     // Sort the results and eliminate duplicates.
     Collections.sort(all);
@@ -263,7 +262,7 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
 
     // Check the vertex neighbors of the center of face 2 at level 5.
     ArrayList<S2CellId> nbrs = new ArrayList<S2CellId>();
-    S2CellId.fromPoint(new S2Point(0, 0, 1)).getVertexNeighbors(5, nbrs);
+    S2CellId.fromPoint(new S2Point(0, 0, 1)).appendVertexNeighbors(5, nbrs);
     Collections.sort(nbrs);
     for (int i = 0; i < 4; ++i) {
       assertEquals(nbrs.get(i), S2CellId.fromFaceIJ(
@@ -272,8 +271,8 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
     nbrs.clear();
 
     // Check the vertex neighbors of the corner of faces 0, 4, and 5.
-    S2CellId id = S2CellId.fromFacePosLevel(0, 0, S2CellId.MAX_LEVEL);
-    id.getVertexNeighbors(0, nbrs);
+    S2CellId id = S2CellId.fromFacePosLevel(0, 0, S2CellId.kMaxLevel);
+    id.appendVertexNeighbors(0, nbrs);
     Collections.sort(nbrs);
     assertEquals(nbrs.size(), 3);
     assertEquals(nbrs.get(0), S2CellId.fromFacePosLevel(0, 0, 0));
@@ -290,7 +289,7 @@ public strictfp class S2CellIdTest extends GeometryTestCase {
 
       // TestAllNeighbors computes approximately 2**(2*(diff+1)) cell id1s,
       // so it's not reasonable to use large values of "diff".
-      int maxDiff = Math.min(6, S2CellId.MAX_LEVEL - id1.level() - 1);
+      int maxDiff = Math.min(6, S2CellId.kMaxLevel - id1.level() - 1);
       int level = id1.level() + random(maxDiff);
       testAllNeighbors(id1, level);
     }

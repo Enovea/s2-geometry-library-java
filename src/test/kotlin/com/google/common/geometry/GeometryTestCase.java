@@ -20,10 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2LatLng;
-import dilivia.s2.S2Point;
-import dilivia.s2.S2Region;
+import dilivia.s2.*;
 import junit.framework.TestCase;
 
 import java.util.List;
@@ -73,13 +70,13 @@ public abstract strictfp class GeometryTestCase extends TestCase {
    * approximately uniform over the surface of the sphere.
    */
   public S2CellId getRandomCellId(int level) {
-    int face = random(S2CellId.NUM_FACES);
-    long pos = rand.nextLong() & ((1L << (2 * S2CellId.MAX_LEVEL)) - 1);
+    int face = random(S2CellId.kNumFaces);
+    long pos = rand.nextLong() & ((1L << (2 * S2CellId.kMaxLevel)) - 1);
     return S2CellId.fromFacePosLevel(face, pos, level);
   }
 
   public S2CellId getRandomCellId() {
-    return getRandomCellId(random(S2CellId.MAX_LEVEL + 1));
+    return getRandomCellId(random(S2CellId.kMaxLevel + 1));
   }
 
   int random(int n) {

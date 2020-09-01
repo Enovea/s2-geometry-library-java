@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import dilivia.s2.S2CellId;
 import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
@@ -73,7 +74,7 @@ public abstract strictfp class S2EdgeIndex {
    * Empties the index in case it already contained something.
    */
   public void reset() {
-    minimumS2LevelUsed = S2CellId.MAX_LEVEL;
+    minimumS2LevelUsed = S2CellId.kMaxLevel;
     indexComputed = false;
     queryCount = 0;
     cells = null;
@@ -114,7 +115,7 @@ public abstract strictfp class S2EdgeIndex {
       int level = getCovering(from, to, true, cover);
       minimumS2LevelUsed = Math.min(minimumS2LevelUsed, level);
       for (S2CellId cellId : cover) {
-        cellList.add(cellId.id());
+        cellList.add(cellId.getId());
         edgeList.add(i);
       }
     }
@@ -319,7 +320,7 @@ public abstract strictfp class S2EdgeIndex {
     if (!thickenEdge) {
       containingCellId = containingCell(a, b);
     } else {
-      if (idealLevel == S2CellId.MAX_LEVEL) {
+      if (idealLevel == S2CellId.kMaxLevel) {
         // If the edge is tiny, instabilities are more likely, so we
         // want to limit the number of operations.
         // We pretend we are in a cell much larger so as to trigger the
@@ -369,8 +370,8 @@ public abstract strictfp class S2EdgeIndex {
     // the cap by four big-enough cells around the cell vertex closest to the
     // cap center.
     S2Point middle = S2Point.normalize(S2Point.div(S2Point.plus(a, b), 2));
-    int actualLevel = Math.min(idealLevel, S2CellId.MAX_LEVEL - 1);
-    S2CellId.fromPoint(middle).getVertexNeighbors(actualLevel, edgeCovering);
+    int actualLevel = Math.min(idealLevel, S2CellId.kMaxLevel - 1);
+    S2CellId.fromPoint(middle).appendVertexNeighbors(actualLevel, edgeCovering);
     return actualLevel;
   }
 
@@ -434,7 +435,7 @@ public abstract strictfp class S2EdgeIndex {
 
     // Put parent cell edge references into result.
     for (S2CellId parentCell : parentCells) {
-      int[] bounds = getEdges(parentCell.id(), parentCell.id());
+      int[] bounds = getEdges(parentCell.getId(), parentCell.getId());
       for (int i = bounds[0]; i < bounds[1]; i++) {
         candidateCrossings.add(edges[i]);
       }
@@ -497,14 +498,14 @@ public abstract strictfp class S2EdgeIndex {
     S2Cell[] children = null;
     while (!cover.isEmpty()) {
       S2CellId cell = cover.remove(cover.size() - 1);
-      int[] bounds = getEdges(cell.rangeMin().id(), cell.rangeMax().id());
+      int[] bounds = getEdges(cell.rangeMin().getId(), cell.rangeMax().getId());
       if (bounds[1] - bounds[0] <= 16) {
         for (int i = bounds[0]; i < bounds[1]; i++) {
           candidateCrossings.add(edges[i]);
         }
       } else {
         // Add cells at this level
-        bounds = getEdges(cell.id(), cell.id());
+        bounds = getEdges(cell.getId(), cell.getId());
         for (int i = bounds[0]; i < bounds[1]; i++) {
           candidateCrossings.add(edges[i]);
         }

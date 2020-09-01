@@ -18,6 +18,7 @@ package com.google.common.geometry;
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
 import dilivia.s2.S2Cap;
+import dilivia.s2.S2CellId;
 import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
     S2CellId face2Id = S2CellId.fromFacePosLevel(2, 0, 0);
     S2CellUnion face2Union = new S2CellUnion();
     ArrayList<Long> cellids = Lists.newArrayList();
-    cellids.add(face2Id.id());
+    cellids.add(face2Id.getId());
     face2Union.initFromIds(cellids);
     assertEquals(1, face2Union.size());
     assertEquals(face2Id, face2Union.cellId(0));
@@ -63,14 +64,14 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
 
     Set<S2CellId> randomCells = new HashSet<S2CellId>();
     for (int i = 0; i < 100; i++) {
-      randomCells.add(getRandomCellId(S2CellId.MAX_LEVEL));
+      randomCells.add(getRandomCellId(S2CellId.kMaxLevel));
     }
 
     S2CellUnion union = new S2CellUnion();
     union.initFromCellIds(Lists.newArrayList(randomCells));
 
     // Add one more
-    while (!randomCells.add(getRandomCellId(S2CellId.MAX_LEVEL))) {      
+    while (!randomCells.add(getRandomCellId(S2CellId.kMaxLevel))) {
     }
 
     S2CellUnion unionPlusOne = new S2CellUnion();
@@ -118,7 +119,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
     // The following code ensures that the probability of selecting a cell
     // at each level is approximately the same, i.e. we test normalization
     // of cells at all levels.
-    if (!selected && random(S2CellId.MAX_LEVEL - id.level()) != 0) {
+    if (!selected && random(S2CellId.kMaxLevel - id.level()) != 0) {
       // Once a cell has been selected, the expected output is predetermined.
       // We then make sure that cells are selected that will normalize to
       // the desired output.
@@ -204,8 +205,8 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
           assertTrue(cellunion.intersects(input.get(j).childBegin()));
           assertTrue(cellunion.contains(input.get(j).childEnd().prev()));
           assertTrue(cellunion.intersects(input.get(j).childEnd().prev()));
-          assertTrue(cellunion.contains(input.get(j).childBegin(S2CellId.MAX_LEVEL)));
-          assertTrue(cellunion.intersects(input.get(j).childBegin(S2CellId.MAX_LEVEL)));
+          assertTrue(cellunion.contains(input.get(j).childBegin(S2CellId.kMaxLevel)));
+          assertTrue(cellunion.intersects(input.get(j).childBegin(S2CellId.kMaxLevel)));
         }
       }
       for (int j = 0; j < expected.size(); ++j) {
@@ -318,7 +319,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
 
     S2RegionCoverer coverer = new S2RegionCoverer();
     for (int i = 0; i < 1000; ++i) {
-      S2Cap cap = getRandomCap(S2Cell.averageArea(S2CellId.MAX_LEVEL), 4 * S2.M_PI);
+      S2Cap cap = getRandomCap(S2Cell.averageArea(S2CellId.kMaxLevel), 4 * S2.M_PI);
 
       // Expand the cap by a random factor whose log is uniformly distributed
       // between 0 and log(1e2).
@@ -335,7 +336,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
       checkCovering(cap, covering, true, new S2CellId());
 
       double maxAngle = getMaxAngle(covering, cap.getCenter());
-      int minLevel = S2CellId.MAX_LEVEL;
+      int minLevel = S2CellId.kMaxLevel;
       for (int j = 0; j < covering.size(); ++j) {
         minLevel = Math.min(minLevel, covering.cellId(j).level());
       }
@@ -363,7 +364,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
 
     ArrayList<S2CellId> ids = Lists.newArrayList();
     ids.add(S2CellId.fromFacePosLevel(
-        0, (1L << ((S2CellId.MAX_LEVEL << 1) - 1)), S2CellId.MAX_LEVEL));
+        0, (1L << ((S2CellId.kMaxLevel << 1) - 1)), S2CellId.kMaxLevel));
 
     // One leaf on face 0.
     cellUnion.initFromCellIds(ids);
@@ -407,7 +408,7 @@ public strictfp class S2CellUnionTest extends GeometryTestCase {
     ids.add(S2CellId.fromFacePosLevel(5, 0, 30));
     cellUnion.initFromCellIds(ids);
 
-    double expected = S2Cell.averageArea(S2CellId.MAX_LEVEL) * (1L + (1L << 58));
+    double expected = S2Cell.averageArea(S2CellId.kMaxLevel) * (1L + (1L << 58));
     assertEquals(expected, cellUnion.averageBasedArea());
   }
 

@@ -18,7 +18,6 @@ package dilivia.s2
 import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.*
 import com.google.common.geometry.S2Cell
-import com.google.common.geometry.S2CellId
 import com.google.common.geometry.S2Projections
 import dilivia.s2.S2LatLng.Companion.fromDegrees
 import kotlin.math.atan

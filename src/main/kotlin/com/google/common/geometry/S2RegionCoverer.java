@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
 import dilivia.s2.S2Cap;
+import dilivia.s2.S2CellId;
 import dilivia.s2.S2Point;
 import dilivia.s2.S2Region;
 
@@ -141,7 +142,7 @@ public final strictfp class S2RegionCoverer {
    */
   public S2RegionCoverer() {
     minLevel = 0;
-    maxLevel = S2CellId.MAX_LEVEL;
+    maxLevel = S2CellId.kMaxLevel;
     levelMod = 1;
     maxCells = DEFAULT_MAX_CELLS;
     this.region = null;
@@ -170,7 +171,7 @@ public final strictfp class S2RegionCoverer {
    */
   public void setMinLevel(int minLevel) {
     // assert (minLevel >= 0 && minLevel <= S2CellId.MAX_LEVEL);
-    this.minLevel = Math.max(0, Math.min(S2CellId.MAX_LEVEL, minLevel));
+    this.minLevel = Math.max(0, Math.min(S2CellId.kMaxLevel, minLevel));
   }
 
   /**
@@ -178,7 +179,7 @@ public final strictfp class S2RegionCoverer {
    */
   public void setMaxLevel(int maxLevel) {
     // assert (maxLevel >= 0 && maxLevel <= S2CellId.MAX_LEVEL);
-    this.maxLevel = Math.max(0, Math.min(S2CellId.MAX_LEVEL, maxLevel));
+    this.maxLevel = Math.max(0, Math.min(S2CellId.kMaxLevel, maxLevel));
   }
 
   public int minLevel() {
@@ -448,7 +449,7 @@ public final strictfp class S2RegionCoverer {
       // cell vertex at that level.
       S2Cap cap = region.getCapBound();
       int level = Math.min(S2Projections.MIN_WIDTH.getMaxLevel(2 * cap.radius().getRadians()),
-          Math.min(maxLevel(), S2CellId.MAX_LEVEL - 1));
+          Math.min(maxLevel(), S2CellId.kMaxLevel - 1));
       if (levelMod() > 1 && level > minLevel()) {
         level -= (level - minLevel()) % levelMod();
       }
@@ -459,7 +460,7 @@ public final strictfp class S2RegionCoverer {
         // subcell of the parent cell contains it.
         ArrayList<S2CellId> base = new ArrayList<S2CellId>(4);
         S2CellId id = S2CellId.fromPoint(cap.getCenter());
-        id.getVertexNeighbors(level, base);
+        id.appendVertexNeighbors(level, base);
         for (int i = 0; i < base.size(); ++i) {
           addCandidate(newCandidate(new S2Cell(base.get(i))));
         }

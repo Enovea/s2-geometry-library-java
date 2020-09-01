@@ -128,8 +128,8 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
       if (levelMod > 1) {
         // Round up so that (new_level - min_level) is a multiple of level_mod.
         // (Note that S2CellId::kMaxLevel is a multiple of 1, 2, and 3.)
-        newLevel += (S2CellId.MAX_LEVEL - (newLevel - minLevel)) % levelMod;
-        newLevel = Math.min(S2CellId.MAX_LEVEL, newLevel);
+        newLevel += (S2CellId.kMaxLevel - (newLevel - minLevel)) % levelMod;
+        newLevel = Math.min(S2CellId.kMaxLevel, newLevel);
       }
       if (newLevel == level) {
         output.add(id);
@@ -372,7 +372,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
         }
       }
       output.add(id);
-      id.getAllNeighbors(level, output);
+      id.appendAllNeighbors(level, output);
     } while (--i >= 0);
     initSwap(output);
   }
@@ -391,7 +391,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
    * maxLevelDiff) times larger than the number of cells in the input.
    */
   public void expand(S1Angle minRadius, int maxLevelDiff) {
-    int minLevel = S2CellId.MAX_LEVEL;
+    int minLevel = S2CellId.kMaxLevel;
     for (S2CellId id : this) {
       minLevel = Math.min(minLevel, id.level());
     }
@@ -476,7 +476,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
   public long leafCellsCovered() {
     long numLeaves = 0;
     for (S2CellId cellId : cellIds) {
-      int invertedLevel = S2CellId.MAX_LEVEL - cellId.level();
+      int invertedLevel = S2CellId.kMaxLevel - cellId.level();
       numLeaves += (1L << (invertedLevel << 1));
     }
     return numLeaves;
@@ -497,7 +497,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
    * @return the sum of the average area of each contained cell's average area
    */
   public double averageBasedArea() {
-    return S2Cell.averageArea(S2CellId.MAX_LEVEL) * leafCellsCovered();
+    return S2Cell.averageArea(S2CellId.kMaxLevel) * leafCellsCovered();
   }
 
   /**
@@ -585,8 +585,8 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
         size = output.size();
         // A necessary (but not sufficient) condition is that the XOR of the
         // four cells must be zero. This is also very fast to test.
-        if ((output.get(size - 3).id() ^ output.get(size - 2).id() ^ output.get(size - 1).id())
-            != id.id()) {
+        if ((output.get(size - 3).getId() ^ output.get(size - 2).getId() ^ output.get(size - 1).getId())
+            != id.getId()) {
           break;
         }
 
@@ -596,10 +596,10 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
         // children all agree with "mask.
         long mask = id.lowestOnBit() << 1;
         mask = ~(mask + (mask << 1));
-        long idMasked = (id.id() & mask);
-        if ((output.get(size - 3).id() & mask) != idMasked
-            || (output.get(size - 2).id() & mask) != idMasked
-            || (output.get(size - 1).id() & mask) != idMasked || id.isFace()) {
+        long idMasked = (id.getId() & mask);
+        if ((output.get(size - 3).getId() & mask) != idMasked
+            || (output.get(size - 2).getId() & mask) != idMasked
+            || (output.get(size - 1).getId() & mask) != idMasked || id.isFace()) {
           break;
         }
 

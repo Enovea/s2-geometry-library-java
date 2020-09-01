@@ -17,7 +17,6 @@ package dilivia.s2
 
 import com.google.common.geometry.S2.*
 import com.google.common.geometry.S2Cell
-import com.google.common.geometry.S2CellId
 import com.google.common.geometry.S2Projections
 import dilivia.s2.Assertions.assertCapIsValid
 import dilivia.s2.Assertions.assertGreaterOrEquals
@@ -389,7 +388,7 @@ class S2Cap(val center: S2Point, val radius: S1ChordAngle) : S2Region {
         } else {
             // The covering consists of the 4 cells at the given level that share the
             // cell vertex that is closest to the cap center.
-            S2CellId.fromPoint(center).getVertexNeighbors(level, cellIds)
+            S2CellId.fromPoint(center).appendVertexNeighbors(level, cellIds)
         }
     }
 

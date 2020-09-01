@@ -1,7 +1,7 @@
 package dilivia.s2.math
 
 @Strictfp
-open class R3VectorDouble constructor(coords: List<Double>) : R3Vector<R3VectorDouble, Double>(coords, DoubleType()) {
+open class R3VectorDouble constructor(coords: List<Double>) : R3Vector<R3VectorDouble, Double>(coords.map { if (it == -0.0) 0.0 else it }, DoubleType()) {
 
     init {
         require(coords.size == 3) { "Points must have exactly 3 coordinates" }

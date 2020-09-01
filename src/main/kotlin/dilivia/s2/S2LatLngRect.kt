@@ -19,7 +19,6 @@ import com.google.common.geometry.S2
 import com.google.common.geometry.S2.M_PI
 import com.google.common.geometry.S2.M_PI_2
 import com.google.common.geometry.S2Cell
-import com.google.common.geometry.S2CellId
 import com.google.common.geometry.S2EdgeUtil
 import dilivia.s2.Assertions.assertLatLngIsValid
 import dilivia.s2.Assertions.assertLatLngRectIsValid

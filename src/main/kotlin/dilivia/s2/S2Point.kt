@@ -18,9 +18,7 @@
  */
 package dilivia.s2
 
-import dilivia.s2.math.DoubleType
-import dilivia.s2.math.R3Vector
-import dilivia.s2.math.RVector
+import dilivia.s2.math.*
 import kotlin.math.atan2
 
 /**
@@ -29,7 +27,7 @@ import kotlin.math.atan2
  * this.
  */
 @Strictfp
-class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords, DoubleType()) {
+class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map { if (it == -0.0) 0.0 else it }, DoubleType()) {
 
     init {
         require(coords.size == 3) { "Points must have exactly 3 coordinates" }
@@ -78,6 +76,9 @@ class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords, DoubleTy
      * useful for assertions).
      */
     fun isUnitLength(): Boolean = kotlin.math.abs(norm2() - 1) <= 1e-15
+
+    fun toLongDouble(): R3VectorLongDouble = R3VectorLongDouble(x, y, z)
+    fun toExactFloat(): R3VectorExactFloat = R3VectorExactFloat(x, y, z)
 
     companion object {
 
