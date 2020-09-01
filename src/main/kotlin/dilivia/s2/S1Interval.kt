@@ -20,6 +20,7 @@ package dilivia.s2
 
 import com.google.common.geometry.S2.DBL_EPSILON
 import com.google.common.geometry.S2.M_PI
+import dilivia.s2.math.R2Vector
 import kotlin.math.IEEErem
 import kotlin.math.abs
 import kotlin.math.max

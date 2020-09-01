@@ -18,6 +18,9 @@
  */
 package dilivia.s2
 
+import dilivia.s2.math.R2Point
+import dilivia.s2.math.R2Vector
+
 /**
  * An R2Rect represents a closed axis-aligned rectangle in the (x,y) plane.
  *

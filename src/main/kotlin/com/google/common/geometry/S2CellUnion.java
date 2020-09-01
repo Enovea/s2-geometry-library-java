@@ -16,10 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2Point;
-import dilivia.s2.S2Region;
+import dilivia.s2.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -447,7 +444,7 @@ public strictfp class S2CellUnion implements S2Region, Iterable<S2CellId> {
 
   @Override
   public S2LatLngRect getRectBound() {
-    S2LatLngRect bound = S2LatLngRect.empty();
+    S2LatLngRect bound = S2LatLngRect.empty;
     for (S2CellId id : this) {
       bound = bound.union(new S2Cell(id).getRectBound());
     }

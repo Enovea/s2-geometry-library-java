@@ -164,24 +164,24 @@ public strictfp class S2EdgeUtilTest extends GeometryTestCase {
     public void testRectBounder() {
         // Check cases where min/max latitude is not at a vertex.
         // Max, CW
-        assertDoubleNear(getEdgeBound(1, 1, 1, 1, -1, 1).lat().getHi(), S2.M_PI_4);
+        assertDoubleNear(getEdgeBound(1, 1, 1, 1, -1, 1).getLat().getHi(), S2.M_PI_4);
         // Max, CCW
-        assertDoubleNear(getEdgeBound(1, -1, 1, 1, 1, 1).lat().getHi(), S2.M_PI_4);
+        assertDoubleNear(getEdgeBound(1, -1, 1, 1, 1, 1).getLat().getHi(), S2.M_PI_4);
         // Min, CW
-        assertDoubleNear(getEdgeBound(1, -1, -1, -1, -1, -1).lat().getLo(), -S2.M_PI_4);
+        assertDoubleNear(getEdgeBound(1, -1, -1, -1, -1, -1).getLat().getLo(), -S2.M_PI_4);
         // Min, CCW
-        assertDoubleNear(getEdgeBound(-1, 1, -1, -1, -1, -1).lat().getLo(), -S2.M_PI_4);
+        assertDoubleNear(getEdgeBound(-1, 1, -1, -1, -1, -1).getLat().getLo(), -S2.M_PI_4);
 
         // Check cases where the edge passes through one of the poles.
-        assertDoubleNear(getEdgeBound(.3, .4, 1, -.3, -.4, 1).lat().getHi(), S2.M_PI_2);
-        assertDoubleNear(getEdgeBound(.3, .4, -1, -.3, -.4, -1).lat().getLo(), -S2.M_PI_2);
+        assertDoubleNear(getEdgeBound(.3, .4, 1, -.3, -.4, 1).getLat().getHi(), S2.M_PI_2);
+        assertDoubleNear(getEdgeBound(.3, .4, -1, -.3, -.4, -1).getLat().getLo(), -S2.M_PI_2);
 
         // Check cases where the min/max latitude is attained at a vertex.
         double kCubeLat = Math.asin(Math.sqrt(1. / 3)); // 35.26 degrees
         assertTrue(
-                getEdgeBound(1, 1, 1, 1, -1, -1).lat().approxEquals(new R1Interval(-kCubeLat, kCubeLat)));
+                getEdgeBound(1, 1, 1, 1, -1, -1).getLat().approxEquals(new R1Interval(-kCubeLat, kCubeLat)));
         assertTrue(
-                getEdgeBound(1, -1, 1, 1, 1, -1).lat().approxEquals(new R1Interval(-kCubeLat, kCubeLat)));
+                getEdgeBound(1, -1, 1, 1, 1, -1).getLat().approxEquals(new R1Interval(-kCubeLat, kCubeLat)));
     }
 
     // Produce a normalized S2Point for testing.

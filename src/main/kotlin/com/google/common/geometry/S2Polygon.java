@@ -22,10 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.TreeMultimap;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2Point;
-import dilivia.s2.S2Region;
+import dilivia.s2.*;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -73,7 +70,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
    */
   public S2Polygon() {
     this.loops = Lists.newArrayList();
-    this.bound = S2LatLngRect.empty();
+    this.bound = S2LatLngRect.empty;
     this.hasHoles = false;
     this.numVertices = 0;
   }
@@ -84,7 +81,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
    */
   public S2Polygon(List<S2Loop> loops) {
     this.loops = Lists.newArrayList();
-    this.bound = S2LatLngRect.empty();
+    this.bound = S2LatLngRect.empty;
 
     init(loops);
   }
@@ -179,7 +176,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
 
     // Compute the bounding rectangle of the entire polygon.
     hasHoles = false;
-    bound = S2LatLngRect.empty();
+    bound = S2LatLngRect.empty;
     for (int i = 0; i < numLoops(); ++i) {
       if (loop(i).sign() < 0) {
         hasHoles = true;
@@ -196,7 +193,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
   public void release(List<S2Loop> loops) {
     loops.addAll(this.loops);
     this.loops.clear();
-    bound = S2LatLngRect.empty();
+    bound = S2LatLngRect.empty;
     hasHoles = false;
     numVertices = 0;
   }
@@ -379,7 +376,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
       // If the union of the bounding boxes spans the full longitude range,
       // it is still possible that polygon A contains B. (This is only
       // possible if at least one polygon has multiple shells.)
-      if (!bound.lng().union(b.getRectBound().lng()).isFull()) {
+      if (!bound.getLng().union(b.getRectBound().getLng()).isFull()) {
         return false;
       }
     }

@@ -17,7 +17,7 @@ package com.google.common.geometry;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import dilivia.s2.R2Vector;
+import dilivia.s2.math.R2Vector;
 import dilivia.s2.S2Point;
 
 public final strictfp class S2 {
@@ -28,6 +28,7 @@ public final strictfp class S2 {
   public static final double M_PI_2 = Math.PI / 2.0;
   public static final double M_PI_4 = Math.PI / 4.0;
   public static final double M_SQRT2 = Math.sqrt(2);
+  public static final double M_SQRT3 = Math.sqrt(3);
   public static final double M_E = Math.E;
 
   // Together these flags define a cell orientation. If SWAP_MASK

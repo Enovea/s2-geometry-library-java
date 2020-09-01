@@ -25,6 +25,8 @@ import dilivia.s2.S1Angle.Companion.e5
 import dilivia.s2.S1Angle.Companion.e6
 import dilivia.s2.S1Angle.Companion.e7
 import dilivia.s2.S1Angle.Companion.radians
+import dilivia.s2.math.R2Point
+import dilivia.s2.math.R2Vector
 import kotlin.math.*
 
 /**
@@ -38,6 +40,10 @@ import kotlin.math.*
  */
 @Strictfp
 class S2LatLng private constructor(val latRadians: Double, val lngRadians: Double): Comparable<S2LatLng> {
+
+    constructor(): this(0,0)
+
+    constructor(latRadians: Int, lngRadians: Int): this(latRadians.toDouble(), lngRadians.toDouble())
 
     private constructor(p: R2Point): this(p[0], p[1])
 

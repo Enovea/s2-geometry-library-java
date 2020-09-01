@@ -16,7 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.geometry.S2.Metric;
-import dilivia.s2.R2Vector;
+import dilivia.s2.math.R2Vector;
 import dilivia.s2.S2Point;
 
 /**

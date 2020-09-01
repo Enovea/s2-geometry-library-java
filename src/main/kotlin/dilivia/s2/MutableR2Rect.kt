@@ -18,6 +18,8 @@
  */
 package dilivia.s2
 
+import dilivia.s2.math.R2Point
+
 @Strictfp
 class MutableR2Rect(override var x: MutableR1Interval, override var y: MutableR1Interval) : R2Rect(x, y) {
 

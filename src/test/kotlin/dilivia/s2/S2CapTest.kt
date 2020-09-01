@@ -166,24 +166,24 @@ class S2CapTest : GeometryTestCase() {
         var rect = S2Cap.fromCenterAngle(getLatLngPoint(-45, 57), S1Angle.degrees(50)).rectBound
         assertEquals(rect.latLo().degrees(), -90.0, kDegreeEps)
         assertEquals(rect.latHi().degrees(), 5.0, kDegreeEps)
-        assertTrue(rect.lng().isFull)
+        assertTrue(rect.lng.isFull)
 
         // Cap that is tangent to the north pole.
         rect = S2Cap.fromCenterAngle(S2Point(1, 0, 1).normalize(), S1Angle.radians(M_PI_4 + 1e-16)).rectBound
-        assertEquals(rect.lat().lo, 0.0, kEps)
-        assertEquals(rect.lat().hi, M_PI_2, kEps)
-        assertTrue(rect.lng().isFull)
+        assertEquals(rect.lat.lo, 0.0, kEps)
+        assertEquals(rect.lat.hi, M_PI_2, kEps)
+        assertTrue(rect.lng.isFull)
 
         rect = S2Cap.fromCenterAngle(S2Point(1, 0, 1).normalize(), S1Angle.degrees(45 + 5e-15)).rectBound
         assertEquals(rect.latLo().degrees(), 0.0, kDegreeEps)
         assertEquals(rect.latHi().degrees(), 90.0, kDegreeEps)
-        assertTrue(rect.lng().isFull)
+        assertTrue(rect.lng.isFull)
 
         // The eastern hemisphere.
         rect = S2Cap.fromCenterAngle(S2Point(0, 1, 0), S1Angle.radians(M_PI_2 + 2e-16)).rectBound
         assertEquals(rect.latLo().degrees(), -90.0, kDegreeEps)
         assertEquals(rect.latHi().degrees(), 90.0, kDegreeEps)
-        assertTrue(rect.lng().isFull)
+        assertTrue(rect.lng.isFull)
 
         // A cap centered on the equator.
         rect = S2Cap.fromCenterAngle(getLatLngPoint(0, 50), S1Angle.degrees(20)).rectBound
@@ -196,7 +196,7 @@ class S2CapTest : GeometryTestCase() {
         rect = S2Cap.fromCenterAngle(getLatLngPoint(90, 123), S1Angle.degrees(10)).rectBound
         assertEquals(rect.latLo().degrees(), 80.0, kDegreeEps)
         assertEquals(rect.latHi().degrees(), 90.0, kDegreeEps)
-        assertTrue(rect.lng().isFull)
+        assertTrue(rect.lng.isFull)
     }
 
     fun testS2CellMethods() {

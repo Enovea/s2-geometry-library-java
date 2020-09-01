@@ -18,6 +18,9 @@
  */
 package dilivia.s2
 
+import dilivia.s2.math.DoubleType
+import dilivia.s2.math.R3Vector
+import dilivia.s2.math.RVector
 import kotlin.math.atan2
 
 /**
@@ -26,7 +29,11 @@ import kotlin.math.atan2
  * this.
  */
 @Strictfp
-class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleType()) {
+class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords, DoubleType()) {
+
+    init {
+        require(coords.size == 3) { "Points must have exactly 3 coordinates" }
+    }
 
     @JvmOverloads
     constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0) : this(listOf<Double>(x, y, z)) {}
@@ -45,6 +52,8 @@ class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleTyp
         return get(2)
     }
 
+    override fun newInstance(coords: List<Double>): S2Point = S2Point(coords)
+
     /**
      * return a vector orthogonal to this one
      */
@@ -59,72 +68,16 @@ class S2Point(coords: List<Double>) : RVector<S2Point, Double>(coords, DoubleTyp
         return normalize(crossProd(this, temp))
     }
 
-    /**
-     * Return the index of the largest component fabs
-     */
-    fun largestAbsComponent(): Int {
-        val temp = abs(this)
-        return if (temp.x() > temp.y()) {
-            if (temp.x() > temp.z()) 0 else 2
-        } else {
-            if (temp.y() > temp.z()) 1 else 2
-        }
-    }
-
-    /**
-     * Return the angle between two vectors in radians
-     */
-    override fun angle(v: S2Point): Double {
-        return atan2(crossProd(this, v).norm(), dotProd(v))
-    }
-
-    fun crossProd(other: S2Point): S2Point {
-        return S2Point(
-                y() * other.z() - z() * other.y(),
-                z() * other.x() - x() * other.z(),
-                x() * other.y() - y() * other.x()
-        )
-    }
-
     fun toDegreesString(): String {
         val s2LatLng = S2LatLng.fromPoint(this)
         return "(" + s2LatLng.latDegrees() + ", " + s2LatLng.lngDegrees() + ")"
     }
 
     /**
-     * Calcualates hashcode based on stored coordinates. Since we want +0.0 and
-     * -0.0 to be treated the same, we ignore the sign of the coordinates.
-     *
-     * @Override
-     * public int hashCode() {
-     * long value = 17;
-     * value += 37 * value + Double.doubleToLongBits(Math.abs(x()));
-     * value += 37 * value + Double.doubleToLongBits(Math.abs(y()));
-     * value += 37 * value + Double.doubleToLongBits(Math.abs(z()));
-     * return (int) (value ^ (value >>> 32));
-     * }
-     */
-    override fun sqrt(): S2Point = S2Point(sqrtCoordinates())
-
-    override fun normalize(): S2Point = S2Point(normalizedCoordinates())
-
-    override operator fun plus(other: S2Point): S2Point = S2Point(sumCoordinates(other))
-
-    override operator fun minus(other: S2Point): S2Point = S2Point(subtractCoordinates(other))
-
-    override fun times(other: Double): S2Point = S2Point(scalarMulCoordinates(other))
-
-    override fun div(other: Double): S2Point = S2Point(scalarDivCoordinates(other))
-
-    override fun abs(): S2Point = S2Point(absCoordinates())
-
-
-    /**
      * Return true if the given point is approximately unit length (this is mainly
      * useful for assertions).
      */
     fun isUnitLength(): Boolean = kotlin.math.abs(norm2() - 1) <= 1e-15
-
 
     companion object {
 

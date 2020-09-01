@@ -16,9 +16,22 @@ object Assertions {
         }
     }
 
+
+    fun assertLatLngIsValid(point: S2LatLng, lazyMessage: (() -> Any)? = null) {
+        this.assert({ point.isValid }, {
+            if (lazyMessage != null) lazyMessage() else "The LatLng point $point is not valid."
+        })
+    }
+
     fun assertCapIsValid(cap: S2Cap, lazyMessage: (() -> Any)? = null) {
         this.assert({ cap.isValid }, {
             if (lazyMessage != null) lazyMessage() else "The cap $cap is not valid."
+        })
+    }
+
+    fun assertLatLngRectIsValid(rect: S2LatLngRect, lazyMessage: (() -> Any)? = null) {
+        this.assert({ rect.isValid }, {
+            if (lazyMessage != null) lazyMessage() else "The rectangle $rect is not valid."
         })
     }
 

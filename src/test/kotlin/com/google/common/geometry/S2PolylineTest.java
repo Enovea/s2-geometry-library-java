@@ -19,6 +19,7 @@ package com.google.common.geometry;
 import com.google.common.collect.Lists;
 import dilivia.s2.S1Angle;
 import dilivia.s2.S2LatLng;
+import dilivia.s2.S2LatLngRect;
 import dilivia.s2.S2Point;
 
 import java.util.List;
@@ -36,7 +37,7 @@ public strictfp class S2PolylineTest extends GeometryTestCase {
     public void testBasic() {
         List<S2Point> vertices = Lists.newArrayList();
         S2Polyline empty = new S2Polyline(vertices);
-        assertEquals(empty.getRectBound(), S2LatLngRect.empty());
+        assertEquals(empty.getRectBound(), S2LatLngRect.empty);
     }
 
     public void testGetLengthCentroid() {

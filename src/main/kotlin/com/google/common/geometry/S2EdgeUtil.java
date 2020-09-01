@@ -172,7 +172,7 @@ public strictfp class S2EdgeUtil {
     private S2LatLngRect bound;
 
     public RectBounder() {
-      this.bound = S2LatLngRect.empty();
+      this.bound = S2LatLngRect.empty;
     }
 
     /**
@@ -205,14 +205,14 @@ public strictfp class S2EdgeUtil {
           // Minimum/maximum latitude occurs in the edge interior. This affects
           // the latitude bounds but not the longitude bounds.
           double absLat = Math.acos(Math.abs(aCrossB.get(2) / aCrossB.norm()));
-          R1Interval lat = bound.lat();
+          R1Interval lat = bound.getLat();
           if (da < 0) {
             // It's possible that absLat < lat.lo() due to numerical errors.
-            lat = new R1Interval(lat.getLo(), Math.max(absLat, bound.lat().getHi()));
+            lat = new R1Interval(lat.getLo(), Math.max(absLat, bound.getLat().getHi()));
           } else {
-            lat = new R1Interval(Math.min(-absLat, bound.lat().getLo()), lat.getHi());
+            lat = new R1Interval(Math.min(-absLat, bound.getLat().getLo()), lat.getHi());
           }
-          bound = new S2LatLngRect(lat, bound.lng());
+          bound = new S2LatLngRect(lat, bound.getLng());
         }
       }
       a = b;

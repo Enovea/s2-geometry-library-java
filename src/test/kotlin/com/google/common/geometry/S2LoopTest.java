@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import dilivia.s2.R1Interval;
 import dilivia.s2.S2LatLng;
+import dilivia.s2.S2LatLngRect;
 import dilivia.s2.S2Point;
 
 import java.util.List;
@@ -102,7 +103,7 @@ public strictfp class S2LoopTest extends GeometryTestCase {
   }
 
   public void testBounds() {
-    assertTrue(candyCane.getRectBound().lng().isFull());
+    assertTrue(candyCane.getRectBound().getLng().isFull());
     assertTrue(candyCane.getRectBound().latLo().degrees() < -20);
     assertTrue(candyCane.getRectBound().latHi().degrees() > 10);
     assertTrue(smallNeCw.getRectBound().isFull());
@@ -117,8 +118,8 @@ public strictfp class S2LoopTest extends GeometryTestCase {
     assertDoubleNear(arctic80.getRectBound().latHi().getRadians(), S2LatLng.fromPoint(mid).lat().getRadians());
     arctic80.invert();
 
-    assertTrue(southHemi.getRectBound().lng().isFull());
-    assertEquals(southHemi.getRectBound().lat(), new R1Interval(-S2.M_PI_2, 0));
+    assertTrue(southHemi.getRectBound().getLng().isFull());
+    assertEquals(southHemi.getRectBound().getLat(), new R1Interval(-S2.M_PI_2, 0));
   }
 
   public void testAreaCentroid() {

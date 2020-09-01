@@ -18,7 +18,6 @@ package dilivia.s2
 import com.google.common.geometry.S2.*
 import com.google.common.geometry.S2Cell
 import com.google.common.geometry.S2CellId
-import com.google.common.geometry.S2LatLngRect
 import com.google.common.geometry.S2Projections
 import dilivia.s2.Assertions.assertCapIsValid
 import dilivia.s2.Assertions.assertGreaterOrEquals
@@ -321,7 +320,7 @@ class S2Cap(val center: S2Point, val radius: S1ChordAngle) : S2Region {
 
     override val rectBound: S2LatLngRect
         get() {
-            if (isEmpty) return S2LatLngRect.empty()
+            if (isEmpty) return S2LatLngRect.empty
 
             // Convert the center to a (lat,lng) pair, and compute the cap angle.
             val centerLl = S2LatLng.fromPoint(center)

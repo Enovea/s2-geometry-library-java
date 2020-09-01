@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 
 import dilivia.s2.*;
+import dilivia.s2.math.R2Vector;
 
 /**
  * An S2Cell is an S2Region object that represents a cell. Unlike S2CellIds, it

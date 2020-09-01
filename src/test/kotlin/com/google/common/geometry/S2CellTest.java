@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import dilivia.s2.S2Cap;
 import dilivia.s2.S2LatLng;
+import dilivia.s2.S2LatLngRect;
 import dilivia.s2.S2Point;
 
 import java.util.ArrayList;
@@ -216,7 +217,7 @@ public strictfp class S2CellTest extends GeometryTestCase {
             S2LatLngRect parentRect = cell.getRectBound();
             if (cell.contains(new S2Point(0, 0, 1))
                     || cell.contains(new S2Point(0, 0, -1))) {
-                assertTrue(parentRect.lng().isFull());
+                assertTrue(parentRect.getLng().isFull());
             }
             S2Cap childCap = children[i].getCapBound();
             S2LatLngRect childRect = children[i].getRectBound();

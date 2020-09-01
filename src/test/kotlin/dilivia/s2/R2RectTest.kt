@@ -37,6 +37,7 @@
 // R1Interval class, so most of the testing is done in that unit test.
 package dilivia.s2
 
+import dilivia.s2.math.R2Point
 import junit.framework.TestCase
 
 

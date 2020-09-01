@@ -92,7 +92,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
   public S2Loop(final List<S2Point> vertices) {
     this.numVertices = vertices.size();
     this.vertices = new S2Point[numVertices];
-    this.bound = S2LatLngRect.full();
+    this.bound = S2LatLngRect.full;
     this.depth = 0;
 
     // if (debugMode) {
@@ -267,9 +267,9 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     vertexToIndex = null;
     index = null;
     originInside ^= true;
-    if (bound.lat().getLo() > -S2.M_PI_2 && bound.lat().getHi() < S2.M_PI_2) {
+    if (bound.getLat().getLo() > -S2.M_PI_2 && bound.getLat().getHi() < S2.M_PI_2) {
       // The complement of this loop contains both poles.
-      bound = S2LatLngRect.full();
+      bound = S2LatLngRect.full;
     } else {
       initBound();
     }
@@ -448,7 +448,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     // Normalize the arguments so that B has a smaller longitude span than A.
     // This makes intersection tests much more efficient in the case where
     // longitude pruning is used (see CheckEdgeCrossings).
-    if (b.getRectBound().lng().getLength() > bound.lng().getLength()) {
+    if (b.getRectBound().getLng().getLength() > bound.getLng().getLength()) {
       return b.intersects(this);
     }
 
@@ -851,16 +851,16 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     S2LatLngRect b = bounder.getBound();
     // Note that we need to initialize bound with a temporary value since
     // contains() does a bounding rectangle check before doing anything else.
-    bound = S2LatLngRect.full();
+    bound = S2LatLngRect.full;
     if (contains(new S2Point(0, 0, 1))) {
-      b = new S2LatLngRect(new R1Interval(b.lat().getLo(), S2.M_PI_2), S1Interval.getFull());
+      b = new S2LatLngRect(new R1Interval(b.getLat().getLo(), S2.M_PI_2), S1Interval.getFull());
     }
     // If a loop contains the south pole, then either it wraps entirely
     // around the sphere (full longitude range), or it also contains the
     // north pole in which case b.lng().isFull() due to the test above.
 
-    if (b.lng().isFull() && contains(new S2Point(0, 0, -1))) {
-      b = new S2LatLngRect(new R1Interval(-S2.M_PI_2, b.lat().getHi()), b.lng());
+    if (b.getLng().isFull() && contains(new S2Point(0, 0, -1))) {
+      b = new S2LatLngRect(new R1Interval(-S2.M_PI_2, b.getLat().getHi()), b.getLng());
     }
     bound = b;
   }
