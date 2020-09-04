@@ -1,5 +1,7 @@
 package dilivia.s2
 
+import com.google.common.geometry.S2
+
 object Assertions {
 
     val enabled: Boolean = javaClass.desiredAssertionStatus()
@@ -37,7 +39,7 @@ object Assertions {
 
     fun assertPointIsUnitLength(p: S2Point, lazyMessage: (() -> Any)? = null) {
         this.assert({ p.isUnitLength() }, {
-            if (lazyMessage != null) lazyMessage() else "The point $p is not on the unit sphere."
+            if (lazyMessage != null) lazyMessage() else "The point $p is not on the unit sphere. (|p|^2=${p.norm2()}, 5*eps = ${S2.DBL_EPSILON * 5}"
         })
     }
 

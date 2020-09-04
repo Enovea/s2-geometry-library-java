@@ -22,7 +22,7 @@ package dilivia.s2.math
  *
  */
 @Strictfp
-abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>) : Comparable<RVector<V, T>> where V : RVector<V, T>, T : Number, T: Comparable<T> {
+abstract class RVector<V, T>(open val coords: List<T>, val type: FloatingPointType<T>) : Comparable<RVector<V, T>> where V : RVector<V, T>, T : Number, T: Comparable<T> {
 
     val size: Int
         get() = coords.size
@@ -53,7 +53,7 @@ abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>
 
     protected fun normalizedCoordinates(): List<T> {
         var n = norm()
-        check(n != 0.0)
+        check(n != 0.0) { "|$this| = 0" }
         n = type.inv(n)
         return coords.map { type.times(it, n) }
     }
@@ -84,6 +84,10 @@ abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>
     operator fun times(other: T): V = newInstance(scalarMulCoordinates(other))
 
     operator fun unaryMinus(): V = this * type.fromDouble(-1.0)
+
+    operator fun times(other: V): V = newInstance(mulComponents(other))
+
+    protected fun mulComponents(other: RVector<V, T>): List<T> = coords.indices.map { i -> type.times(this[i], other[i]) }
 
     protected fun scalarMulCoordinates(other: T): List<T> = coords.indices.map { i -> type.times(this[i], other) }
 
@@ -127,6 +131,7 @@ abstract class RVector<V, T>(val coords: List<T>, val type: FloatingPointType<T>
     override fun toString(): String {
         return coords.joinToString(prefix = "(", postfix = ")")
     }
+
 }
 
 

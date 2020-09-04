@@ -18,6 +18,7 @@
  */
 package dilivia.s2
 
+import com.google.common.geometry.S2
 import dilivia.s2.math.*
 import kotlin.math.atan2
 
@@ -27,7 +28,7 @@ import kotlin.math.atan2
  * this.
  */
 @Strictfp
-class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map { if (it == -0.0) 0.0 else it }, DoubleType()) {
+open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map { if (it == -0.0) 0.0 else it }, DoubleType()) {
 
     init {
         require(coords.size == 3) { "Points must have exactly 3 coordinates" }
@@ -49,6 +50,8 @@ class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map { if 
     fun z(): Double {
         return get(2)
     }
+
+    fun toMutable(): MutableS2Point = MutableS2Point(coords.toMutableList())
 
     override fun newInstance(coords: List<Double>): S2Point = S2Point(coords)
 
@@ -75,7 +78,7 @@ class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map { if 
      * Return true if the given point is approximately unit length (this is mainly
      * useful for assertions).
      */
-    fun isUnitLength(): Boolean = kotlin.math.abs(norm2() - 1) <= 1e-15
+    fun isUnitLength(): Boolean = kotlin.math.abs(norm2() - 1) <= 5 * S2.DBL_EPSILON
 
     fun toLongDouble(): R3VectorLongDouble = R3VectorLongDouble(x, y, z)
     fun toExactFloat(): R3VectorExactFloat = R3VectorExactFloat(x, y, z)

@@ -2,13 +2,10 @@ package dilivia.s2
 
 import com.google.common.geometry.S2.*
 import dilivia.s2.math.*
+import mu.KotlinLogging
 import java.math.BigDecimal
-import java.math.MathContext
 import java.math.MathContext.DECIMAL128
-import java.math.MathContext.UNLIMITED
-import kotlin.math.abs
-import kotlin.math.pow
-import kotlin.math.sqrt
+import kotlin.math.*
 
 // This class contains various predicates that are guaranteed to produce
 // correct, consistent results.  They are also relatively efficient.  This is
@@ -18,28 +15,20 @@ import kotlin.math.sqrt
 //
 // See also S2EdgeCrosser, which implements various exact
 // edge-crossing predicates more efficiently than can be done here.
-
-// S2EdgeUtil contains the following exact predicates that test for edge
-// crossings.  (Usually you will want to use S2EdgeCrosser, which
-// implements them much more efficiently.)
-//
-// int CrossingSign(const S2Point& a0, const S2Point& a1,
-//                  const S2Point& b0, const S2Point& b1);
-//
-// bool EdgeOrVertexCrossing(const S2Point& a0, const S2Point& a1,
-//                           const S2Point& b0, const S2Point& b1);
 @ExperimentalUnsignedTypes
 object S2Predicates {
 
+    private val logger = KotlinLogging.logger { }
+
     // Returns 2 ** (-digits).  This could be implemented using "ldexp" except
     // that std::ldexp is not constexpr in C++11.
-    private fun epsilonForDigits(digits: Int): Double {
+    fun epsilonForDigits(digits: Int): Double {
         return if (digits < 64) 2.0.pow(-digits) else epsilonForDigits(digits - 63) / (1.toULong() shl 63).toDouble()
     }
 
     val kDoubleRoundingEpsilon = epsilonForDigits(53)
 
-    val kLongDoubleRoudingEpsilon = BigDecimal(10.0, DECIMAL128).pow(-34, DECIMAL128)
+    val kLongDoubleRoudingEpsilon = LongDoubleType.fromDouble(epsilonForDigits(113)) //LongDoubleType.fromDouble(10.0).pow(-34, LongDoubleType.mathContext)
 
     val kDebug: Boolean = true
 
@@ -72,7 +61,18 @@ object S2Predicates {
         // We don't need RobustCrossProd() here because Sign() does its own
         // error estimation and calls ExpensiveSign() if there is any uncertainty
         // about the result.
-        return sign(a, b, c, a.crossProd(b))
+        logger.trace { """
+            |
+            |--------------------------------------------
+            | Sign(a = $a, b = $b, c = $c)
+            |--------------------------------------------
+        """.trimMargin() }
+        val sign = sign(a, b, c, a.crossProd(b))
+        logger.trace { """
+            | Sign(a = $a, b = $b, c = $c) = $sign
+            |--------------------------------------------
+        """.trimMargin() }
+        return sign
     }
 
     // Given 4 points on the unit sphere, return true if the edges OA, OB, and
@@ -97,6 +97,8 @@ object S2Predicates {
         if (sign(b, o, a) >= 0) ++sum
         if (sign(c, o, b) >= 0) ++sum
         if (sign(a, o, c) > 0) ++sum
+
+        logger.debug { "orderedCCW(a = $a, b = $b, c = $c, o = $o) = $sum >= 2" }
         return sum >= 2
     }
 
@@ -109,37 +111,55 @@ object S2Predicates {
     // Such results are guaranteed to be self-consistent, i.e. if AB < BC and
     // BC < AC, then AB < AC.
     fun compareDistances(x: S2Point, a: S2Point, b: S2Point): Int {
+        logger.trace { """
+            |
+            |--------------------------------------------
+            | CompareDistances(x = $x, a = $a, b = $b)
+            |--------------------------------------------
+        """.trimMargin() }
         // We start by comparing distances using dot products (i.e., cosine of the
         // angle), because (1) this is the cheapest technique, and (2) it is valid
         // over the entire range of possible angles.  (We can only use the sin^2
         // technique if both angles are less than 90 degrees or both angles are
         // greater than 90 degrees.)
         var sign = triageCompareCosDistances(x, a, b)
+        logger.trace { "triageCompareCosDistances(x, a, b) = $sign" }
         if (sign != 0) return sign;
 
         // Optimization for (a == b) to avoid falling back to exact arithmetic.
-        if (a == b) return 0;
+        if (a == b) {
+            logger.trace { "a == b => sign = 0" }
+            return 0
+        };
 
         // It is much better numerically to compare distances using cos(angle) if
         // the distances are near 90 degrees and sin^2(angle) if the distances are
         // near 0 or 180 degrees.  We only need to check one of the two angles when
         // making this decision because the fact that the test above failed means
         // that angles "a" and "b" are very close together.
-        val cos_ax = a.dotProd(x)
-        if (cos_ax > M_SQRT1_2) {
+        val cosAx = a.dotProd(x)
+        if (cosAx > M_SQRT1_2) {
             // Angles < 45 degrees.
             sign = compareSin2Distances(x, a, b);
-        } else if (cos_ax < -M_SQRT1_2) {
+            logger.trace { "cosAx > M_SQRT1_2: sign = compareSin2Distances(x, a, b) = $sign" }
+        } else if (cosAx < -M_SQRT1_2) {
             // Angles > 135 degrees.  sin^2(angle) is decreasing in this range.
             sign = -compareSin2Distances(x, a, b);
-        } else {
+            logger.trace { "cosAx < -M_SQRT1_2: sign = -compareSin2Distances(x, a, b) = $sign" }
+        }
+        /*else {
             // We've already tried double precision, so continue with "long double".
             sign = triageCompareCosDistances(x.toLongDouble(), a.toLongDouble(), b.toLongDouble());
-        }
+            logger.trace { "triageCompareCosDistances(x.toLongDouble(), a.toLongDouble(), b.toLongDouble()) = $sign" }
+        }*/
         if (sign != 0) return sign;
         sign = exactCompareDistances(x.toExactFloat(), a.toExactFloat(), b.toExactFloat());
+        logger.trace { "exactCompareDistances(x.toExactFloat(), a.toExactFloat(), b.toExactFloat()) = $sign" }
         if (sign != 0) return sign;
-        return symbolicCompareDistances(x, a, b);
+
+        sign = symbolicCompareDistances(x, a, b)
+        logger.trace { "symbolicCompareDistances(x, a, b) = $sign" }
+        return sign
     }
 
     // Returns -1, 0, or +1 according to whether the distance XY is less than,
@@ -160,12 +180,13 @@ object S2Predicates {
         if (r < k45Degrees) {
             sign = triageCompareSin2Distance(x, y, r.length2)
             if (sign != 0) return sign;
-            sign = triageCompareSin2Distance(x.toLongDouble(), y.toLongDouble(), r.length2.toBigDecimal(DECIMAL128))
-        } else {
-            sign = triageCompareCosDistance(x.toLongDouble(), y.toLongDouble(), r.length2.toBigDecimal(DECIMAL128))
+            //sign = triageCompareSin2Distance(x.toLongDouble(), y.toLongDouble(), LongDoubleType.fromDouble(r.length2))
         }
+        /*else {
+            sign = triageCompareCosDistance(x.toLongDouble(), y.toLongDouble(), LongDoubleType.fromDouble(r.length2))
+        }*/
         if (sign != 0) return sign
-        return exactCompareDistance(x.toExactFloat(), y.toExactFloat(), r.length2.toBigDecimal(UNLIMITED))
+        return exactCompareDistance(x.toExactFloat(), y.toExactFloat(), ExactFloatType.fromDouble(r.length2))
     }
 
     // Returns -1, 0, or +1 according to whether the distance from the point X to
@@ -181,7 +202,19 @@ object S2Predicates {
     // perturbation logic (similar to Sign) in order to rigorously define the
     // direction of such edges.
     fun compareEdgeDistance(x: S2Point, a0: S2Point, a1: S2Point, r: S1ChordAngle): Int {
-        TODO("Not yet implemented")
+        // Check that the edge does not consist of antipodal points.  (This catches
+        // the most common case -- the full test is in ExactCompareEdgeDistance.)
+        assert(a0 != -a1)
+
+        var sign = triageCompareEdgeDistance(x, a0, a1, r.length2)
+        if (sign != 0) return sign;
+
+        // Optimization for the case where the edge is degenerate.
+        if (a0 == a1) return compareDistance(x, a0, r)
+
+        //sign = triageCompareEdgeDistance(x.toLongDouble(), a0.toLongDouble(), a1.toLongDouble(), ExactFloatType.fromDouble(r.length2))
+        if (sign != 0) return sign
+        return exactCompareEdgeDistance(x, a0, a1, r)
     }
 
     // Returns -1, 0, or +1 according to whether the normal of edge A has
@@ -201,7 +234,20 @@ object S2Predicates {
     // REQUIRES: Neither edge can consist of antipodal points (e.g., A0 == -A1)
     //           (see comments in CompareEdgeDistance).
     fun compareEdgeDirections(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): Int {
-        TODO("Not yet implemented")
+        // Check that no edge consists of antipodal points.  (This catches the most
+        // common case -- the full test is in ExactCompareEdgeDirections.)
+        assert(a0 != -a1);
+        assert(b0 != -b1);
+
+        var sign = triageCompareEdgeDirections(a0, a1, b0, b1)
+        if (sign != 0) return sign;
+
+        // Optimization for the case where either edge is degenerate.
+        if (a0 == a1 || b0 == b1) return 0;
+
+        //sign = triageCompareEdgeDirections(a0.toLongDouble(), a1.toLongDouble(), b0.toLongDouble(), b1.toLongDouble())
+        if (sign != 0) return sign;
+        return exactCompareEdgeDirections(a0.toExactFloat(), a1.toExactFloat(), b0.toExactFloat(), b1.toExactFloat())
     }
 
     // Returns Sign(X0, X1, Z) where Z is the circumcenter of triangle ABC.
@@ -218,7 +264,26 @@ object S2Predicates {
     // REQUIRES: X0 and X1 do not project to antipodal points (e.g., X0 == -X1)
     //           (see comments in CompareEdgeDistance).
     fun edgeCircumcenterSign(x0: S2Point, x1: S2Point, a: S2Point, b: S2Point, c: S2Point): Int {
-        TODO("Not yet implemented")
+        // Check that the edge does not consist of antipodal points.  (This catches
+        // the most common case -- the full test is in ExactEdgeCircumcenterSign.)
+        assert(x0 != -x1)
+
+        val abc_sign = sign(a, b, c)
+        var sign = triageEdgeCircumcenterSign(x0, x1, a, b, c, abc_sign)
+        if (sign != 0) return sign
+
+        // Optimization for the cases that are going to return zero anyway, in order
+        // to avoid falling back to exact arithmetic.
+        if (x0 == x1 || a == b || b == c || c == a) return 0
+
+        //sign = triageEdgeCircumcenterSign(x0.toLongDouble(), x1.toLongDouble(), a.toLongDouble(), b.toLongDouble(), c.toLongDouble(), abc_sign);
+        if (sign != 0) return sign;
+        sign = exactEdgeCircumcenterSign(x0.toExactFloat(), x1.toExactFloat(), a.toExactFloat(), b.toExactFloat(), c.toExactFloat(), abc_sign);
+        if (sign != 0) return sign;
+
+        // Unlike the other methods, SymbolicEdgeCircumcenterSign does not depend
+        // on the sign of triangle ABC.
+        return symbolicEdgeCircumcenterSign(x0, x1, a, b, c);
     }
 
     // This is a specialized method that is used to compute the intersection of an
@@ -254,7 +319,32 @@ object S2Predicates {
     enum class Excluded { FIRST, SECOND, NEITHER, UNCERTAIN }
 
     fun getVoronoiSiteExclusion(a: S2Point, b: S2Point, x0: S2Point, x1: S2Point, r: S1ChordAngle): Excluded {
-        TODO("Not yet implemented")
+        assert(r < S1ChordAngle.right);
+        //Assertions.assert { compareDistances(x0, a, b) < 0 }  // (implies a != b)
+        //Assertions.assert { compareEdgeDistance(a, x0, x1, r) <= 0 }
+        //Assertions.assert { compareEdgeDistance(b, x0, x1, r) <= 0 }
+        // Check that the edge does not consist of antipodal points.  (This catches
+        // the most common case -- the full test is in ExactVoronoiSiteExclusion.)
+        assert(x0 != -x1)
+
+        // If one site is closer than the other to both endpoints of X, then it is
+        // closer to every point on X.  Note that this also handles the case where A
+        // and B are equidistant from every point on X (i.e., X is the perpendicular
+        // bisector of AB), because CompareDistances uses symbolic perturbations to
+        // ensure that either A or B is considered closer (in a consistent way).
+        // This also ensures that the choice of A or B does not depend on the
+        // direction of X.
+        if (compareDistances(x1, a, b) < 0) {
+            return Excluded.SECOND;  // Site A is closer to every point on X.
+        }
+
+        var result = triageVoronoiSiteExclusion(a, b, x0, x1, r.length2)
+        if (result != Excluded.UNCERTAIN) return result
+
+        result = triageVoronoiSiteExclusion(a.toLongDouble(), b.toLongDouble(), x0.toLongDouble(), x1.toLongDouble(), r.length2.toLD())
+        if (result != Excluded.UNCERTAIN) return result
+
+        return exactVoronoiSiteExclusion(a.toExactFloat(), b.toExactFloat(), x0.toExactFloat(), x1.toExactFloat(), r.length2.toXF())
     }
 
     /////////////////////////// Low-Level Methods ////////////////////////////
@@ -298,9 +388,9 @@ object S2Predicates {
         //
         // which is about 3.6548 * e, or 1.8274 * DBL_EPSILON.
         val kMaxDetError = 1.8274 * DBL_EPSILON;
-        Assertions.assertPointIsUnitLength(a)
-        Assertions.assertPointIsUnitLength(b)
-        Assertions.assertPointIsUnitLength(c)
+        //Assertions.assertPointIsUnitLength(a)
+        //Assertions.assertPointIsUnitLength(b)
+        //Assertions.assertPointIsUnitLength(c)
         val det = aCrossB.dotProd(c)
 
         // Double-check borderline cases in debug mode.
@@ -312,9 +402,9 @@ object S2Predicates {
                     )
         }
 
-        if (det > kMaxDetError) return 1;
-        if (det < -kMaxDetError) return -1;
-        return 0;
+        val sign = if (det > kMaxDetError) 1 else if (det < -kMaxDetError) -1 else 0
+        logger.trace { "triageSign(a = $a, b = $b, c = $c, a^b = $aCrossB) = $sign (det = $det, kMaxDetError = $kMaxDetError)" }
+        return sign
     }
 
     // This function is invoked by Sign() if the sign of the determinant is
@@ -368,7 +458,7 @@ object S2Predicates {
     // in fact an earlier version of this code did exactly that), but antipodal
     // points are rare in practice so it seems better to simply fall back to
     // exact arithmetic in that case.
-    private fun stableSign(a: S2Point, b: S2Point, c: S2Point): Int {
+    fun stableSign(a: S2Point, b: S2Point, c: S2Point): Int {
         val ab = b - a
         val bc = c - b
         val ca = a - c
@@ -388,37 +478,51 @@ object S2Predicates {
         // this value then we know its sign with certainty.
         val kDetErrorMultiplier = 3.2321 * DBL_EPSILON;  // see above
         val det: Double
-        val max_error: Double
+        val maxError: Double
         if (ab2 >= bc2 && ab2 >= ca2) {
             // AB is the longest edge, so compute (A-C)x(B-C).C.
             det = -(ca.crossProd(bc).dotProd(c));
-            max_error = kDetErrorMultiplier * sqrt(ca2 * bc2);
+            maxError = kDetErrorMultiplier * sqrt(ca2 * bc2);
         } else if (bc2 >= ca2) {
             // BC is the longest edge, so compute (B-A)x(C-A).A.
             det = -(ab.crossProd(ca).dotProd(a));
-            max_error = kDetErrorMultiplier * sqrt(ab2 * ca2);
+            maxError = kDetErrorMultiplier * sqrt(ab2 * ca2);
         } else {
             // CA is the longest edge, so compute (C-B)x(A-B).B.
             det = -(bc.crossProd(ab).dotProd(b));
-            max_error = kDetErrorMultiplier * sqrt(bc2 * ab2);
+            maxError = kDetErrorMultiplier * sqrt(bc2 * ab2);
         }
-        return if(abs(det) <= max_error) 0 else if(det > 0) 1 else -1
+        val sign = if (abs(det) <= maxError) 0 else if (det > 0) 1 else -1
+        logger.trace { "stableSign(a = $a, b = $b, c = $c) = $sign (det = $det, maxError = $maxError" }
+        return sign
     }
 
     // Compute the determinant using exact arithmetic and/or symbolic
     // permutations.  Requires that the three points are distinct.
-    private fun exactSign(a: S2Point, b: S2Point, c: S2Point, perturb: Boolean): Int {
+    fun exactSign(a: S2Point, b: S2Point, c: S2Point, perturb: Boolean): Int {
         assert(a != b && b != c && c != a)
 
         // Sort the three points in lexicographic order, keeping track of the sign
         // of the permutation.  (Each exchange inverts the sign of the determinant.)
-        var perm_sign = 1
+        var permSign = 1
         var pa: S2Point = a
         var pb: S2Point = b
         var pc: S2Point = c
-        if (pa > pb) { val temp = pa; pa = pb; pb = temp; perm_sign = -perm_sign; }
-        if (pb > pc) { val temp = pb; pb = pc; pc = temp; perm_sign = -perm_sign; }
-        if (pa > pb) { val temp = pa; pa = pb; pb = temp; perm_sign = -perm_sign; }
+        if (pa > pb) {
+            logger.trace { "exactSign(a: $a, b: $b, c: $c, perturb: $perturb): ($pa, $pb, $pc) pa > pb => permut pa and pb" }
+            val temp = pa; pa = pb; pb = temp; permSign = -permSign;
+            logger.trace { "($pa, $pb, $pc), perm sign = $permSign" }
+        }
+        if (pb > pc) {
+            logger.trace { "exactSign(a: $a, b: $b, c: $c, perturb: $perturb): ($pa, $pb, $pc) pb > pc => permut pb and pc" }
+            val temp = pb; pb = pc; pc = temp; permSign = -permSign;
+            logger.trace { "($pa, $pb, $pc), perm sign = $permSign" }
+        }
+        if (pa > pb) {
+            logger.trace { "exactSign(a: $a, b: $b, c: $c, perturb: $perturb): ($pa, $pb, $pc) pa > pb => permut pa and pb" }
+            val temp = pa; pa = pb; pb = temp; permSign = -permSign;
+            logger.trace { "($pa, $pb, $pc), perm sign = $permSign" }
+        }
         assert(pa < pb && pb < pc)
 
         // Construct multiple-precision versions of the sorted points and compute
@@ -426,20 +530,22 @@ object S2Predicates {
         val xa = R3VectorExactFloat(pa.x, pa.y, pa.z)
         val xb = R3VectorExactFloat(pb.x, pb.y, pb.z)
         val xc = R3VectorExactFloat(pc.x, pc.y, pc.z)
-        val xb_cross_xc = xb.crossProd(xc)
-        val det = xa.dotProd(xb_cross_xc)
+        val xbCrossXc = xb.crossProd(xc)
+        val det = xa.dotProd(xbCrossXc)
 
         // If the exact determinant is non-zero, we're done.
-        var det_sign = det.signum()
-        if (det_sign == 0 && perturb) {
+        var detSign = det.signum()
+        logger.trace { "exactSign(a = $a, b = $b, c = $c, perturb = $perturb) [xa = $xa, xb = $xb, xc = $xc, xbCrossXc = $xbCrossXc, det = $det, precision = ${det.precision()}, signum = $detSign]" }
+        if (detSign == 0 && perturb) {
             // Otherwise, we need to resort to symbolic perturbations to resolve the
             // sign of the determinant.
-            det_sign = symbolicallyPerturbedSign(xa, xb, xc, xb_cross_xc)
-            assert(0 != det_sign)
+            detSign = symbolicallyPerturbedSign(xa, xb, xc, xbCrossXc)
+            assert(0 != detSign)
         }
-        return perm_sign * det_sign;
+        logger.trace { "permSign (=$permSign) * detSign (=$detSign) = ${permSign * detSign}" }
+        return permSign * detSign;
     }
-    
+
     // The following function returns the sign of the determinant of three points
     // A, B, C under a model where every possible S2Point is slightly perturbed by
     // a unique infinitesmal amount such that no three perturbed points are
@@ -467,7 +573,9 @@ object S2Predicates {
     //   "Simulation of Simplicity" (Edelsbrunner and Muecke, ACM Transactions on
     //   Graphics, 1990).
     //
-    private fun symbolicallyPerturbedSign(a: R3VectorExactFloat, b: R3VectorExactFloat, c: R3VectorExactFloat, b_cross_c: R3VectorExactFloat): Int {
+    private fun symbolicallyPerturbedSign(a: R3VectorExactFloat, b: R3VectorExactFloat, c: R3VectorExactFloat, bCrossC: R3VectorExactFloat): Int {
+        logger.trace { "symbolicallyPerturbedSign(a: $a, b: $b, c: $c, b_cross_c: $bCrossC)" }
+        logger.trace { "bCrossC[2] = ${bCrossC[2]}" }
         // This method requires that the points are sorted in lexicographically
         // increasing order.  This is because every possible S2Point has its own
         // symbolic perturbation such that if A < B then the symbolic perturbation
@@ -526,54 +634,57 @@ object S2Predicates {
         // some of the signs are different because the opposite cross product is
         // used (e.g., B x C rather than C x B).
 
-        var det_sign = b_cross_c[2].signum();            // da[2]
-        if (det_sign != 0) return det_sign;
-        det_sign = b_cross_c[1].signum();                // da[1]
-        if (det_sign != 0) return det_sign;
-        det_sign = b_cross_c[0].signum();                // da[0]
-        if (det_sign != 0) return det_sign;
+        var detSign = bCrossC[2].signum()             // da[2]
+        if (detSign != 0) {
+            logger.trace { "sign(bCrossC[2]) = ${bCrossC[2].signum()} != 0" }
+            return detSign
+        }
+        detSign = bCrossC[1].signum();                // da[1]
+        if (detSign != 0) return detSign;
+        detSign = bCrossC[0].signum();                // da[0]
+        if (detSign != 0) return detSign;
 
-        det_sign = (c[0]*a[1] - c[1]*a[0]).signum();     // db[2]
-        if (det_sign != 0) return det_sign;
-        det_sign = c[0].signum();                        // db[2] * da[1]
-        if (det_sign != 0) return det_sign;
-        det_sign = -(c[1].signum());                     // db[2] * da[0]
-        if (det_sign != 0) return det_sign;
-        det_sign = (c[2]*a[0] - c[0]*a[2]).signum();     // db[1]
-        if (det_sign != 0) return det_sign;
-        det_sign = c[2].signum();                        // db[1] * da[0]
-        if (det_sign != 0) return det_sign;
+        detSign = (c[0] * a[1] - c[1] * a[0]).signum(); // db[2]
+        if (detSign != 0) return detSign;
+        detSign = c[0].signum();                        // db[2] * da[1]
+        if (detSign != 0) return detSign;
+        detSign = -(c[1].signum());                     // db[2] * da[0]
+        if (detSign != 0) return detSign;
+        detSign = (c[2] * a[0] - c[0] * a[2]).signum(); // db[1]
+        if (detSign != 0) return detSign;
+        detSign = c[2].signum();                        // db[1] * da[0]
+        if (detSign != 0) return detSign;
         // The following test is listed in the paper, but it is redundant because
         // the previous tests guarantee that C == (0, 0, 0).
-        assert(0 == (c[1]*a[2] - c[2]*a[1]).signum());  // db[0]
+        assert(0 == (c[1] * a[2] - c[2] * a[1]).signum());  // db[0]
 
-        det_sign = (a[0]*b[1] - a[1]*b[0]).signum();     // dc[2]
-        if (det_sign != 0) return det_sign;
-        det_sign = -(b[0].signum());                     // dc[2] * da[1]
-        if (det_sign != 0) return det_sign;
-        det_sign = b[1].signum();                        // dc[2] * da[0]
-        if (det_sign != 0) return det_sign;
-        det_sign = a[0].signum();                        // dc[2] * db[1]
-        if (det_sign != 0) return det_sign;
+        detSign = (a[0] * b[1] - a[1] * b[0]).signum();     // dc[2]
+        if (detSign != 0) return detSign;
+        detSign = -(b[0].signum());                     // dc[2] * da[1]
+        if (detSign != 0) return detSign;
+        detSign = b[1].signum();                        // dc[2] * da[0]
+        if (detSign != 0) return detSign;
+        detSign = a[0].signum();                        // dc[2] * db[1]
+        if (detSign != 0) return detSign;
         return 1;                                     // dc[2] * db[1] * da[0]
     }
 
     // Returns cos(XY), and sets "error" to the maximum error in the result.
     // REQUIRES: "x" and "y" satisfy S2::IsNormalized().
     // A high precision "long double" version of the function above.
-    private fun getCosDistance(x: S2Point, y: S2Point): ValueAndError<Double> {
+    internal fun getCosDistance(x: S2Point, y: S2Point): ValueAndError<Double> {
         val c = x.dotProd(y)
-        val error =9.5 * kDoubleRoundingEpsilon * abs(c) as Double + 1.5 * kDoubleRoundingEpsilon
+        val error = 9.5 * kDoubleRoundingEpsilon * abs(c) as Double + 1.5 * kDoubleRoundingEpsilon
         return ValueAndError(c, error)
     }
 
-    private fun getCosDistance(x: R3VectorLongDouble, y: R3VectorLongDouble): ValueAndError<BigDecimal> {
+    internal fun getCosDistance(x: R3VectorLongDouble, y: R3VectorLongDouble): ValueAndError<BigDecimal> {
         // With "long double" precision it is worthwhile to compensate for length
         // errors in "x" and "y", since they are only unit length to within the
         // precision of "double".  (This would also reduce the error constant
         // slightly in the method above but is not worth the additional effort.)
-        val c = x.dotProd(y) / (x.norm2() * y.norm2()).sqrt(DECIMAL128)
-        val error = 7.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * c.abs(DECIMAL128) + 1.5.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon
+        val c = x.dotProd(y) / (x.norm2() * y.norm2()).sqrt(LongDoubleType.mathContext)
+        val error = 7.toLD() * kLongDoubleRoudingEpsilon * c.abs(LongDoubleType.mathContext) + 1.5.toLD() * kLongDoubleRoudingEpsilon
         return ValueAndError(c, error)
     }
 
@@ -581,7 +692,7 @@ object S2Predicates {
     // to the maximum error in the result.
     //
     // REQUIRES: "x" and "y" satisfy S2::IsNormalized().
-    private fun getSin2Distance(x: S2Point, y: S2Point): ValueAndError<Double> {
+    internal fun getSin2Distance(x: S2Point, y: S2Point): ValueAndError<Double> {
         // The (x-y).CrossProd(x+y) trick eliminates almost all of error due to "x"
         // and "y" being not quite unit length.  This method is extremely accurate
         // for small distances; the *relative* error in the result is O(DBL_ERR) for
@@ -595,7 +706,7 @@ object S2Predicates {
     }
 
     // A high precision "long double" version of the function above.
-    private fun getSin2Distance(x: R3VectorLongDouble, y: R3VectorLongDouble): ValueAndError<BigDecimal> {
+    internal fun getSin2Distance(x: R3VectorLongDouble, y: R3VectorLongDouble): ValueAndError<BigDecimal> {
         // In "long double" precision it is worthwhile to compensate for length
         // errors in "x" and "y", since they are only unit length to within the
         // precision of "double".  Otherwise the "d2" error coefficient below would
@@ -604,46 +715,49 @@ object S2Predicates {
         // constant slightly in the double-precision version, but this is not worth
         // the additional effort.)
         val n = (x - y).crossProd(x + y)
-        val d2 = 0.25.toBigDecimal(DECIMAL128) * n.norm2() / (x.norm2() * y.norm2())
-        val error = ((13 + 4 * M_SQRT3).toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * d2 +
-                (32 * M_SQRT3 * kDoubleRoundingEpsilon).toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * d2.sqrt(DECIMAL128) +
-                (768 * kDoubleRoundingEpsilon * kDoubleRoundingEpsilon).toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * kLongDoubleRoudingEpsilon);
+        val d2 = LongDoubleType.div(LongDoubleType.times(0.25.toLD(), n.norm2()), LongDoubleType.plus(x.norm2(), y.norm2()))
+        val error = ((13 + 4 * M_SQRT3).toLD() * kLongDoubleRoudingEpsilon * d2 +
+                (32 * M_SQRT3 * kDoubleRoundingEpsilon).toLD() * kLongDoubleRoudingEpsilon * d2.sqrt(LongDoubleType.mathContext) +
+                (768 * kDoubleRoundingEpsilon * kDoubleRoundingEpsilon).toLD() * kLongDoubleRoudingEpsilon * kLongDoubleRoudingEpsilon);
         return ValueAndError(d2, error)
     }
 
-    private fun triageCompareCosDistances(x: S2Point, a: S2Point, b: S2Point): Int {
+    internal fun triageCompareCosDistances(x: S2Point, a: S2Point, b: S2Point): Int {
         val (cos_ax, cos_ax_error) = getCosDistance(a, x)
-        val (cos_bx, cos_bx_error)  = getCosDistance(b, x)
+        val (cos_bx, cos_bx_error) = getCosDistance(b, x)
         val diff = cos_ax - cos_bx;
         val error = cos_ax_error + cos_bx_error
-        return if(diff > error) -1 else if(diff < -error) 1 else 0;
+        return if (diff > error) -1 else if (diff < -error) 1 else 0;
     }
 
-    private fun triageCompareCosDistances(x: R3VectorLongDouble, a: R3VectorLongDouble, b: R3VectorLongDouble): Int {
+    internal fun triageCompareCosDistances(x: R3VectorLongDouble, a: R3VectorLongDouble, b: R3VectorLongDouble): Int {
         val (cos_ax, cos_ax_error) = getCosDistance(a, x)
-        val (cos_bx, cos_bx_error)  = getCosDistance(b, x)
+        val (cos_bx, cos_bx_error) = getCosDistance(b, x)
         val diff = cos_ax - cos_bx;
         val error = cos_ax_error + cos_bx_error
-        return if(diff > error) -1 else if(diff < -error) 1 else 0;
+        return if (diff > error) -1 else if (diff < -error) 1 else 0;
     }
 
-    private fun triageCompareSin2Distances(x: S2Point, a: S2Point, b: S2Point): Int {
-        val ( sin2_ax, sin2_ax_error) = getSin2Distance(a, x)
+    internal fun triageCompareSin2Distances(x: S2Point, a: S2Point, b: S2Point): Int {
+        val (sin2_ax, sin2_ax_error) = getSin2Distance(a, x)
         val (sin2_bx, sin2_bx_error) = getSin2Distance(b, x)
         val diff = sin2_ax - sin2_bx
         val error = sin2_ax_error + sin2_bx_error;
-        return if(diff > error) 1 else if(diff < -error) -1 else 0
+        return if (diff > error) 1 else if (diff < -error) -1 else 0
     }
 
-    private fun triageCompareSin2Distances(x: R3VectorLongDouble, a: R3VectorLongDouble, b: R3VectorLongDouble): Int {
-        val ( sin2_ax, sin2_ax_error) = getSin2Distance(a, x)
+    internal fun triageCompareSin2Distances(x: R3VectorLongDouble, a: R3VectorLongDouble, b: R3VectorLongDouble): Int {
+        val (sin2_ax, sin2_ax_error) = getSin2Distance(a, x)
+        logger.trace { " getSin2Distance(a, x) = ($sin2_ax, $sin2_ax_error)" }
         val (sin2_bx, sin2_bx_error) = getSin2Distance(b, x)
+        logger.trace { " getSin2Distance(b, x) = ($sin2_bx, $sin2_bx_error)" }
         val diff = sin2_ax - sin2_bx
         val error = sin2_ax_error + sin2_bx_error;
-        return if(diff > error) 1 else if(diff < -error) -1 else 0
+        logger.trace { " diff = $diff, error = $error " }
+        return if (diff > error) 1 else if (diff < -error) -1 else 0
     }
 
-    private fun exactCompareDistances(x: R3VectorExactFloat, a: R3VectorExactFloat, b: R3VectorExactFloat): Int {
+    internal fun exactCompareDistances(x: R3VectorExactFloat, a: R3VectorExactFloat, b: R3VectorExactFloat): Int {
         // This code produces the same result as though all points were reprojected
         // to lie exactly on the surface of the unit sphere.  It is based on testing
         // whether x.DotProd(a.Normalize()) < x.DotProd(b.Normalize()), reformulated
@@ -655,16 +769,19 @@ object S2Predicates {
         val a_sign = cos_ax.signum()
         val b_sign = cos_bx.signum()
         if (a_sign != b_sign) {
-            return if(a_sign > b_sign) -1 else 1  // If cos(AX) > cos(BX), then AX < BX.
+            return if (a_sign > b_sign) -1 else 1  // If cos(AX) > cos(BX), then AX < BX.
         }
-        val cmp = cos_bx * cos_bx * a.norm2() - cos_ax * cos_ax * b.norm2()
+        val cmp = ExactFloatType.minus(
+                cos_bx.multiply(cos_bx, ExactFloatType.mathContext).multiply(a.norm2(), ExactFloatType.mathContext),
+                cos_ax.multiply(cos_ax, ExactFloatType.mathContext).multiply(b.norm2(), ExactFloatType.mathContext)
+        )
         return a_sign * cmp.signum()
     }
 
     // Given three points such that AX == BX (exactly), returns -1, 0, or +1
     // according whether AX < BX, AX == BX, or AX > BX after symbolic
     // perturbations are taken into account.
-    private fun symbolicCompareDistances(x: S2Point, a: S2Point, b: S2Point): Int {
+    internal fun symbolicCompareDistances(x: S2Point, a: S2Point, b: S2Point): Int {
         // Our symbolic perturbation strategy is based on the following model.
         // Similar to "simulation of simplicity", we assign a perturbation to every
         // point such that if A < B, then the symbolic perturbation for A is much,
@@ -682,34 +799,37 @@ object S2Predicates {
         // number of pedestals, so this is possible.)
         //
         // If A < B, then A is on a higher pedestal than B, and therefore AX > BX.
-        return if(a < b) 1 else if(a > b) -1 else 0
+        return if (a < b) 1 else if (a > b) -1 else 0
     }
 
-    private fun compareSin2Distances(x: S2Point, a: S2Point, b: S2Point) : Int {
-        val sign = triageCompareSin2Distances(x, a, b)
-        if (sign != 0) return sign;
-        return triageCompareSin2Distances(x.toLongDouble(), a.toLongDouble(), b.toLongDouble())
+    internal fun compareSin2Distances(x: S2Point, a: S2Point, b: S2Point): Int {
+        var sign = triageCompareSin2Distances(x, a, b)
+        logger.trace { "triageCompareSin2Distances(x, a, b) = $sign" }
+        //if (sign != 0) return sign;
+        //sign = triageCompareSin2Distances(x.toLongDouble(), a.toLongDouble(), b.toLongDouble())
+        //logger.trace { "triageCompareSin2Distances(x.toLongDouble(), a.toLongDouble(), b.toLongDouble()) = $sign" }
+        return sign
     }
 
-    private fun triageCompareCosDistance(x: S2Point, y: S2Point, r2: Double): Int {
+    internal fun triageCompareCosDistance(x: S2Point, y: S2Point, r2: Double): Int {
         val (cos_xy, cos_xy_error) = getCosDistance(x, y)
         val cos_r = 1 - 0.5 * r2
         val cos_r_error = 2 * kDoubleRoundingEpsilon * cos_r
         val diff = cos_xy - cos_r
         val error = cos_xy_error + cos_r_error
-        return if(diff > error) -1 else if(diff < -error) 1 else 0
+        return if (diff > error) -1 else if (diff < -error) 1 else 0
     }
 
-    private fun triageCompareCosDistance(x: R3VectorLongDouble, y: R3VectorLongDouble, r2: BigDecimal): Int {
+    internal fun triageCompareCosDistance(x: R3VectorLongDouble, y: R3VectorLongDouble, r2: BigDecimal): Int {
         val (cos_xy, cos_xy_error) = getCosDistance(x, y)
-        val cos_r = 1.toBigDecimal(DECIMAL128) - 0.5.toBigDecimal(DECIMAL128) * r2
-        val cos_r_error = 2.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * cos_r
+        val cos_r = 1.toLD() - 0.5.toLD() * r2
+        val cos_r_error = 2.toLD() * kLongDoubleRoudingEpsilon * cos_r
         val diff = cos_xy - cos_r
         val error = cos_xy_error + cos_r_error
-        return if(diff > error) -1 else if(diff < -error) 1 else 0
+        return if (diff > error) -1 else if (diff < -error) 1 else 0
     }
 
-    private fun triageCompareSin2Distance(x: S2Point, y: S2Point, r2: Double): Int {
+    internal fun triageCompareSin2Distance(x: S2Point, y: S2Point, r2: Double): Int {
         assert(r2 < 2.0);  // Only valid for distance limits < 90 degrees.
 
         val (sin2_xy, sin2_xy_error) = getSin2Distance(x, y)
@@ -717,33 +837,33 @@ object S2Predicates {
         val sin2_r_error = 3 * kDoubleRoundingEpsilon * sin2_r
         val diff = sin2_xy - sin2_r
         val error = sin2_xy_error + sin2_r_error
-        return if(diff > error) 1 else if(diff < -error) -1 else 0
+        return if (diff > error) 1 else if (diff < -error) -1 else 0
     }
 
-    private fun triageCompareSin2Distance(x: R3VectorLongDouble, y: R3VectorLongDouble, r2: BigDecimal): Int {
-        assert(r2 < 2.0.toBigDecimal(DECIMAL128));  // Only valid for distance limits < 90 degrees.
+    internal fun triageCompareSin2Distance(x: R3VectorLongDouble, y: R3VectorLongDouble, r2: BigDecimal): Int {
+        assert(r2 < 2.0.toLD());  // Only valid for distance limits < 90 degrees.
 
         val (sin2_xy, sin2_xy_error) = getSin2Distance(x, y)
-        val sin2_r = r2 * (1.toBigDecimal(DECIMAL128) - 0.25.toBigDecimal(DECIMAL128) * r2)
-        val sin2_r_error = 3.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * sin2_r
+        val sin2_r = r2 * (1.toLD() - 0.25.toLD() * r2)
+        val sin2_r_error = 3.toLD() * kLongDoubleRoudingEpsilon * sin2_r
         val diff = sin2_xy - sin2_r
         val error = sin2_xy_error + sin2_r_error
-        return if(diff > error) 1 else if(diff < -error) -1 else 0
+        return if (diff > error) 1 else if (diff < -error) -1 else 0
     }
 
-    private fun exactCompareDistance(x: R3VectorExactFloat, y: R3VectorExactFloat, r2: BigDecimal): Int {
+    internal fun exactCompareDistance(x: R3VectorExactFloat, y: R3VectorExactFloat, r2: BigDecimal): Int {
         // This code produces the same result as though all points were reprojected
         // to lie exactly on the surface of the unit sphere.  It is based on
         // comparing the cosine of the angle XY (when both points are projected to
         // lie exactly on the sphere) to the given threshold.
         val cos_xy = x.dotProd(y)
-        val cos_r = 1.toBigDecimal(UNLIMITED) - 0.5.toBigDecimal(UNLIMITED) * r2;
+        val cos_r = ExactFloatType.fromDouble(1.0) - ExactFloatType.fromDouble(0.5) * r2
         // If the two values have different signs, we need to handle that case now
         // before squaring them below.
         val xy_sign = cos_xy.signum()
         val r_sign = cos_r.signum()
         if (xy_sign != r_sign) {
-            return if(xy_sign > r_sign) -1 else 1  // If cos(XY) > cos(r), then XY < r.
+            return if (xy_sign > r_sign) -1 else 1  // If cos(XY) > cos(r), then XY < r.
         }
         val cmp = cos_r * cos_r * x.norm2() * y.norm2() - cos_xy * cos_xy
         return xy_sign * cmp.signum()
@@ -767,7 +887,7 @@ object S2Predicates {
         // valid when the actual distance and the distance limit are both less than
         // 90 degrees.  So we always start with the Cos method.
         var sign = triageCompareCosDistance(x, y, r2)
-        if (sign == 0 && r2 < k45Degrees.length2.toBigDecimal(DECIMAL128)) {
+        if (sign == 0 && r2 < k45Degrees.length2.toLD()) {
             sign = triageCompareSin2Distance(x, y, r2)
         }
         return sign;
@@ -784,6 +904,7 @@ object S2Predicates {
             a1 to a1x2;
         }
     }
+
     private fun getClosestVertex(x: R3VectorLongDouble, a0: R3VectorLongDouble, a1: R3VectorLongDouble): Pair<R3VectorLongDouble, BigDecimal> {
         val a0x2 = (a0 - x).norm2()
         val a1x2 = (a1 - x).norm2()
@@ -824,33 +945,33 @@ object S2Predicates {
         n2sin2_r_error += 8 * kDoubleRoundingEpsilon * n2sin2_r
         val diff = xDn2 - n2sin2_r
         val error = xDn2_error + n2sin2_r_error
-        return if(diff > error) 1 else if(diff < -error) -1 else 0
+        return if (diff > error) 1 else if (diff < -error) -1 else 0
     }
 
     private fun triageCompareLineSin2Distance(x: R3VectorLongDouble, a0: R3VectorLongDouble, a1: R3VectorLongDouble, r2: BigDecimal, n: R3VectorLongDouble, n1: BigDecimal, n2: BigDecimal): Int {
         // The minimum distance is to a point on the edge interior.  Since the true
         // distance to the edge is always less than 90 degrees, we can return
         // immediately if the limit is 90 degrees or larger.
-        if (r2 >= 2.0.toBigDecimal(DECIMAL128)) return -1;  // distance < limit
+        if (r2 >= 2.0.toLD()) return -1;  // distance < limit
 
         // Otherwise we compute sin^2(distance to edge) to get the best accuracy
         // when the distance limit is small (e.g., S2::kIntersectionError).
-        var n2sin2_r = n2 * r2 * (1.toBigDecimal(DECIMAL128) - 0.25.toBigDecimal(DECIMAL128) * r2)
-        var n2sin2_r_error = 6.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * n2sin2_r
+        var n2sin2_r = n2 * r2 * (1.toLD() - 0.25.toLD() * r2)
+        var n2sin2_r_error = 6.toLD() * kLongDoubleRoudingEpsilon * n2sin2_r
         val (cv, ax2) = getClosestVertex(x, a0, a1)
         val xDn = (x - cv).dotProd(n)
         val xDn2 = xDn * xDn
-        val c1 = (((3.5 + 2 * M_SQRT3).toBigDecimal(DECIMAL128) * n1 + (32 * M_SQRT3 * kDoubleRoundingEpsilon).toBigDecimal(DECIMAL128)) * kLongDoubleRoudingEpsilon * ax2.sqrt(DECIMAL128))
-        val xDn2_error = 4.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * xDn2 + (2.toBigDecimal(DECIMAL128) * xDn.abs() + c1) * c1
+        val c1 = (((3.5 + 2 * M_SQRT3).toLD() * n1 + (32 * M_SQRT3 * kDoubleRoundingEpsilon).toLD()) * kLongDoubleRoudingEpsilon * ax2.sqrt(DECIMAL128))
+        val xDn2_error = 4.toLD() * kLongDoubleRoudingEpsilon * xDn2 + (2.toLD() * xDn.abs() + c1) * c1
 
         // If we are using extended precision, then it is worthwhile to recompute
         // the length of X more accurately.  Otherwise we use the fact that X is
         // guaranteed to be unit length to with a tolerance of 4 * DBL_ERR.
         n2sin2_r *= x.norm2()
-        n2sin2_r_error += 4.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * n2sin2_r
+        n2sin2_r_error += 4.toLD() * kLongDoubleRoudingEpsilon * n2sin2_r
         val diff = xDn2 - n2sin2_r
         val error = xDn2_error + n2sin2_r_error
-        return if(diff > error) 1 else if(diff < -error) -1 else 0
+        return if (diff > error) 1 else if (diff < -error) -1 else 0
     }
 
     // Like TriageCompareLineSin2Distance, but this method computes the squared
@@ -877,35 +998,35 @@ object S2Predicates {
 
         val diff = m2 - n2cos2_r
         val error = m2_error + n2cos2_r_error
-        return if(diff > error) -1 else if(diff < -error) 1 else 0
+        return if (diff > error) -1 else if (diff < -error) 1 else 0
     }
 
     private fun triageCompareLineCos2Distance(x: R3VectorLongDouble, a0: R3VectorLongDouble, a1: R3VectorLongDouble, r2: BigDecimal, n: R3VectorLongDouble, n1: BigDecimal, n2: BigDecimal): Int {
         // The minimum distance is to a point on the edge interior.  Since the true
         // distance to the edge is always less than 90 degrees, we can return
         // immediately if the limit is 90 degrees or larger.
-        if (r2 >= 2.0.toBigDecimal(DECIMAL128)) return -1;  // distance < limit
+        if (r2 >= 2.0.toLD()) return -1;  // distance < limit
 
         // Otherwise we compute cos^2(distance to edge).
-        val cos_r = 1.toBigDecimal(DECIMAL128) - 0.5.toBigDecimal(DECIMAL128) * r2
+        val cos_r = 1.toLD() - 0.5.toLD() * r2
         var n2cos2_r = n2 * cos_r * cos_r
-        var n2cos2_r_error = 7.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * n2cos2_r
+        var n2cos2_r_error = 7.toLD() * kLongDoubleRoudingEpsilon * n2cos2_r
 
         // The length of M = X.CrossProd(N) is the cosine of the distance.
         val m2 = x.crossProd(n).norm2()
         val m1 = m2.sqrt(DECIMAL128)
-        val m1_error = ((1 + 8 / M_SQRT3).toBigDecimal(DECIMAL128) * n1 + (32 * M_SQRT3 * kDoubleRoundingEpsilon).toBigDecimal(DECIMAL128)) * kLongDoubleRoudingEpsilon
-        val m2_error = 3.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * m2 + (2.toBigDecimal(DECIMAL128) * m1 + m1_error) * m1_error
+        val m1_error = ((1 + 8 / M_SQRT3).toLD() * n1 + (32 * M_SQRT3 * kDoubleRoundingEpsilon).toLD()) * kLongDoubleRoudingEpsilon
+        val m2_error = 3.toLD() * kLongDoubleRoudingEpsilon * m2 + (2.toLD() * m1 + m1_error) * m1_error
 
         // If we are using extended precision, then it is worthwhile to recompute
         // the length of X more accurately.  Otherwise we use the fact that X is
         // guaranteed to be unit length to within a tolerance of 4 * DBL_ERR.
         n2cos2_r *= x.norm2()
-        n2cos2_r_error += 4.toBigDecimal(DECIMAL128) * kLongDoubleRoudingEpsilon * n2cos2_r
+        n2cos2_r_error += 4.toLD() * kLongDoubleRoudingEpsilon * n2cos2_r
 
         val diff = m2 - n2cos2_r
         val error = m2_error + n2cos2_r_error
-        return if(diff > error) -1 else if(diff < -error) 1 else 0
+        return if (diff > error) -1 else if (diff < -error) 1 else 0
     }
 
     private fun triageCompareLineDistance(x: S2Point, a0: S2Point, a1: S2Point, r2: Double, n: S2Point, n1: Double, n2: Double): Int =
@@ -916,18 +1037,13 @@ object S2Predicates {
             }
 
     private fun triageCompareLineDistance(x: R3VectorLongDouble, a0: R3VectorLongDouble, a1: R3VectorLongDouble, r2: BigDecimal, n: R3VectorLongDouble, n1: BigDecimal, n2: BigDecimal): Int =
-            if (r2 < k45Degrees.length2.toBigDecimal(DECIMAL128)) {
+            if (r2 < k45Degrees.length2.toLD()) {
                 triageCompareLineSin2Distance(x, a0, a1, r2, n, n1, n2)
             } else {
                 triageCompareLineCos2Distance(x, a0, a1, r2, n, n1, n2)
             }
 
-/*
-    template <class T>
-    int TriageCompareEdgeDistance(const Vector3<T>& x, const Vector3<T>& a0,
-    const Vector3<T>& a1, T r2) {
-        constexpr T T_ERR = rounding_epsilon<T>();
-
+    internal fun triageCompareEdgeDistance(x: S2Point, a0: S2Point, a1: S2Point, r2: Double): Int {
         // First we need to decide whether the closest point is an edge endpoint or
         // somewhere in the interior.  To determine this we compute a plane
         // perpendicular to (a0, a1) that passes through X.  Letting M be the normal
@@ -936,56 +1052,89 @@ object S2Predicates {
         // if a0.M or a1.M is zero exactly then it doesn't matter which code path we
         // follow (since the distance to an endpoint and the distance to the edge
         // interior are exactly the same in this case).
-        Vector3<T> n = (a0 - a1).CrossProd(a0 + a1);
-        Vector3<T> m = n.CrossProd(x);
+        val n = (a0 - a1).crossProd(a0 + a1)
+        val m = n.crossProd(x)
         // For better accuracy when the edge (a0,a1) is very short, we subtract "x"
         // before computing the dot products with M.
-        Vector3<T> a0_dir = a0 - x;
-        Vector3<T> a1_dir = a1 - x;
-        T a0_sign = a0_dir.DotProd(m);
-        T a1_sign = a1_dir.DotProd(m);
-        T n2 = n.Norm2();
-        T n1 = sqrt(n2);
-        T n1_error = ((3.5 + 8 / sqrt(3)) * n1 + 32 * sqrt(3) * DBL_ERR) * T_ERR;
-        T a0_sign_error = n1_error * a0_dir.Norm();
-        T a1_sign_error = n1_error * a1_dir.Norm();
-        if (fabs(a0_sign) < a0_sign_error || fabs(a1_sign) < a1_sign_error) {
+        val a0_dir = a0 - x
+        val a1_dir = a1 - x
+        val a0_sign = a0_dir.dotProd(m)
+        val a1_sign = a1_dir.dotProd(m)
+        val n2 = n.norm2()
+        val n1 = sqrt(n2)
+        val n1_error = ((3.5 + 8 / M_SQRT3) * n1 + 32 * M_SQRT3 * kDoubleRoundingEpsilon) * kDoubleRoundingEpsilon;
+        val a0_sign_error = n1_error * a0_dir.norm()
+        val a1_sign_error = n1_error * a1_dir.norm()
+        return if (abs(a0_sign) < a0_sign_error || abs(a1_sign) < a1_sign_error) {
             // It is uncertain whether minimum distance is to an edge vertex or to the
             // edge interior.  We handle this by computing both distances and checking
             // whether they yield the same result.
-            int vertex_sign = min(TriageCompareDistance(x, a0, r2),
-            TriageCompareDistance(x, a1, r2));
-            int line_sign = TriageCompareLineDistance(x, a0, a1, r2, n, n1, n2);
-            return (vertex_sign == line_sign) ? line_sign : 0;
-        }
-        if (a0_sign >= 0 || a1_sign <= 0) {
+            val vertex_sign = min(triageCompareDistance(x, a0, r2), triageCompareDistance(x, a1, r2))
+            val line_sign = triageCompareLineDistance(x, a0, a1, r2, n, n1, n2)
+            if (vertex_sign == line_sign) line_sign else 0
+        } else if (a0_sign >= 0 || a1_sign <= 0) {
             // The minimum distance is to an edge endpoint.
-            return min(TriageCompareDistance(x, a0, r2),
-                    TriageCompareDistance(x, a1, r2));
+            min(triageCompareDistance(x, a0, r2), triageCompareDistance(x, a1, r2))
         } else {
             // The minimum distance is to the edge interior.
-            return TriageCompareLineDistance(x, a0, a1, r2, n, n1, n2);
+            triageCompareLineDistance(x, a0, a1, r2, n, n1, n2);
         }
     }
 
-// REQUIRES: the closest point to "x" is in the interior of edge (a0, a1).
-    int ExactCompareLineDistance(const Vector3_xf& x, const Vector3_xf& a0,
-    const Vector3_xf& a1, const ExactFloat& r2) {
+    internal fun triageCompareEdgeDistance(x: R3VectorLongDouble, a0: R3VectorLongDouble, a1: R3VectorLongDouble, r2: BigDecimal): Int {
+        // First we need to decide whether the closest point is an edge endpoint or
+        // somewhere in the interior.  To determine this we compute a plane
+        // perpendicular to (a0, a1) that passes through X.  Letting M be the normal
+        // to this plane, the closest point is in the edge interior if and only if
+        // a0.M < 0 and a1.M > 0.  Note that we can use "<" rather than "<=" because
+        // if a0.M or a1.M is zero exactly then it doesn't matter which code path we
+        // follow (since the distance to an endpoint and the distance to the edge
+        // interior are exactly the same in this case).
+        val n = (a0 - a1).crossProd(a0 + a1)
+        val m = n.crossProd(x)
+        // For better accuracy when the edge (a0,a1) is very short, we subtract "x"
+        // before computing the dot products with M.
+        val a0_dir = a0 - x
+        val a1_dir = a1 - x
+        val a0_sign = a0_dir.dotProd(m)
+        val a1_sign = a1_dir.dotProd(m)
+        val n2 = n.norm2()
+        val n1 = n2.sqrt(DECIMAL128)
+        val n1_error = ((3.5 + 8 / M_SQRT3).toLD() * n1 + (32 * M_SQRT3 * kDoubleRoundingEpsilon).toLD()) * kLongDoubleRoudingEpsilon;
+        val a0_sign_error = n1_error * a0_dir.norm()
+        val a1_sign_error = n1_error * a1_dir.norm()
+        return if (a0_sign.abs() < a0_sign_error || a1_sign.abs() < a1_sign_error) {
+            // It is uncertain whether minimum distance is to an edge vertex or to the
+            // edge interior.  We handle this by computing both distances and checking
+            // whether they yield the same result.
+            val vertex_sign = min(triageCompareDistance(x, a0, r2), triageCompareDistance(x, a1, r2))
+            val line_sign = triageCompareLineDistance(x, a0, a1, r2, n, n1, n2)
+            if (vertex_sign == line_sign) line_sign else 0
+        } else if (a0_sign >= BigDecimal.ZERO || a1_sign <= BigDecimal.ZERO) {
+            // The minimum distance is to an edge endpoint.
+            min(triageCompareDistance(x, a0, r2), triageCompareDistance(x, a1, r2))
+        } else {
+            // The minimum distance is to the edge interior.
+            triageCompareLineDistance(x, a0, a1, r2, n, n1, n2);
+        }
+    }
+
+    // REQUIRES: the closest point to "x" is in the interior of edge (a0, a1).
+    fun exactCompareLineDistance(x: R3VectorExactFloat, a0: R3VectorExactFloat, a1: R3VectorExactFloat, r2: BigDecimal): Int {
         // Since we are given that the closest point is in the edge interior, the
         // true distance is always less than 90 degrees (which corresponds to a
         // squared chord length of 2.0).
-        if (r2 >= 2.0) return -1;  // distance < limit
+        if (r2 >= ExactFloatType.fromDouble(2.0)) return -1;  // distance < limit
 
         // Otherwise compute the edge normal
-        Vector3_xf n = a0.CrossProd(a1);
-        ExactFloat sin_d = x.DotProd(n);
-        ExactFloat sin2_r = r2 * (1 - 0.25 * r2);
-        ExactFloat cmp = sin_d * sin_d - sin2_r * x.Norm2() * n.Norm2();
-        return cmp.sgn();
+        val n = a0.crossProd(a1)
+        val sinD = x.dotProd(n)
+        val sin2R = r2 * (ExactFloatType.fromDouble(1.0) - ExactFloatType.fromDouble(0.25) * r2)
+        val cmp = sinD * sinD - sin2R * x.norm2() * n.norm2()
+        return cmp.signum();
     }
 
-    int ExactCompareEdgeDistance(const S2Point& x, const S2Point& a0,
-    const S2Point& a1, S1ChordAngle r) {
+    fun exactCompareEdgeDistance(x: S2Point, a0: S2Point, a1: S2Point, r: S1ChordAngle): Int {
         // Even if previous calculations were uncertain, we might not need to do
         // *all* the calculations in exact arithmetic here.  For example it may be
         // easy to determine whether "x" is closer to an endpoint or the edge
@@ -995,90 +1144,87 @@ object S2Predicates {
         // point calculations failed in that case.
         //
         // CompareEdgeDirections also checks that no edge has antipodal endpoints.
-        if (CompareEdgeDirections(a0, a1, a0, x) > 0 &&
-                CompareEdgeDirections(a0, a1, x, a1) > 0) {
+        if (compareEdgeDirections(a0, a1, a0, x) > 0 && compareEdgeDirections(a0, a1, x, a1) > 0) {
             // The closest point to "x" is along the interior of the edge.
-            return ExactCompareLineDistance(ToExact(x), ToExact(a0), ToExact(a1),
-                    r.length2());
+            return exactCompareLineDistance(x.toExactFloat(), a0.toExactFloat(), a1.toExactFloat(), ExactFloatType.fromDouble(r.length2))
         } else {
             // The closest point to "x" is one of the edge endpoints.
-            return min(CompareDistance(x, a0, r), CompareDistance(x, a1, r));
+            return min(compareDistance(x, a0, r), compareDistance(x, a1, r));
         }
     }
 
-    int CompareEdgeDistance(const S2Point& x, const S2Point& a0, const S2Point& a1,
-    S1ChordAngle r) {
-        // Check that the edge does not consist of antipodal points.  (This catches
-        // the most common case -- the full test is in ExactCompareEdgeDistance.)
-        S2_DCHECK_NE(a0, -a1);
-
-        int sign = TriageCompareEdgeDistance(x, a0, a1, r.length2());
-        if (sign != 0) return sign;
-
-        // Optimization for the case where the edge is degenerate.
-        if (a0 == a1) return CompareDistance(x, a0, r);
-
-        sign = TriageCompareEdgeDistance(ToLD(x), ToLD(a0), ToLD(a1),
-                ToLD(r.length2()));
-        if (sign != 0) return sign;
-        return ExactCompareEdgeDistance(x, a0, a1, r);
+    internal fun triageCompareEdgeDirections(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): Int {
+        val na = (a0 - a1).crossProd(a0 + a1)
+        val nb = (b0 - b1).crossProd(b0 + b1)
+        val na_len = na.norm()
+        val nb_len = nb.norm()
+        val cos_ab = na.dotProd(nb)
+        val cos_ab_error = ((5 + 4 * M_SQRT3) * na_len * nb_len + 32 * M_SQRT3 * kDoubleRoundingEpsilon * (na_len + nb_len)) * kDoubleRoundingEpsilon
+        return if (cos_ab > cos_ab_error) 1 else if (cos_ab < -cos_ab_error) -1 else 0
     }
 
-    template <class T>
-    int TriageCompareEdgeDirections(
-    const Vector3<T>& a0, const Vector3<T>& a1,
-    const Vector3<T>& b0, const Vector3<T>& b1) {
-        constexpr T T_ERR = rounding_epsilon<T>();
-        Vector3<T> na = (a0 - a1).CrossProd(a0 + a1);
-        Vector3<T> nb = (b0 - b1).CrossProd(b0 + b1);
-        T na_len = na.Norm(), nb_len = nb.Norm();
-        T cos_ab = na.DotProd(nb);
-        T cos_ab_error = ((5 + 4 * sqrt(3)) * na_len * nb_len +
-                32 * sqrt(3) * DBL_ERR * (na_len + nb_len)) * T_ERR;
-        return (cos_ab > cos_ab_error) ? 1 : (cos_ab < -cos_ab_error) ? -1 : 0;
+    internal fun triageCompareEdgeDirections(a0: R3VectorLongDouble, a1: R3VectorLongDouble, b0: R3VectorLongDouble, b1: R3VectorLongDouble): Int {
+        val na = (a0 - a1).crossProd(a0 + a1)
+        val nb = (b0 - b1).crossProd(b0 + b1)
+        val na_len = na.norm()
+        val nb_len = nb.norm()
+        val cos_ab = na.dotProd(nb)
+        val cos_ab_error = ((5.toLD() + 4.toLD() * M_SQRT3.toLD()) * na_len * nb_len +
+                32.toLD() * M_SQRT3.toLD() * kDoubleRoundingEpsilon.toLD() * (na_len + nb_len)) *
+                kLongDoubleRoudingEpsilon
+        return if (cos_ab > cos_ab_error) 1 else if (cos_ab < -cos_ab_error) -1 else 0
     }
 
-    bool ArePointsLinearlyDependent(const Vector3_xf& x, const Vector3_xf& y) {
-        Vector3_xf n = x.CrossProd(y);
-        return n[0].sgn() == 0 && n[1].sgn() == 0 && n[2].sgn() == 0;
+    fun arePointsLinearlyDependent(x: R3VectorExactFloat, y: R3VectorExactFloat): Boolean {
+        val n = x.crossProd(y)
+        return n[0].signum() == 0 && n[1].signum() == 0 && n[2].signum() == 0
     }
 
-    bool ArePointsAntipodal(const Vector3_xf& x, const Vector3_xf& y) {
-        return ArePointsLinearlyDependent(x, y) && x.DotProd(y).sgn() < 0;
+    fun arePointsAntipodal(x: R3VectorExactFloat, y: R3VectorExactFloat): Boolean {
+        return arePointsLinearlyDependent(x, y) && x.dotProd(y).signum() < 0
     }
 
-    int ExactCompareEdgeDirections(const Vector3_xf& a0, const Vector3_xf& a1,
-    const Vector3_xf& b0, const Vector3_xf& b1) {
-        S2_DCHECK(!ArePointsAntipodal(a0, a1));
-        S2_DCHECK(!ArePointsAntipodal(b0, b1));
-        return a0.CrossProd(a1).DotProd(b0.CrossProd(b1)).sgn();
+    internal fun exactCompareEdgeDirections(a0: R3VectorExactFloat, a1: R3VectorExactFloat, b0: R3VectorExactFloat, b1: R3VectorExactFloat): Int {
+        assert(!arePointsAntipodal(a0, a1))
+        assert(!arePointsAntipodal(b0, b1))
+        return a0.crossProd(a1).dotProd(b0.crossProd(b1)).signum()
     }
 
-    int CompareEdgeDirections(const S2Point& a0, const S2Point& a1,
-    const S2Point& b0, const S2Point& b1) {
-        // Check that no edge consists of antipodal points.  (This catches the most
-        // common case -- the full test is in ExactCompareEdgeDirections.)
-        S2_DCHECK_NE(a0, -a1);
-        S2_DCHECK_NE(b0, -b1);
-
-        int sign = TriageCompareEdgeDirections(a0, a1, b0, b1);
-        if (sign != 0) return sign;
-
-        // Optimization for the case where either edge is degenerate.
-        if (a0 == a1 || b0 == b1) return 0;
-
-        sign = TriageCompareEdgeDirections(ToLD(a0), ToLD(a1), ToLD(b0), ToLD(b1));
-        if (sign != 0) return sign;
-        return ExactCompareEdgeDirections(ToExact(a0), ToExact(a1),
-                ToExact(b0), ToExact(b1));
+    // If triangle ABC has positive sign, returns its circumcenter.  If ABC has
+    // negative sign, returns the negated circumcenter.
+    private fun getCircumcenter(a: S2Point, b: S2Point, c: S2Point): Pair<S2Point, Double> {
+        // We compute the circumcenter using the intersection of the perpendicular
+        // bisectors of AB and BC.  The formula is essentially
+        //
+        //    Z = ((A x B) x (A + B)) x ((B x C) x (B + C)),
+        //
+        // except that we compute the cross product (A x B) as (A - B) x (A + B)
+        // (and similarly for B x C) since this is much more stable when the inputs
+        // are unit vectors.
+        val ab_diff = a - b
+        val ab_sum = a + b
+        val bc_diff = b - c
+        val bc_sum = b + c
+        val nab = ab_diff.crossProd(ab_sum)
+        val nab_len = nab.norm()
+        val ab_len = ab_diff.norm()
+        val nbc = bc_diff.crossProd(bc_sum)
+        val nbc_len = nbc.norm()
+        val bc_len = bc_diff.norm()
+        val mab = nab.crossProd(ab_sum)
+        val mbc = nbc.crossProd(bc_sum)
+        val error = (((16 + 24 * M_SQRT3) * kDoubleRoundingEpsilon +
+                8 * kDoubleRoundingEpsilon * (ab_len + bc_len)) * nab_len * nbc_len +
+                128 * M_SQRT3 * kDoubleRoundingEpsilon * kDoubleRoundingEpsilon * (nab_len + nbc_len) +
+                3 * 4096 * kDoubleRoundingEpsilon * kDoubleRoundingEpsilon * kDoubleRoundingEpsilon * kDoubleRoundingEpsilon);
+        return mab.crossProd(mbc) to error
     }
 
-// If triangle ABC has positive sign, returns its circumcenter.  If ABC has
-// negative sign, returns the negated circumcenter.
-    template <class T>
-    Vector3<T> GetCircumcenter(const Vector3<T>& a, const Vector3<T>& b,
-    const Vector3<T>& c, T* error) {
-        constexpr T T_ERR = rounding_epsilon<T>();
+    // If triangle ABC has positive sign, returns its circumcenter.  If ABC has
+    // negative sign, returns the negated circumcenter.
+    private fun getCircumcenter(a: R3VectorLongDouble, b: R3VectorLongDouble, c: R3VectorLongDouble): Pair<R3VectorLongDouble, BigDecimal> {
+        val T_ERR = kLongDoubleRoudingEpsilon
+        val D_ERR = kDoubleRoundingEpsilon.toLD()
 
         // We compute the circumcenter using the intersection of the perpendicular
         // bisectors of AB and BC.  The formula is essentially
@@ -1088,52 +1234,66 @@ object S2Predicates {
         // except that we compute the cross product (A x B) as (A - B) x (A + B)
         // (and similarly for B x C) since this is much more stable when the inputs
         // are unit vectors.
-        Vector3<T> ab_diff = a - b, ab_sum = a + b;
-        Vector3<T> bc_diff = b - c, bc_sum = b + c;
-        Vector3<T> nab = ab_diff.CrossProd(ab_sum);
-        T nab_len = nab.Norm();
-        T ab_len = ab_diff.Norm();
-        Vector3<T> nbc = bc_diff.CrossProd(bc_sum);
-        T nbc_len = nbc.Norm();
-        T bc_len = bc_diff.Norm();
-        Vector3<T> mab = nab.CrossProd(ab_sum);
-        Vector3<T> mbc = nbc.CrossProd(bc_sum);
-        *error = (((16 + 24 * sqrt(3)) * T_ERR +
-                8 * DBL_ERR * (ab_len + bc_len)) * nab_len * nbc_len +
-                128 * sqrt(3) * DBL_ERR * T_ERR * (nab_len + nbc_len) +
-                3 * 4096 * DBL_ERR * DBL_ERR * T_ERR * T_ERR);
-        return mab.CrossProd(mbc);
+        val ab_diff = a - b
+        val ab_sum = a + b
+        val bc_diff = b - c
+        val bc_sum = b + c
+        val nab = ab_diff.crossProd(ab_sum)
+        val nab_len = nab.norm()
+        val ab_len = ab_diff.norm()
+        val nbc = bc_diff.crossProd(bc_sum)
+        val nbc_len = nbc.norm()
+        val bc_len = bc_diff.norm()
+        val mab = nab.crossProd(ab_sum)
+        val mbc = nbc.crossProd(bc_sum)
+        val error = (((16.toLD() + 24.toLD() * M_SQRT3.toLD()) * kLongDoubleRoudingEpsilon +
+                8.toLD() * D_ERR * (ab_len + bc_len)) * nab_len * nbc_len +
+                128.toLD() * M_SQRT3.toLD() * D_ERR * kLongDoubleRoudingEpsilon * (nab_len + nbc_len) +
+                3.toLD() * 4096.toLD() * D_ERR * D_ERR * D_ERR * kLongDoubleRoudingEpsilon);
+        return mab.crossProd(mbc) to error
     }
 
-    template <class T>
-    int TriageEdgeCircumcenterSign(const Vector3<T>& x0, const Vector3<T>& x1,
-    const Vector3<T>& a, const Vector3<T>& b,
-    const Vector3<T>& c, int abc_sign) {
-        constexpr T T_ERR = rounding_epsilon<T>();
+    internal fun triageEdgeCircumcenterSign(x0: S2Point, x1: S2Point, a: S2Point, b: S2Point, c: S2Point, abc_sign: Int): Int {
+        val T_ERR = kDoubleRoundingEpsilon
 
         // Compute the circumcenter Z of triangle ABC, and then test which side of
         // edge X it lies on.
-        T z_error;
-        Vector3<T> z = GetCircumcenter(a, b, c, &z_error);
-        Vector3<T> nx = (x0 - x1).CrossProd(x0 + x1);
+        val (z, z_error) = getCircumcenter(a, b, c)
+        val nx = (x0 - x1).crossProd(x0 + x1)
         // If the sign of triangle ABC is negative, then we have computed -Z and the
         // result should be negated.
-        T result = abc_sign * nx.DotProd(z);
+        val result = abc_sign * nx.dotProd(z)
 
-        T z_len = z.Norm();
-        T nx_len = nx.Norm();
-        T nx_error = ((1 + 2 * sqrt(3)) * nx_len + 32 * sqrt(3) * DBL_ERR) * T_ERR;
-        T result_error = ((3 * T_ERR * nx_len + nx_error) * z_len + z_error * nx_len);
-        return (result > result_error) ? 1 : (result < -result_error) ? -1 : 0;
+        val z_len = z.norm()
+        val nx_len = nx.norm()
+        val nx_error = ((1 + 2 * M_SQRT3) * nx_len + 32 * M_SQRT3 * kDoubleRoundingEpsilon) * T_ERR
+        val result_error = ((3 * T_ERR * nx_len + nx_error) * z_len + z_error * nx_len)
+        return if (result > result_error) 1 else if (result < -result_error) -1 else 0
     }
 
-    int ExactEdgeCircumcenterSign(const Vector3_xf& x0, const Vector3_xf& x1,
-    const Vector3_xf& a, const Vector3_xf& b,
-    const Vector3_xf& c, int abc_sign) {
+    internal fun triageEdgeCircumcenterSign(x0: R3VectorLongDouble, x1: R3VectorLongDouble, a: R3VectorLongDouble, b: R3VectorLongDouble, c: R3VectorLongDouble, abc_sign: Int): Int {
+        val T_ERR = kLongDoubleRoudingEpsilon
+
+        // Compute the circumcenter Z of triangle ABC, and then test which side of
+        // edge X it lies on.
+        val (z, z_error) = getCircumcenter(a, b, c)
+        val nx = (x0 - x1).crossProd(x0 + x1)
+        // If the sign of triangle ABC is negative, then we have computed -Z and the
+        // result should be negated.
+        val result = abc_sign.toLD() * nx.dotProd(z)
+
+        val z_len = z.norm()
+        val nx_len = nx.norm()
+        val nx_error = ((1.toLD() + 2.toLD() * M_SQRT3.toLD()) * nx_len + 32.toLD() * M_SQRT3.toLD() * kDoubleRoundingEpsilon.toLD()) * T_ERR
+        val result_error = ((3.toLD() * T_ERR * nx_len + nx_error) * z_len + z_error * nx_len)
+        return if (result > result_error) 1 else if (result < -result_error) -1 else 0
+    }
+
+    fun exactEdgeCircumcenterSign(x0: R3VectorExactFloat, x1: R3VectorExactFloat, a: R3VectorExactFloat, b: R3VectorExactFloat, c: R3VectorExactFloat, abc_sign: Int): Int {
         // Return zero if the edge X is degenerate.  (Also see the comments in
         // SymbolicEdgeCircumcenterSign.)
-        if (ArePointsLinearlyDependent(x0, x1)) {
-            S2_DCHECK_GT(x0.DotProd(x1), 0);  // Antipodal edges not allowed.
+        if (arePointsLinearlyDependent(x0, x1)) {
+            assert(x0.dotProd(x1) > BigDecimal.ZERO);  // Antipodal edges not allowed.
             return 0;
         }
         // The simplest predicate for testing whether the sign is positive is
@@ -1183,28 +1343,29 @@ object S2Predicates {
         //     abc2 = |A|^2 dBC^2
         //     bca2 = |B|^2 dCA^2
         //     cab2 = |C|^2 dAB^2
-        Vector3_xf nx = x0.CrossProd(x1);
-        ExactFloat dab = nx.DotProd(a.CrossProd(b));
-        ExactFloat dbc = nx.DotProd(b.CrossProd(c));
-        ExactFloat dca = nx.DotProd(c.CrossProd(a));
-        ExactFloat abc2 = a.Norm2() * (dbc * dbc);
-        ExactFloat bca2 = b.Norm2() * (dca * dca);
-        ExactFloat cab2 = c.Norm2() * (dab * dab);
+        val nx = x0.crossProd(x1)
+        val dab = nx.dotProd(a.crossProd(b))
+        val dbc = nx.dotProd(b.crossProd(c))
+        val dca = nx.dotProd(c.crossProd(a))
+        val abc2 = a.norm2() * (dbc * dbc)
+        val bca2 = b.norm2() * (dca * dca)
+        val cab2 = c.norm2() * (dab * dab)
 
         // If the two sides of (3) have different signs (including the case where
         // one side is zero) then we know the result.  Also, if both sides are zero
         // then we know the result.  The following logic encodes this.
-        int lhs3_sgn = dab.sgn(), rhs3_sgn = -dbc.sgn();
-        int lhs2_sgn = max(-1, min(1, lhs3_sgn - rhs3_sgn));
+        val lhs3_sgn = dab.signum()
+        val rhs3_sgn = -dbc.signum()
+        var lhs2_sgn = max(-1, min(1, lhs3_sgn - rhs3_sgn))
         if (lhs2_sgn == 0 && lhs3_sgn != 0) {
             // Both sides of (3) have the same non-zero sign, so square both sides.
             // If both sides were negative then invert the result.
-            lhs2_sgn = (cab2 - abc2).sgn() * lhs3_sgn;
+            lhs2_sgn = (cab2 - abc2).signum() * lhs3_sgn
         }
         // Now if the two sides of (2) have different signs then we know the result
         // of this entire function.
-        int rhs2_sgn = -dca.sgn();
-        int result = max(-1, min(1, lhs2_sgn - rhs2_sgn));
+        val rhs2_sgn = -dca.signum()
+        var result = max(-1, min(1, lhs2_sgn - rhs2_sgn))
         if (result == 0 && lhs2_sgn != 0) {
             // Both sides of (2) have the same non-zero sign, so square both sides.
             // (If both sides were negative then we invert the result below.)
@@ -1217,41 +1378,39 @@ object S2Predicates {
             // (4)    2 |A| |C| dAB dBC > |B|^2 dCA^2 - |C|^2 dAB^2 - |A|^2 dBC^2 .
             //
             // Again, if the two sides have different signs then we know the result.
-            int lhs4_sgn = dab.sgn() * dbc.sgn();
-            ExactFloat rhs4 = bca2 - cab2 - abc2;
-            result = max(-1, min(1, lhs4_sgn - rhs4.sgn()));
+            val lhs4_sgn = dab.signum() * dbc.signum()
+            val rhs4 = bca2 - cab2 - abc2
+            result = max(-1, min(1, lhs4_sgn - rhs4.signum()))
             if (result == 0 && lhs4_sgn != 0) {
                 // Both sides of (4) have the same non-zero sign, so square both sides.
                 // If both sides were negative then invert the result.
-                result = (4 * abc2 * cab2 - rhs4 * rhs4).sgn() * lhs4_sgn;
+                result = (ExactFloatType.fromDouble(4.0) * abc2 * cab2 - rhs4 * rhs4).signum() * lhs4_sgn
             }
             // Correct the sign if both sides of (2) were negative.
-            result *= lhs2_sgn;
+            result *= lhs2_sgn
         }
         // If the sign of triangle ABC is negative, then we have computed -Z and the
         // result should be negated.
-        return abc_sign * result;
+        return abc_sign * result
     }
 
-// Like Sign, except this method does not use symbolic perturbations when
-// the input points are exactly coplanar with the origin (i.e., linearly
-// dependent).  Clients should never use this method, but it is useful here in
-// order to implement the combined pedestal/axis-aligned perturbation scheme
-// used by some methods (such as EdgeCircumcenterSign).
-    int UnperturbedSign(const S2Point& a, const S2Point& b, const S2Point& c) {
-        int sign = TriageSign(a, b, c, a.CrossProd(b));
-        if (sign == 0) sign = ExpensiveSign(a, b, c, false /*perturb*/);
+    // Like Sign, except this method does not use symbolic perturbations when
+    // the input points are exactly coplanar with the origin (i.e., linearly
+    // dependent).  Clients should never use this method, but it is useful here in
+    // order to implement the combined pedestal/axis-aligned perturbation scheme
+    // used by some methods (such as EdgeCircumcenterSign).
+    fun unperturbedSign(a: S2Point, b: S2Point, c: S2Point): Int {
+        var sign = triageSign(a, b, c, a.crossProd(b))
+        if (sign == 0) sign = expensiveSign(a, b, c, false /*perturb*/);
         return sign;
     }
 
-// Given arguments such that ExactEdgeCircumcenterSign(x0, x1, a, b, c) == 0,
-// returns the value of Sign(X0, X1, Z) (where Z is the circumcenter of
-// triangle ABC) after symbolic perturbations are taken into account.  The
-// result is zero only if X0 == X1, A == B, B == C, or C == A.  (It is nonzero
-// if these pairs are exactly proportional to each other but not equal.)
-    int SymbolicEdgeCircumcenterSign(
-    const S2Point& x0, const S2Point& x1,
-    const S2Point& a_arg, const S2Point& b_arg, const S2Point& c_arg) {
+    // Given arguments such that ExactEdgeCircumcenterSign(x0, x1, a, b, c) == 0,
+    // returns the value of Sign(X0, X1, Z) (where Z is the circumcenter of
+    // triangle ABC) after symbolic perturbations are taken into account.  The
+    // result is zero only if X0 == X1, A == B, B == C, or C == A.  (It is nonzero
+    // if these pairs are exactly proportional to each other but not equal.)
+    fun symbolicEdgeCircumcenterSign(x0: S2Point, x1: S2Point, a_arg: S2Point, b_arg: S2Point, c_arg: S2Point): Int {
         // We use the same perturbation strategy as SymbolicCompareDistances.  Note
         // that pedestal perturbations of X0 and X1 do not affect the result,
         // because Sign(X0, X1, Z) does not change when its arguments are scaled
@@ -1303,51 +1462,26 @@ object S2Predicates {
         if (a_arg == b_arg || b_arg == c_arg || c_arg == a_arg) return 0;
 
         // Sort A, B, C in lexicographic order.
-        const S2Point *a = &a_arg, *b = &b_arg, *c = &c_arg;
-        if (*b < *a) std::swap(a, b);
-        if (*c < *b) std::swap(b, c);
-        if (*b < *a) std::swap(a, b);
+        var a = a_arg
+        var b = b_arg
+        var c = c_arg
+        if (b < a) {
+            val temp = a; a = b; b = temp; }
+        if (c < b) {
+            val temp = b; b = c; c = temp; }
+        if (b < a) {
+            val temp = a; a = b; b = temp; }
 
         // Now consider the perturbations in decreasing order of size.
-        int sign = UnperturbedSign(x0, x1, *a);
-        if (sign != 0) return sign;
-        sign = UnperturbedSign(x0, x1, *b);
-        if (sign != 0) return sign;
-        return UnperturbedSign(x0, x1, *c);
+        var sign = unperturbedSign(x0, x1, a)
+        if (sign != 0) return sign
+        sign = unperturbedSign(x0, x1, b)
+        if (sign != 0) return sign
+        return unperturbedSign(x0, x1, c)
     }
 
-    int EdgeCircumcenterSign(const S2Point& x0, const S2Point& x1,
-    const S2Point& a, const S2Point& b,
-    const S2Point& c) {
-        // Check that the edge does not consist of antipodal points.  (This catches
-        // the most common case -- the full test is in ExactEdgeCircumcenterSign.)
-        S2_DCHECK_NE(x0, -x1);
-
-        int abc_sign = Sign(a, b, c);
-        int sign = TriageEdgeCircumcenterSign(x0, x1, a, b, c, abc_sign);
-        if (sign != 0) return sign;
-
-        // Optimization for the cases that are going to return zero anyway, in order
-        // to avoid falling back to exact arithmetic.
-        if (x0 == x1 || a == b || b == c || c == a) return 0;
-
-        sign = TriageEdgeCircumcenterSign(
-                ToLD(x0), ToLD(x1), ToLD(a), ToLD(b), ToLD(c), abc_sign);
-        if (sign != 0) return sign;
-        sign = ExactEdgeCircumcenterSign(
-                ToExact(x0), ToExact(x1), ToExact(a), ToExact(b), ToExact(c), abc_sign);
-        if (sign != 0) return sign;
-
-        // Unlike the other methods, SymbolicEdgeCircumcenterSign does not depend
-        // on the sign of triangle ABC.
-        return SymbolicEdgeCircumcenterSign(x0, x1, a, b, c);
-    }
-
-    template <class T>
-    Excluded TriageVoronoiSiteExclusion(const Vector3<T>& a, const Vector3<T>& b,
-    const Vector3<T>& x0, const Vector3<T>& x1,
-    T r2) {
-        constexpr T T_ERR = rounding_epsilon<T>();
+    fun triageVoronoiSiteExclusion(a: S2Point, b: S2Point, x0: S2Point, x1: S2Point, r2: Double): Excluded {
+        val T_ERR = kDoubleRoundingEpsilon
 
         // Define the "coverage disc" of a site S to be the disc centered at S with
         // radius r (i.e., squared chord angle length r2).  Similarly, define the
@@ -1432,76 +1566,75 @@ object S2Predicates {
         // measured using (P - Xi).DotProd(N) where Xi is the endpoint of X that is
         // closer to P.
 
-        Vector3<T> n = (x0 - x1).CrossProd(x0 + x1);  // 2 * x0.CrossProd(x1)
-        T n2 = n.Norm2();
-        T n1 = sqrt(n2);
+        val n = (x0 - x1).crossProd(x0 + x1)  // 2 * x0.CrossProd(x1)
+        val n2 = n.norm2()
+        val n1 = sqrt(n2)
         // This factor is used in the error terms of dot products with "n" below.
-        T Dn_error = ((3.5 + 2 * sqrt(3)) * n1 + 32 * sqrt(3) * DBL_ERR) * T_ERR;
+        val Dn_error = ((3.5 + 2 * M_SQRT3) * n1 + 32 * M_SQRT3 * kDoubleRoundingEpsilon) * T_ERR
 
-        T cos_r = 1 - 0.5 * r2;
-        T sin2_r = r2 * (1 - 0.25 * r2);
-        T n2sin2_r = n2 * sin2_r;
+        val cos_r = 1 - 0.5 * r2
+        val sin2_r = r2 * (1 - 0.25 * r2)
+        val n2sin2_r = n2 * sin2_r
 
         // "ra" and "rb" denote sin(ra) and sin(rb) after the scaling above.
-        T ax2, aDn = (a - GetClosestVertex(a, x0, x1, &ax2)).DotProd(n);
-        T aDn2 = aDn * aDn;
-        T aDn_error = Dn_error * sqrt(ax2);
-        T ra2 = n2sin2_r - aDn2;
-        T ra2_error = (8 * DBL_ERR + 4 * T_ERR) * aDn2 +
-                (2 * fabs(aDn) + aDn_error) * aDn_error + 6 * T_ERR * n2sin2_r;
+        val (acv, ax2) = getClosestVertex(a, x0, x1)
+        val aDn = (a - acv).dotProd(n)
+        val aDn2 = aDn * aDn
+        val aDn_error = Dn_error * sqrt(ax2)
+        val ra2 = n2sin2_r - aDn2
+        val ra2_error = (8 * kDoubleRoundingEpsilon + 4 * T_ERR) * aDn2 + (2 * abs(aDn) + aDn_error) * aDn_error + 6 * T_ERR * n2sin2_r
         // This is the minimum possible value of ra2, which is used to bound the
         // derivative of sqrt(ra2) in computing ra_error below.
-        T min_ra2 = ra2 - ra2_error;
-        if (min_ra2 < 0) return Excluded::UNCERTAIN;
-        T ra = sqrt(ra2);
+        val min_ra2 = ra2 - ra2_error;
+        if (min_ra2 < 0) return Excluded.UNCERTAIN
+        val ra = sqrt(ra2)
         // Includes the ra2 subtraction error above.
-        T ra_error = 1.5 * T_ERR * ra + 0.5 * ra2_error / sqrt(min_ra2);
+        val ra_error = 1.5 * T_ERR * ra + 0.5 * ra2_error / sqrt(min_ra2)
 
-        T bx2, bDn = (b - GetClosestVertex(b, x0, x1, &bx2)).DotProd(n);
-        T bDn2 = bDn * bDn;
-        T bDn_error = Dn_error * sqrt(bx2);
-        T rb2 = n2sin2_r - bDn2;
-        T rb2_error = (8 * DBL_ERR + 4 * T_ERR) * bDn2 +
-                (2 * fabs(bDn) + bDn_error) * bDn_error + 6 * T_ERR * n2sin2_r;
-        T min_rb2 = rb2 - rb2_error;
-        if (min_rb2 < 0) return Excluded::UNCERTAIN;
-        T rb = sqrt(rb2);
+        val (bcv, bx2) = getClosestVertex(b, x0, x1)
+        val bDn = (b - bcv).dotProd(n)
+        val bDn2 = bDn * bDn;
+        val bDn_error = Dn_error * sqrt(bx2);
+        val rb2 = n2sin2_r - bDn2;
+        val rb2_error = (8 * kDoubleRoundingEpsilon + 4 * T_ERR) * bDn2 + (2 * abs(bDn) + bDn_error) * bDn_error + 6 * T_ERR * n2sin2_r
+        val min_rb2 = rb2 - rb2_error
+        if (min_rb2 < 0) return Excluded.UNCERTAIN
+        val rb = sqrt(rb2)
         // Includes the rb2 subtraction error above.
-        T rb_error = 1.5 * T_ERR * rb + 0.5 * rb2_error / sqrt(min_rb2);
+        val rb_error = 1.5 * T_ERR * rb + 0.5 * rb2_error / sqrt(min_rb2)
 
         // The sign of LHS(3) determines which site may be excluded by the other.
-        T lhs3 = cos_r * (rb - ra);
-        T abs_lhs3 = fabs(lhs3);
-        T lhs3_error = cos_r * (ra_error + rb_error) + 3 * T_ERR * abs_lhs3;
+        val lhs3 = cos_r * (rb - ra)
+        val abs_lhs3 = abs(lhs3)
+        val lhs3_error = cos_r * (ra_error + rb_error) + 3 * T_ERR * abs_lhs3
 
         // Now we evaluate the RHS of (3), which is proportional to sin(d).
-        Vector3<T> aXb = (a - b).CrossProd(a + b);  // 2 * a.CrossProd(b)
-        T aXb1 = aXb.Norm();
-        T sin_d = 0.5 * aXb.DotProd(n);
-        T sin_d_error = (4 * DBL_ERR + (2.5 + 2 * sqrt(3)) * T_ERR) * aXb1 * n1 +
-                16 * sqrt(3) * DBL_ERR * T_ERR * (aXb1 + n1);
+        val aXb = (a - b).crossProd(a + b)  // 2 * a.CrossProd(b)
+        val aXb1 = aXb.norm()
+        val sin_d = 0.5 * aXb.dotProd(n)
+        val sin_d_error = (4 * kDoubleRoundingEpsilon + (2.5 + 2 * M_SQRT3) * T_ERR) * aXb1 * n1 +
+                16 * M_SQRT3 * kDoubleRoundingEpsilon * T_ERR * (aXb1 + n1);
 
         // If LHS(3) is definitely less than RHS(3), neither site excludes the other.
-        T result = abs_lhs3 - sin_d;
-        T result_error = lhs3_error + sin_d_error;
-        if (result < -result_error) return Excluded::NEITHER;
+        val result = abs_lhs3 - sin_d;
+        val result_error = lhs3_error + sin_d_error;
+        if (result < -result_error) return Excluded.NEITHER
 
         // Otherwise, before proceeding further we need to check that |d| <= Pi/2.
         // In fact, |d| < Pi/2 is enough because of the requirement that r < Pi/2.
         // The following expression represents cos(d) after scaling; it is
         // equivalent to (aXn).(bXn) but has about 30% less error.
-        T cos_d = a.DotProd(b) * n2 - aDn * bDn;
-        T cos_d_error =
-        ((8 * DBL_ERR + 5 * T_ERR) * fabs(aDn) + aDn_error) * fabs(bDn) +
-                (fabs(aDn) + aDn_error) * bDn_error + (8 * DBL_ERR + 8 * T_ERR) * n2;
-        if (cos_d <= -cos_d_error) return Excluded::NEITHER;
+        val cos_d = a.dotProd(b) * n2 - aDn * bDn;
+        val cos_d_error = ((8 * kDoubleRoundingEpsilon + 5 * T_ERR) * abs(aDn) + aDn_error) * abs(bDn) +
+                (abs(aDn) + aDn_error) * bDn_error + (8 * kDoubleRoundingEpsilon + 8 * T_ERR) * n2;
+        if (cos_d <= -cos_d_error) return Excluded.NEITHER
 
         // Potential optimization: if the sign of cos(d) is uncertain, then instead
         // we could check whether cos(d) >= cos(r).  Unfortunately this is fairly
         // expensive since it requires computing denominator |aXn||bXn| of cos(d)
         // and the associated error bounds.  In any case this case is relatively
         // rare so it seems better to punt.
-        if (cos_d < cos_d_error) return Excluded::UNCERTAIN;
+        if (cos_d < cos_d_error) return Excluded.UNCERTAIN
 
         // Normally we have d > 0 because the sites are sorted so that A is closer
         // to X0 and B is closer to X1.  However if the edge X is longer than Pi/2,
@@ -1515,26 +1648,208 @@ object S2Predicates {
         // degrees, then it is also less than r2, and therefore the Voronoi regions
         // of both sites intersect the edge.
         if (sin_d < -sin_d_error) {
-            T r90 = S1ChordAngle::Right().length2();
+            val r90 = S1ChordAngle.right.length2
             // "ca" is negative if Voronoi region A definitely intersects edge X.
-            int ca = (lhs3 < -lhs3_error) ? -1 : TriageCompareCosDistance(a, x0, r90);
-            int cb = (lhs3 > lhs3_error) ? -1 : TriageCompareCosDistance(b, x1, r90);
-            if (ca < 0 && cb < 0) return Excluded::NEITHER;
-            if (ca <= 0 && cb <= 0) return Excluded::UNCERTAIN;
-            if (abs_lhs3 <= lhs3_error) return Excluded::UNCERTAIN;
+            val ca = if(lhs3 < -lhs3_error) -1 else triageCompareCosDistance(a, x0, r90)
+            val cb = if(lhs3 > lhs3_error) -1 else triageCompareCosDistance(b, x1, r90)
+            if (ca < 0 && cb < 0) return Excluded.NEITHER
+            if (ca <= 0 && cb <= 0) return Excluded.UNCERTAIN
+            if (abs_lhs3 <= lhs3_error) return Excluded.UNCERTAIN
         } else if (sin_d <= sin_d_error) {
-            return Excluded::UNCERTAIN;
+            return Excluded.UNCERTAIN
         }
         // Now we can finish checking the results of predicate (3).
-        if (result <= result_error) return Excluded::UNCERTAIN;
-        S2_DCHECK_GT(abs_lhs3, lhs3_error);
-        return (lhs3 > 0) ? Excluded::FIRST : Excluded::SECOND;
+        if (result <= result_error) return Excluded.UNCERTAIN
+        assert(abs_lhs3 > lhs3_error);
+        return if(lhs3 > 0) Excluded.FIRST else Excluded.SECOND
     }
 
-    Excluded ExactVoronoiSiteExclusion(const Vector3_xf& a, const Vector3_xf& b,
-    const Vector3_xf& x0, const Vector3_xf& x1,
-    const ExactFloat& r2) {
-        S2_DCHECK(!ArePointsAntipodal(x0, x1));
+    fun triageVoronoiSiteExclusion(a: R3VectorLongDouble, b: R3VectorLongDouble, x0: R3VectorLongDouble, x1: R3VectorLongDouble, r2: BigDecimal): Excluded {
+        val T_ERR = kLongDoubleRoudingEpsilon
+
+        // Define the "coverage disc" of a site S to be the disc centered at S with
+        // radius r (i.e., squared chord angle length r2).  Similarly, define the
+        // "coverage interval" of S along an edge X to be the intersection of X with
+        // the coverage disc of S.  The coverage interval can be represented as the
+        // point at the center of the interval and an angle that measures the
+        // semi-width or "radius" of the interval.
+        //
+        // To test whether site A excludes site B along the input edge X, we test
+        // whether the coverage interval of A contains the coverage interval of B.
+        // Let "ra" and "rb" be the radii (semi-widths) of the two intervals, and
+        // let "d" be the angle between their center points.  Then "a" properly
+        // contains "b" if (ra - rb > d), and "b" contains "a" if (rb - ra > d).
+        // Note that only one of these conditions can be true.  Therefore we can
+        // determine whether one site excludes the other by checking whether
+        //
+        // (1)   |rb - ra| > d
+        //
+        // and use the sign of (rb - ra) to determine which site is excluded.
+        //
+        // The actual code is based on the following.  Let A1 and B1 be the unit
+        // vectors A and B scaled by cos(r) (these points are inside the sphere).
+        // The planes perpendicular to OA1 and OA2 cut off two discs of radius r
+        // around A and B.  Now consider the two lines (inside the sphere) where
+        // these planes intersect the plane containing the input edge X, and let A2
+        // and B2 be the points on these lines that are closest to A and B.  The
+        // coverage intervals of A and B can be represented as an interval along
+        // each of these lines, centered at A2 and B2.  Let P1 and P2 be the
+        // endpoints of the coverage interval for A, and let Q1 and Q2 be the
+        // endpoints of the coverage interval for B.  We can view each coverage
+        // interval as either a chord through the sphere's interior, or as a segment
+        // of the original edge X (by projecting the chord onto the sphere's
+        // surface).
+        //
+        // To check whether B's interval is contained by A's interval, we test
+        // whether both endpoints of B's interval (Q1 and Q2) are contained by A's
+        // interval.  E.g., we could test whether Qi.DotProd(A2) > A2.Norm2().
+        //
+        // However rather than constructing the actual points A1, A2, and so on, it
+        // turns out to be more efficient to compute the sines and cosines
+        // ("components") of the various angles and then use trigonometric
+        // identities.  Predicate (1) can be expressed as
+        //
+        //      |sin(rb - ra)| > sin(d)
+        //
+        // provided that |d| <= Pi/2 (which must be checked), and then expanded to
+        //
+        // (2)  |sin(rb) cos(ra) - sin(ra) cos(rb)| > sin(d) .
+        //
+        // The components of the various angles can be expressed using dot and cross
+        // products based on the construction above:
+        //
+        //   sin(ra) = sqrt(sin^2(r) |a|^2 |n|^2 - |a.n|^2) / |aXn|
+        //   cos(ra) = cos(r) |a| |n| / |aXn|
+        //   sin(rb) = sqrt(sin^2(r) |b|^2 |n|^2 - |b.n|^2) / |bXn|
+        //   cos(rb) = cos(r) |b| |n| / |bXn|
+        //   sin(d)  = (aXb).n |n| / (|aXn| |bXn|)
+        //   cos(d)  = (aXn).(bXn) / (|aXn| |bXn|)
+        //
+        // Also, the squared chord length r2 is equal to 4 * sin^2(r / 2), which
+        // yields the following relationships:
+        //
+        //   sin(r)  = sqrt(r2 (1 - r2 / 4))
+        //   cos(r)  = 1 - r2 / 2
+        //
+        // We then scale both sides of (2) by |aXn| |bXn| / |n| (in order to
+        // minimize the number of calculations and to avoid divisions), which gives:
+        //
+        //    cos(r) ||a| sqrt(sin^2(r) |b|^2 |n|^2 - |b.n|^2) -
+        //            |b| sqrt(sin^2(r) |a|^2 |n|^2 - |a.n|^2)| > (aXb).n
+        //
+        // Furthermore we can substitute |a| = |b| = 1 (as long as this is taken
+        // into account in the error bounds), yielding
+        //
+        // (3)   cos(r) |sqrt(sin^2(r) |n|^2 - |b.n|^2) -
+        //               sqrt(sin^2(r) |n|^2 - |a.n|^2)| > (aXb).n
+        //
+        // The code below is more complicated than this because many expressions
+        // have been modified for better numerical stability.  For example, dot
+        // products between unit vectors are computed using (x - y).DotProd(x + y),
+        // and the dot product between a point P and the normal N of an edge X is
+        // measured using (P - Xi).DotProd(N) where Xi is the endpoint of X that is
+        // closer to P.
+
+        val n = (x0 - x1).crossProd(x0 + x1)  // 2 * x0.CrossProd(x1)
+        val n2 = n.norm2()
+        val n1 = n2.sqrt(LongDoubleType.mathContext)
+        // This factor is used in the error terms of dot products with "n" below.
+        val Dn_error = ((3.5.toLD() + 2.toLD() * M_SQRT3.toLD()) * n1 + 32.toLD() * M_SQRT3.toLD() * kDoubleRoundingEpsilon.toLD()) * T_ERR
+
+        val cos_r = 1.toLD() - 0.5.toLD() * r2
+        val sin2_r = r2 * (1.toLD() - 0.25.toLD() * r2)
+        val n2sin2_r = n2 * sin2_r
+
+        // "ra" and "rb" denote sin(ra) and sin(rb) after the scaling above.
+        val (acv, ax2) = getClosestVertex(a, x0, x1)
+        val aDn = (a - acv).dotProd(n)
+        val aDn2 = aDn * aDn
+        val aDn_error = Dn_error * ax2.sqrt(LongDoubleType.mathContext)
+        val ra2 = n2sin2_r - aDn2
+        val ra2_error = (8.toLD() * kDoubleRoundingEpsilon.toLD() + 4.toLD() * T_ERR) * aDn2 + (2.toLD() * aDn.abs(LongDoubleType.mathContext) + aDn_error) * aDn_error + 6.toLD() * T_ERR * n2sin2_r
+        // This is the minimum possible value of ra2, which is used to bound the
+        // derivative of sqrt(ra2) in computing ra_error below.
+        val min_ra2 = ra2 - ra2_error;
+        if (min_ra2 < 0.toLD()) return Excluded.UNCERTAIN
+        val ra = ra2.sqrt(LongDoubleType.mathContext)
+        // Includes the ra2 subtraction error above.
+        val ra_error = 1.5.toLD() * T_ERR * ra + 0.5.toLD() * ra2_error / min_ra2.sqrt(LongDoubleType.mathContext)
+
+        val (bcv, bx2) = getClosestVertex(b, x0, x1)
+        val bDn = (b - bcv).dotProd(n)
+        val bDn2 = bDn * bDn;
+        val bDn_error = Dn_error * bx2.sqrt(LongDoubleType.mathContext)
+        val rb2 = n2sin2_r - bDn2;
+        val rb2_error = (8.toLD() * kDoubleRoundingEpsilon.toLD() + 4.toLD() * T_ERR) * bDn2 + (2.toLD() * bDn.abs(LongDoubleType.mathContext) + bDn_error) * bDn_error + 6.toLD() * T_ERR * n2sin2_r
+        val min_rb2 = rb2 - rb2_error
+        if (min_rb2 < 0.toLD()) return Excluded.UNCERTAIN
+        val rb = rb2.sqrt(LongDoubleType.mathContext)
+        // Includes the rb2 subtraction error above.
+        val rb_error = 1.5.toLD() * T_ERR * rb + 0.5.toLD() * rb2_error / min_rb2.sqrt(LongDoubleType.mathContext)
+
+        // The sign of LHS(3) determines which site may be excluded by the other.
+        val lhs3 = cos_r * (rb - ra)
+        val abs_lhs3 = lhs3.abs(LongDoubleType.mathContext)
+        val lhs3_error = cos_r * (ra_error + rb_error) + 3.toLD() * T_ERR * abs_lhs3
+
+        // Now we evaluate the RHS of (3), which is proportional to sin(d).
+        val aXb = (a - b).crossProd(a + b)  // 2 * a.CrossProd(b)
+        val aXb1 = aXb.norm()
+        val sin_d = 0.5.toLD() * aXb.dotProd(n)
+        val sin_d_error = (4.toLD() * kDoubleRoundingEpsilon.toLD() + (2.5.toLD() + 2.toLD() * M_SQRT3.toLD()) * T_ERR) * aXb1 * n1 +
+                16.toLD() * M_SQRT3.toLD() * kDoubleRoundingEpsilon.toLD() * T_ERR * (aXb1 + n1);
+
+        // If LHS(3) is definitely less than RHS(3), neither site excludes the other.
+        val result = abs_lhs3 - sin_d;
+        val result_error = lhs3_error + sin_d_error;
+        if (result < -result_error) return Excluded.NEITHER
+
+        // Otherwise, before proceeding further we need to check that |d| <= Pi/2.
+        // In fact, |d| < Pi/2 is enough because of the requirement that r < Pi/2.
+        // The following expression represents cos(d) after scaling; it is
+        // equivalent to (aXn).(bXn) but has about 30% less error.
+        val cos_d = a.dotProd(b) * n2 - aDn * bDn;
+        val cos_d_error = ((8.toLD() * kDoubleRoundingEpsilon.toLD() + 5.toLD() * T_ERR) * aDn.abs(LongDoubleType.mathContext) + aDn_error) * bDn.abs(LongDoubleType.mathContext) +
+                (aDn.abs(LongDoubleType.mathContext) + aDn_error) * bDn_error + (8.toLD() * kDoubleRoundingEpsilon.toLD() + 8.toLD() * T_ERR) * n2;
+        if (cos_d <= -cos_d_error) return Excluded.NEITHER
+
+        // Potential optimization: if the sign of cos(d) is uncertain, then instead
+        // we could check whether cos(d) >= cos(r).  Unfortunately this is fairly
+        // expensive since it requires computing denominator |aXn||bXn| of cos(d)
+        // and the associated error bounds.  In any case this case is relatively
+        // rare so it seems better to punt.
+        if (cos_d < cos_d_error) return Excluded.UNCERTAIN
+
+        // Normally we have d > 0 because the sites are sorted so that A is closer
+        // to X0 and B is closer to X1.  However if the edge X is longer than Pi/2,
+        // and the sites A and B are beyond its endpoints, then AB can wrap around
+        // the sphere in the opposite direction from X.  In this situation d < 0 but
+        // each site is closest to one endpoint of X, so neither excludes the other.
+        //
+        // It turns out that this can happen only when the site that is further away
+        // from edge X is less than 90 degrees away from whichever endpoint of X it
+        // is closer to.  It is provable that if this distance is less than 90
+        // degrees, then it is also less than r2, and therefore the Voronoi regions
+        // of both sites intersect the edge.
+        if (sin_d < -sin_d_error) {
+            val r90 = S1ChordAngle.right.length2.toLD()
+            // "ca" is negative if Voronoi region A definitely intersects edge X.
+            val ca = if(lhs3 < -lhs3_error) -1 else triageCompareCosDistance(a, x0, r90)
+            val cb = if(lhs3 > lhs3_error) -1 else triageCompareCosDistance(b, x1, r90)
+            if (ca < 0 && cb < 0) return Excluded.NEITHER
+            if (ca <= 0 && cb <= 0) return Excluded.UNCERTAIN
+            if (abs_lhs3 <= lhs3_error) return Excluded.UNCERTAIN
+        } else if (sin_d <= sin_d_error) {
+            return Excluded.UNCERTAIN
+        }
+        // Now we can finish checking the results of predicate (3).
+        if (result <= result_error) return Excluded.UNCERTAIN
+        assert(abs_lhs3 > lhs3_error);
+        return if(lhs3 > 0.toLD()) Excluded.FIRST else Excluded.SECOND
+    }
+
+    fun exactVoronoiSiteExclusion(a: R3VectorExactFloat, b: R3VectorExactFloat, x0: R3VectorExactFloat, x1: R3VectorExactFloat, r2: BigDecimal): Excluded {
+        assert(!arePointsAntipodal(x0, x1))
 
         // Recall that one site excludes the other if
         //
@@ -1560,12 +1875,12 @@ object S2Predicates {
         // Before squaring we need to check the sign of each side.  We also check
         // the condition that cos(d) >= 0.  Given what else we need to compute, it
         // is cheaper use the identity (aXn).(bXn) = (a.b) |n|^2 - (a.n)(b.n) .
-        Vector3_xf n = x0.CrossProd(x1);
-        ExactFloat n2 = n.Norm2();
-        ExactFloat aDn = a.DotProd(n);
-        ExactFloat bDn = b.DotProd(n);
-        ExactFloat cos_d = a.DotProd(b) * n2 - aDn * bDn;
-        if (cos_d.sgn() < 0) return Excluded::NEITHER;
+        val n = x0.crossProd(x1)
+        val n2 = n.norm2()
+        val aDn = a.dotProd(n)
+        val bDn = b.dotProd(n)
+        val cos_d = a.dotProd(b) * n2 - aDn * bDn
+        if (cos_d.signum() < 0) return Excluded.NEITHER
 
         // Otherwise we continue evaluating the LHS of (2), defining
         //    sa = |b| sqrt(sin^2(r) |a|^2 |n|^2 - |a.n|^2)
@@ -1573,34 +1888,34 @@ object S2Predicates {
         // The sign of the LHS of (2) (before taking the absolute value) determines
         // which coverage interval is larger and therefore which site is potentially
         // being excluded.
-        ExactFloat a2 = a.Norm2();
-        ExactFloat b2 = b.Norm2();
-        ExactFloat n2sin2_r = r2 * (1 - 0.25 * r2) * n2;
-        ExactFloat sa2 = b2 * (n2sin2_r * a2 - aDn * aDn);
-        ExactFloat sb2 = a2 * (n2sin2_r * b2 - bDn * bDn);
-        int lhs2_sgn = (sb2 - sa2).sgn();
+        val a2 = a.norm2()
+        val b2 = b.norm2()
+        val n2sin2_r = r2 * (1.toXF() - 0.25.toXF() * r2) * n2
+        val sa2 = b2 * (n2sin2_r * a2 - aDn * aDn)
+        val sb2 = a2 * (n2sin2_r * b2 - bDn * bDn)
+        val lhs2_sgn = (sb2 - sa2).signum()
 
         // If the RHS of (2) is negative (corresponding to sin(d) < 0), then we need
         // to consider the possibility that the edge AB wraps around the sphere in
         // the opposite direction from edge X, with the result that neither site
         // excludes the other (see TriageVoronoiSiteExclusion).
-        ExactFloat rhs2 = a.CrossProd(b).DotProd(n);
-        int rhs2_sgn = rhs2.sgn();
+        val rhs2 = a.crossProd(b).dotProd(n)
+        val rhs2_sgn = rhs2.signum()
         if (rhs2_sgn < 0) {
-            ExactFloat r90 = S1ChordAngle::Right().length2();
-            int ca = (lhs2_sgn < 0) ? -1 : ExactCompareDistance(a, x0, r90);
-            int cb = (lhs2_sgn > 0) ? -1 : ExactCompareDistance(b, x1, r90);
-            if (ca <= 0 && cb <= 0) return Excluded::NEITHER;
-            S2_DCHECK(ca != 1 || cb != 1);
-            return ca == 1 ? Excluded::FIRST : Excluded::SECOND;
+            val r90 = S1ChordAngle.right.length2.toXF()
+            val ca = if(lhs2_sgn < 0) -1 else exactCompareDistance(a, x0, r90)
+            val cb = if(lhs2_sgn > 0) -1 else exactCompareDistance(b, x1, r90)
+            if (ca <= 0 && cb <= 0) return Excluded.NEITHER
+            assert(ca != 1 || cb != 1)
+            return if(ca == 1) Excluded.FIRST else Excluded.SECOND
         }
         if (lhs2_sgn == 0) {
             // If the RHS of (2) is zero as well (i.e., d == 0) then both sites are
             // equidistant from every point on edge X.  This case requires symbolic
             // perturbations, but it should already have been handled in
             // GetVoronoiSiteExclusion() (see the call to CompareDistances).
-            S2_DCHECK_GT(rhs2_sgn, 0);
-            return Excluded::NEITHER;
+            assert(rhs2_sgn > 0)
+            return Excluded.NEITHER
         }
         // Next we square both sides of (2), yielding
         //
@@ -1612,18 +1927,18 @@ object S2Predicates {
         //
         // The RHS of (3) is always non-negative, but we still need to check the
         // sign of the LHS.
-        ExactFloat cos_r = 1 - 0.5 * r2;
-        ExactFloat cos2_r = cos_r * cos_r;
-        ExactFloat lhs3 = cos2_r * (sa2 + sb2) - rhs2 * rhs2;
-        if (lhs3.sgn() < 0) return Excluded::NEITHER;
+        val cos_r = 1.toXF() - 0.5.toXF() * r2
+        val cos2_r = cos_r * cos_r
+        val lhs3 = cos2_r * (sa2 + sb2) - rhs2 * rhs2
+        if (lhs3.signum() < 0) return Excluded.NEITHER
 
         // Otherwise we square both sides of (3) to obtain:
         //
         // (4)  LHS(3)^2  >  4 cos^4(r) sa^2 sb^2
-        ExactFloat lhs4 = lhs3 * lhs3;
-        ExactFloat rhs4 = 4 * cos2_r * cos2_r * sa2 * sb2;
-        int result = (lhs4 - rhs4).sgn();
-        if (result < 0) return Excluded::NEITHER;
+        val lhs4 = lhs3 * lhs3
+        val rhs4 = 4.toXF() * cos2_r * cos2_r * sa2 * sb2
+        val result = (lhs4 - rhs4).signum()
+        if (result < 0) return Excluded.NEITHER
         if (result == 0) {
             // We have |rb - ra| = d and d > 0.  This implies that one coverage
             // interval contains the other, but not properly: the two intervals share
@@ -1636,47 +1951,12 @@ object S2Predicates {
             // Ideally this logic would be in a separate SymbolicVoronoiSiteExclusion
             // method for better testing, but this is not convenient because it needs
             // lhs_sgn (which requires exact arithmetic to compute).
-            if ((lhs2_sgn > 0) == (a > b)) return Excluded::NEITHER;
+            if ((lhs2_sgn > 0) == (a > b)) return Excluded.NEITHER
         }
         // At this point we know that one of the two sites is excluded.  The sign of
         // the LHS of (2) (before the absolute value) determines which one.
-        return (lhs2_sgn > 0) ? Excluded::FIRST : Excluded::SECOND;
+        return if(lhs2_sgn > 0) Excluded.FIRST else Excluded.SECOND
     }
-
-    Excluded GetVoronoiSiteExclusion(const S2Point& a, const S2Point& b,
-    const S2Point& x0, const S2Point& x1,
-    S1ChordAngle r) {
-        S2_DCHECK_LT(r, S1ChordAngle::Right());
-        S2_DCHECK_LT(s2pred::CompareDistances(x0, a, b), 0);  // (implies a != b)
-        S2_DCHECK_LE(s2pred::CompareEdgeDistance(a, x0, x1, r), 0);
-        S2_DCHECK_LE(s2pred::CompareEdgeDistance(b, x0, x1, r), 0);
-        // Check that the edge does not consist of antipodal points.  (This catches
-        // the most common case -- the full test is in ExactVoronoiSiteExclusion.)
-        S2_DCHECK_NE(x0, -x1);
-
-        // If one site is closer than the other to both endpoints of X, then it is
-        // closer to every point on X.  Note that this also handles the case where A
-        // and B are equidistant from every point on X (i.e., X is the perpendicular
-        // bisector of AB), because CompareDistances uses symbolic perturbations to
-        // ensure that either A or B is considered closer (in a consistent way).
-        // This also ensures that the choice of A or B does not depend on the
-        // direction of X.
-        if (s2pred::CompareDistances(x1, a, b) < 0) {
-            return Excluded::SECOND;  // Site A is closer to every point on X.
-        }
-
-        Excluded result = TriageVoronoiSiteExclusion(a, b, x0, x1, r.length2());
-        if (result != Excluded::UNCERTAIN) return result;
-
-        result = TriageVoronoiSiteExclusion(ToLD(a), ToLD(b), ToLD(x0), ToLD(x1),
-                ToLD(r.length2()));
-        if (result != Excluded::UNCERTAIN) return result;
-
-        return ExactVoronoiSiteExclusion(ToExact(a), ToExact(b), ToExact(x0),
-                ToExact(x1), r.length2());
-    }
-
- */
 
 }
 

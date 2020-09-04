@@ -28,6 +28,8 @@ import java.util.Random;
 
 public abstract strictfp class GeometryTestCase extends TestCase {
 
+  public static final double  kEarthRadiusKm = 6371.01;
+
   public Random rand;
 
   @Override
@@ -42,6 +44,10 @@ public abstract strictfp class GeometryTestCase extends TestCase {
   public void assertDoubleNear(double a, double b, double error) {
     assertTrue("a (=" + a + ") + error (=" + error + ") is not > b (=" + b + ")", a + error > b);
     assertTrue(a < b + error);
+  }
+
+  public S1Angle kmToAngle(Double km)  {
+    return S1Angle.radians(km / kEarthRadiusKm);
   }
 
   // maybe these should be put in a special testing util class
