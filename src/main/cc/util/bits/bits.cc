@@ -120,7 +120,7 @@ int Bits::FindLSBSetNonZero_Portable(uint32 n) {
       n = x;
       rc -= shift;
     }
-    shift >>= 1;
+    shift > > = 1;
   }
   return rc;
 }

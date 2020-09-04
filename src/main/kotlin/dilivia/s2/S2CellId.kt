@@ -129,7 +129,7 @@ class S2CellId(val id: Long) : Comparable<S2CellId> {
     // that although (si,ti) coordinates span the range [0,2**31] in general,
     // the cell center coordinates are always in the range [1,2**31-1] and
     // therefore can be represented using a signed 32-bit integer.
-    fun getCenterSiTi(): FaceSiTi {
+    fun getCenterSiTi(): FaceSiTi_TMP {
         // First we compute the discrete (i,j) coordinates of a leaf cell contained
         // within the given cell.  Given that cells are represented by the Hilbert
         // curve position corresponding at their center, it turns out that the cell
@@ -151,7 +151,7 @@ class S2CellId(val id: Long) : Comparable<S2CellId> {
         val delta = if(isLeaf)  1 else if(((i xor (id.toInt() shr 2)) and 1) != 0) 2 else 0;
 
         // Note that (2 * {i,j} + delta) will never overflow a 32-bit integer.
-        return FaceSiTi(face = face, si = 2 * i + delta, ti = 2 * j + delta)
+        return FaceSiTi_TMP(face = face, si = 2 * i + delta, ti = 2 * j + delta)
     }
 
     // Return true if id() represents a valid cell.
@@ -1049,7 +1049,7 @@ class S2CellId(val id: Long) : Comparable<S2CellId> {
 }
 
 
-data class FaceSiTi(val face: Int, val si: Int, val ti: Int)
+data class FaceSiTi_TMP(val face: Int, val si: Int, val ti: Int)
 
 data class FaceIJ(val face: Int, val i: Int, val j: Int, val orientation: Int?)
 
