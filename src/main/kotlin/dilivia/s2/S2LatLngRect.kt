@@ -142,7 +142,7 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
         }
 
     // Returns the true centroid of the rectangle multiplied by its surface area
-    // (see s2centroids.h for details on centroids).  The result is not unit
+    // (see S2Centroids for details on centroids).  The result is not unit
     // length, so you may want to normalize it.  Note that in general the
     // centroid is *not* at the center of the rectangle, and in fact it may not
     // even be contained by the rectangle.  (It is the "center of mass" of the
