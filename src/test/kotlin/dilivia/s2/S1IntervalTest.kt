@@ -18,7 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.*
 import dilivia.s2.math.R2Vector
 import kotlin.math.abs

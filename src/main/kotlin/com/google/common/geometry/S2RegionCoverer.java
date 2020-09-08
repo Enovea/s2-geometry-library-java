@@ -16,10 +16,7 @@
 package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2CellId;
-import dilivia.s2.S2Point;
-import dilivia.s2.S2Region;
+import dilivia.s2.*;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -537,8 +534,7 @@ public final strictfp class S2RegionCoverer {
       }
       output.add(id);
 
-      S2CellId[] neighbors = new S2CellId[4];
-      id.getEdgeNeighbors(neighbors);
+      S2CellId[] neighbors = id.getEdgeNeighbors();
       for (int edge = 0; edge < 4; ++edge) {
         S2CellId nbr = neighbors[edge];
         boolean hasNbr = all.contains(nbr);

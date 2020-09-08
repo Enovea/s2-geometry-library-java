@@ -1,7 +1,10 @@
-/*
- * Copyright 2005 Google Inc.
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
- * Licensed under the Apache License, Version 2.0 (the "License")
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -15,9 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Cell
 import com.google.common.geometry.S2Projections
 import dilivia.s2.S2LatLng.Companion.fromDegrees
 import kotlin.math.atan
@@ -224,7 +225,7 @@ class S2CapTest : GeometryTestCase() {
             // adjacent to 'corner_cell' along the Hilbert curve.  Because this corner
             // is at (u=1,v=1), the curve stays locally within the same cube face.
             var first = corner_cell.id()
-            repeat(3) { first = first.prev() }
+            repeat(3) { first = first.previous() }
             var last = corner_cell.id()
             repeat(3) { last = last.next()}
             var id = first

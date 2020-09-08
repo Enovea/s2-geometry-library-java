@@ -15,9 +15,7 @@
  */
 package com.google.common.geometry;
 
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2CellId;
-import dilivia.s2.S2Region;
+import dilivia.s2.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -18,6 +18,7 @@
  */
 package dilivia.s2
 
+import dilivia.s2.Assertions.assert
 import dilivia.s2.math.R2Point
 import dilivia.s2.math.R2Vector
 
@@ -38,7 +39,7 @@ import dilivia.s2.math.R2Vector
 open class R2Rect(open val x: R1Interval, open val y: R1Interval) {
 
     init {
-        check(isValid)
+        assert({ isValid }, { "Rectangle: $this is not valid" })
     }
 
     /**

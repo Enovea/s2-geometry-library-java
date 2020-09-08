@@ -1,7 +1,10 @@
-/*
- * Copyright 2005 Google Inc.
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
  *
- * Licensed under the Apache License, Version 2.0 (the "License")
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -15,10 +18,8 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Cell
 import dilivia.s2.S1Angle.Companion.min
 import dilivia.s2.S1Angle.Companion.zero
 import dilivia.s2.math.R2Vector

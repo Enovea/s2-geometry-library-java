@@ -1,3 +1,21 @@
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dilivia.s2.math
 
 import kotlin.math.atan2
@@ -24,6 +42,10 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
     constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
 
     constructor(coord: List<Double>) : this(coord[0], coord[1]) {
+        require(coord.size == 2) { "Points must have exactly 2 coordinates" }
+    }
+
+    constructor(coord: DoubleArray): this(coord[0], coord[1]) {
         require(coord.size == 2) { "Points must have exactly 2 coordinates" }
     }
 

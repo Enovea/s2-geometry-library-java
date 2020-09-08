@@ -108,7 +108,10 @@
                 </executions>
                 <configuration>
                     <jvmTarget>${java.version}</jvmTarget>
-                    <args>-Xjvm-default=enable</args>
+                    <args>
+                        <arg>-Xjvm-default=enable</arg>
+                        <arg>-Xopt-in=kotlin.ExperimentalUnsignedTypes</arg>
+                    </args>
                 </configuration>
             </plugin>
 
@@ -117,19 +120,32 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <executions>
+                    <!-- Replacing default-compile as it is treated specially by maven -->
                     <execution>
-                        <id>compile</id>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <!-- Replacing default-testCompile as it is treated specially by maven -->
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>none</phase>
+                    </execution>
+                    <execution>
+                        <id>java-compile</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>testCompile</id>
+                        <id>java-test-compile</id>
                         <phase>test-compile</phase>
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
+                        <configuration>
+                            <skip>${maven.test.skip}</skip>
+                        </configuration>
                     </execution>
                 </executions>
                 <configuration>
@@ -137,6 +153,7 @@
                     <target>${java.version}</target>
                 </configuration>
             </plugin>
+
 
             <plugin>
                 <groupId>com.mycila</groupId>

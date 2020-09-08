@@ -15,6 +15,7 @@
  */
 package com.google.common.geometry;
 
+import dilivia.s2.GeometryTestCase;
 import dilivia.s2.S2CellId;
 import dilivia.s2.S2Point;
 

@@ -303,7 +303,7 @@ public final strictfp class S2 {
    * becomes numerically unstable as the length of any edge approaches 180
    * degrees.
    */
-  static double area(S2Point a, S2Point b, S2Point c) {
+  public static double area(S2Point a, S2Point b, S2Point c) {
     // This method is based on l'Huilier's theorem,
     //
     // tan(E/4) = sqrt(tan(s/2) tan((s-a)/2) tan((s-b)/2) tan((s-c)/2))

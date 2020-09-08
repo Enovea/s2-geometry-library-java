@@ -18,8 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2Cell
-
 /**
  * A S2Region represents a two-dimensional region over the unit sphere. It is an abstract interface with various
  * concrete subtypes.

@@ -27,7 +27,7 @@ abstract class RVector<V, T>(open val coords: List<T>, val type: FloatingPointTy
     val size: Int
         get() = coords.size
 
-    protected abstract fun newInstance(coords: List<T>): V
+    abstract fun newInstance(coords: List<T>): V
 
     operator fun get(index: Int): T {
         check(index in 0 until size) { "Coordinate index $index is not in range 0..${size - 1}" }

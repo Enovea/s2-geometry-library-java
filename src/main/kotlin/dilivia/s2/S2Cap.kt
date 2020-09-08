@@ -1,5 +1,8 @@
-/*
- * Copyright 2005 Google Inc.
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Cell
 import com.google.common.geometry.S2Projections
 import dilivia.s2.Assertions.assertCapIsValid
 import dilivia.s2.Assertions.assertGreaterOrEquals

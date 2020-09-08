@@ -1,6 +1,23 @@
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
 import dilivia.s2.S2Predicates.Excluded.*
@@ -863,7 +880,7 @@ class S2PredicatesTest : GeometryTestCase() {
         // checks that the answer given by a method at one level of precision is
         // consistent with the answer given at the next higher level of precision.
         // See also the comments in the CompareDistances consistency test.
-        val rnd = rand
+        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
             rnd.setSeed((iter + 1).toLong());  // Easier to reproduce a specific case.
@@ -959,7 +976,7 @@ class S2PredicatesTest : GeometryTestCase() {
         // then checks that the answer given by a method at one level of precision
         // is consistent with the answer given at the next higher level of
         // precision.  See also the comments in the CompareDistances test.
-        val rnd = rand
+        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
             rnd.setSeed((iter + 1).toLong());  // Easier to reproduce a specific case.
@@ -1075,7 +1092,7 @@ class S2PredicatesTest : GeometryTestCase() {
         // that are nearly equidistant from X.  It then checks that the answer given
         // by a method at one level of precision is consistent with the answer given
         // at the next higher level of precision.
-        val rnd = rand
+        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
             rnd.setSeed((iter + 1).toLong());  // Easier to reproduce a specific case.
@@ -1222,7 +1239,7 @@ class S2PredicatesTest : GeometryTestCase() {
         // coverage intervals for A and B will (almost) share a common endpoint.  It
         // then checks that the answer given by a method at one level of precision
         // is consistent with the answer given at higher levels of precision.
-        val rnd = rand
+        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
             rnd.setSeed((iter + 1).toLong())  // Easier to reproduce a specific case.

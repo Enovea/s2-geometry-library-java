@@ -18,7 +18,9 @@
  */
 package dilivia.s2
 
+import Matrix3x3
 import com.google.common.geometry.S2
+import dilivia.s2.Assertions.assertPointIsUnitLength
 import dilivia.s2.math.*
 import kotlin.math.atan2
 
@@ -90,7 +92,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
          * = -Ortho(a) for all a.
          */
         @JvmStatic
-        fun ortho(a: S2Point): S2Point? {
+        fun ortho(a: S2Point): S2Point {
             // The current implementation in S2Point has the property we need,
             // i.e. Ortho(-a) = -Ortho(a) for all a.
             return a.ortho()
@@ -153,6 +155,27 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         @JvmStatic
         @JvmOverloads
         fun approxEquals(a: S2Point, b: S2Point, maxErrorAngle: S1Angle= S1Angle.radians(1e-15)): Boolean = S1Angle(a, b) <= maxErrorAngle
+
+        @JvmStatic
+        fun getFrame(z: S2Point): Matrix3x3 {
+            assertPointIsUnitLength(z)
+            val m = Matrix3x3()
+            m.setCol(2, z)
+            m.setCol(1, ortho(z))
+            m.setCol(0, m.col(1).crossProd(z));  // Already unit-length.
+            return m
+        }
+
+        @JvmStatic
+        fun toFrame(m: Matrix3x3, p: S2Point): S2Point {
+            // The inverse of an orthonormal matrix is its transpose.
+            return m.transpose() * p;
+        }
+
+        @JvmStatic
+        fun fromFrame(m: Matrix3x3, q: S2Point): S2Point {
+            return m * q;
+        }
 
     }
 

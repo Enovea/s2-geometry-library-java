@@ -290,6 +290,8 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
     }
 }
 
+operator fun Int.times(angle: S1Angle): S1Angle = angle * this.toDouble()
+
 operator fun Double.times(angle: S1Angle): S1Angle = angle * this
 
 operator fun Double.div(angle: S1Angle): S1Angle = S1Angle.radians(this / angle.radians)

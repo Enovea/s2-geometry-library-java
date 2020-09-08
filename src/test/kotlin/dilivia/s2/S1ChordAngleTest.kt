@@ -18,7 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.*
 import kotlin.math.atan
 import kotlin.math.cos

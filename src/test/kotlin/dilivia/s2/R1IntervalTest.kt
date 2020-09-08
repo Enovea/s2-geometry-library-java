@@ -18,7 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.DBL_EPSILON
 import dilivia.s2.R1Interval.Companion.empty
 import dilivia.s2.R1Interval.Companion.fromPointPair

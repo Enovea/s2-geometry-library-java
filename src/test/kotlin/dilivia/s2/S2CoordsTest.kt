@@ -1,6 +1,23 @@
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import dilivia.s2.S2Coords.kIJtoPos
 import dilivia.s2.S2Coords.kInvertMask
 import dilivia.s2.S2Coords.kPosToIJ
@@ -112,13 +129,13 @@ class S2CoordsTest : GeometryTestCase() {
 
                 // Finally, test some random (si,ti) values that may be at different
                 // levels, or not at a valid level at all (for example, si == 0).
-                val face_random = rand.nextInt(S2CellId.kNumFaces)
+                val face_random = rand!!.nextInt(S2CellId.kNumFaces)
                 var si_random = 0U
                 var ti_random = 0U
                 val mask = -1 shl (S2CellId.kMaxLevel - level)
                 do {
-                    si_random = (rand.nextInt() and mask).toUInt()
-                    ti_random = (rand.nextInt() and mask).toUInt()
+                    si_random = (rand!!.nextInt() and mask).toUInt()
+                    ti_random = (rand!!.nextInt() and mask).toUInt()
                 } while (si_random > S2Coords.kMaxSiTi || ti_random > S2Coords.kMaxSiTi)
                 val p_random = S2Coords.faceSiTitoXYZ(face_random, si_random, ti_random)
                 val (actual_level_random, faceSiTi_random) = S2Coords.xyzToFaceSiTi(p_random)

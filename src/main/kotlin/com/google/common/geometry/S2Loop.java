@@ -18,7 +18,7 @@ package com.google.common.geometry;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.google.common.geometry.S2EdgeIndex.DataEdgeIterator;
+import dilivia.s2.S2EdgeIndex.DataEdgeIterator;
 import com.google.common.geometry.S2EdgeUtil.EdgeCrosser;
 import dilivia.s2.*;
 

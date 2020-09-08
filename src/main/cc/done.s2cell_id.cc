@@ -327,8 +327,7 @@ int S2CellId::ToFaceIJOrientation(int* pi, int* pj, int* orientation) const {
   // representing the cube face.
 #define GET_BITS(k) do { \
     const int nbits = (k == 7) ? (kMaxLevel - 7 * kLookupBits) : kLookupBits; \
-    bits += (static_cast<int>(id_ >> (k * 2 * kLookupBits + 1)) \
-             & ((1 << (2 * nbits)) - 1)) << 2; \
+    bits += (static_cast<int>(id_ >> (k * 2 * kLookupBits + 1)) & ((1 << (2 * nbits)) - 1)) << 2; \
     bits = lookup_ij[bits]; \
     i += (bits >> (kLookupBits + 2)) << (k * kLookupBits); \
     j += ((bits >> 2) & ((1 << kLookupBits) - 1)) << (k * kLookupBits); \

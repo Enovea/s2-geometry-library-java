@@ -1,6 +1,23 @@
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dilivia.s2
 
-import com.google.common.geometry.GeometryTestCase
 import com.google.common.geometry.S2.M_PI
 import kotlin.math.cos
 import kotlin.math.pow
@@ -16,7 +33,7 @@ class S2CentroidsTest : GeometryTestCase() {
             val p = frame[0]
             val x = frame[1]
             val y = frame[2]
-            val d = 1e-4 * 1e-4.pow(rand.nextDouble());
+            val d = 1e-4 * 1e-4.pow(rand!!.nextDouble());
             val p0 = (p - d * x).normalize()
             val p1 = (p + d * x).normalize()
             val p2 = (p + 3 * d * y).normalize()
@@ -65,7 +82,7 @@ class S2CentroidsTest : GeometryTestCase() {
                 val v1 = cos(theta) * x + sin(theta) * y
                 centroid += S2Centroids.trueCentroid(v0, v1)
                 v0 = v1;
-                theta += rand.nextDouble().pow(10.0)
+                theta += rand!!.nextDouble().pow(10.0)
             }
             // Close the circle.
             centroid += S2Centroids.trueCentroid(v0, x)

@@ -1,5 +1,8 @@
-/*
- * Copyright 2005 Google Inc.
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,432 +16,408 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.common.geometry;
+package com.google.common.geometry
 
-import com.google.common.collect.Lists;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2CellId;
-import dilivia.s2.S2Point;
+import com.google.common.collect.Lists
+import dilivia.s2.*
+import dilivia.s2.S1Angle.Companion.radians
+import dilivia.s2.S2Cap.Companion.fromCenterHeight
+import dilivia.s2.S2Cell.Companion.averageArea
+import dilivia.s2.S2CellId.Companion.fromFacePosLevel
+import dilivia.s2.S2CellId.Companion.none
+import java.util.*
+import java.util.logging.Logger
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Logger;
-
-public strictfp class S2CellUnionTest extends GeometryTestCase {
-  public static Logger logger = Logger.getLogger(S2CellUnionTest.class.getName());
-
-  public void testBasic() {
-    logger.info("TestBasic");
-
-    S2CellUnion empty = new S2CellUnion();
-    ArrayList<S2CellId> ids = Lists.newArrayList();
-    empty.initFromCellIds(ids);
-    assertEquals(0, empty.size());
-
-    S2CellId face1Id = S2CellId.fromFacePosLevel(1, 0, 0);
-    S2CellUnion face1Union = new S2CellUnion();
-    ids.add(face1Id);
-    face1Union.initFromCellIds(ids);
-    assertEquals(1, face1Union.size());
-    assertEquals(face1Id, face1Union.cellId(0));
-
-    S2CellId face2Id = S2CellId.fromFacePosLevel(2, 0, 0);
-    S2CellUnion face2Union = new S2CellUnion();
-    ArrayList<Long> cellids = Lists.newArrayList();
-    cellids.add(face2Id.getId());
-    face2Union.initFromIds(cellids);
-    assertEquals(1, face2Union.size());
-    assertEquals(face2Id, face2Union.cellId(0));
-
-    S2Cell face1Cell = new S2Cell(face1Id);
-    S2Cell face2Cell = new S2Cell(face2Id);
-    assertTrue(face1Union.contains(face1Cell));
-    assertTrue(!face1Union.contains(face2Cell));
-  }
-
-  public void testContainsCellUnion() {
-    logger.info("TestContainsCellUnion");
-
-    Set<S2CellId> randomCells = new HashSet<S2CellId>();
-    for (int i = 0; i < 100; i++) {
-      randomCells.add(getRandomCellId(S2CellId.kMaxLevel));
+@Strictfp
+class S2CellUnionTest : GeometryTestCase() {
+    fun testBasic() {
+        logger.info("TestBasic")
+        val empty = S2CellUnion()
+        val ids = Lists.newArrayList<S2CellId>()
+        empty.initFromCellIds(ids)
+        assertEquals(0, empty.size())
+        val face1Id = fromFacePosLevel(1, 0UL, 0)
+        val face1Union = S2CellUnion()
+        ids.add(face1Id)
+        face1Union.initFromCellIds(ids)
+        assertEquals(1, face1Union.size())
+        assertEquals(face1Id, face1Union.cellId(0))
+        val face2Id = fromFacePosLevel(2, 0UL, 0)
+        val face2Union = S2CellUnion()
+        val cellids = Lists.newArrayList<Long>()
+        cellids.add(face2Id.id.toLong())
+        face2Union.initFromIds(cellids)
+        assertEquals(1, face2Union.size())
+        assertEquals(face2Id, face2Union.cellId(0))
+        val face1Cell = S2Cell(face1Id)
+        val face2Cell = S2Cell(face2Id)
+        assertTrue(face1Union.contains(face1Cell))
+        assertTrue(!face1Union.contains(face2Cell))
     }
 
-    S2CellUnion union = new S2CellUnion();
-    union.initFromCellIds(Lists.newArrayList(randomCells));
-
-    // Add one more
-    while (!randomCells.add(getRandomCellId(S2CellId.kMaxLevel))) {
-    }
-
-    S2CellUnion unionPlusOne = new S2CellUnion();
-    unionPlusOne.initFromCellIds(Lists.newArrayList(randomCells));
-
-    assertTrue(unionPlusOne.contains(union));
-    assertFalse(union.contains(unionPlusOne));
-
-    // Build the set of parent cells and check containment
-    Set<S2CellId> parents = new HashSet<S2CellId>();
-    for (S2CellId cellId : union) {
-      parents.add(cellId.parent());
-    }
-
-    S2CellUnion parentUnion = new S2CellUnion();
-    parentUnion.initFromCellIds(Lists.newArrayList(parents));
-
-    assertTrue(parentUnion.contains(union));
-    assertFalse(union.contains(parentUnion));
-  }
-
-  private void addCells(S2CellId id, boolean selected, List<S2CellId> input,
-      ArrayList<S2CellId> expected) {
-    // Decides whether to add "id" and/or some of its descendants to the
-    // test case. If "selected" is true, then the region covered by "id"
-    // *must* be added to the test case (either by adding "id" itself, or
-    // some combination of its descendants, or both). If cell ids are to
-    // the test case "input", then the corresponding expected result after
-    // simplification is added to "expected".
-
-    if (id.equals(S2CellId.none())) {
-      // Initial call: decide whether to add cell(s) from each face.
-      for (int face = 0; face < 6; ++face) {
-        addCells(S2CellId.fromFacePosLevel(face, 0, 0), false, input, expected);
-      }
-      return;
-    }
-    if (id.isLeaf()) {
-      // The rnd.OneIn() call below ensures that the parent of a leaf cell
-      // will always be selected (if we make it that far down the hierarchy).
-      assertTrue(selected);
-      input.add(id);
-      return;
-    }
-    // The following code ensures that the probability of selecting a cell
-    // at each level is approximately the same, i.e. we test normalization
-    // of cells at all levels.
-    if (!selected && random(S2CellId.kMaxLevel - id.level()) != 0) {
-      // Once a cell has been selected, the expected output is predetermined.
-      // We then make sure that cells are selected that will normalize to
-      // the desired output.
-      expected.add(id);
-      selected = true;
-    }
-
-    // With the rnd.OneIn() constants below, this function adds an average
-    // of 5/6 * (kMaxLevel - level) cells to "input" where "level" is the
-    // level at which the cell was first selected (level 15 on average).
-    // Therefore the average number of input cells in a test case is about
-    // (5/6 * 15 * 6) = 75. The average number of output cells is about 6.
-
-    // If a cell is selected, we add it to "input" with probability 5/6.
-    boolean added = false;
-    if (selected && random(6) != 0) {
-      input.add(id);
-      added = true;
-    }
-    int numChildren = 0;
-    S2CellId child = id.childBegin();
-    for (int pos = 0; pos < 4; ++pos, child = child.next()) {
-      // If the cell is selected, on average we recurse on 4/12 = 1/3 child.
-      // This intentionally may result in a cell and some of its children
-      // being included in the test case.
-      //
-      // If the cell is not selected, on average we recurse on one child.
-      // We also make sure that we do not recurse on all 4 children, since
-      // then we might include all 4 children in the input case by accident
-      // (in which case the expected output would not be correct).
-      if (random(selected ? 12 : 4) == 0 && numChildren < 3) {
-        addCells(child, selected, input, expected);
-        ++numChildren;
-      }
-      // If this cell was selected but the cell itself was not added, we
-      // must ensure that all 4 children (or some combination of their
-      // descendents) are added.
-      if (selected && !added) {
-        addCells(child, selected, input, expected);
-      }
-    }
-  }
-
-  public void testNormalize() {
-    logger.info("TestNormalize");
-
-    // Try a bunch of random test cases, and keep track of average
-    // statistics for normalization (to see if they agree with the
-    // analysis above).
-    S2CellUnion cellunion = new S2CellUnion();
-    double inSum = 0, outSum = 0;
-    final int kIters = 2000;
-    for (int i = 0; i < kIters; ++i) {
-      ArrayList<S2CellId> input = Lists.newArrayList();
-      ArrayList<S2CellId> expected = Lists.newArrayList();
-      addCells(S2CellId.none(), false, input, expected);
-      inSum += input.size();
-      outSum += expected.size();
-      cellunion.initFromCellIds(input);
-      assertEquals(cellunion.size(), expected.size());
-
-      assertEquals(expected, cellunion.cellIds());
-
-      // Test GetCapBound().
-      S2Cap cap = cellunion.getCapBound();
-      for (int  k = 0; k < cellunion.size(); ++k) {
-        assertTrue(cap.contains(new S2Cell(cellunion.cellId(k))));
-      }
-
-      // Test Contains(S2CellId) and Intersects(S2CellId).
-      for (int j = 0; j < input.size(); ++j) {
-        assertTrue(cellunion.contains(input.get(j)));
-        assertTrue(cellunion.intersects(input.get(j)));
-        if (!input.get(j).isFace()) {
-          assertTrue(cellunion.intersects(input.get(j).parent()));
-          if (input.get(j).level() > 1) {
-            assertTrue(cellunion.intersects(input.get(j).parent().parent()));
-            assertTrue(cellunion.intersects(input.get(j).parent(0)));
-          }
+    fun testContainsCellUnion() {
+        logger.info("TestContainsCellUnion")
+        val randomCells: MutableSet<S2CellId> = HashSet()
+        for (i in 0..99) {
+            randomCells.add(getRandomCellId(S2CellId.kMaxLevel))
         }
-        if (!input.get(j).isLeaf()) {
-          assertTrue(cellunion.contains(input.get(j).childBegin()));
-          assertTrue(cellunion.intersects(input.get(j).childBegin()));
-          assertTrue(cellunion.contains(input.get(j).childEnd().prev()));
-          assertTrue(cellunion.intersects(input.get(j).childEnd().prev()));
-          assertTrue(cellunion.contains(input.get(j).childBegin(S2CellId.kMaxLevel)));
-          assertTrue(cellunion.intersects(input.get(j).childBegin(S2CellId.kMaxLevel)));
-        }
-      }
-      for (int j = 0; j < expected.size(); ++j) {
-        if (!expected.get(j).isFace()) {
-          assertTrue(!cellunion.contains(expected.get(j).parent()));
-          assertTrue(!cellunion.contains(expected.get(j).parent(0)));
-        }
-      }
+        val union = S2CellUnion()
+        union.initFromCellIds(Lists.newArrayList(randomCells))
 
-      // Test contains(S2CellUnion) and intersects(S2CellUnion)
-      ArrayList<S2CellId> x = Lists.newArrayList();
-      ArrayList<S2CellId> y = Lists.newArrayList();
-      ArrayList<S2CellId> xOrY = Lists.newArrayList();
-      ArrayList<S2CellId> xAndY = Lists.newArrayList();
-      for (int j = 0; j < input.size(); ++j) {
-        boolean inX = random(2) == 0;
-        boolean inY = random(2) == 0;
-        if (inX) {
-          x.add(input.get(j));
+        // Add one more
+        while (!randomCells.add(getRandomCellId(S2CellId.kMaxLevel))) {
         }
-        if (inY) {
-          y.add(input.get(j));
-        }
-        if (inX || inY) {
-          xOrY.add(input.get(j));
-        }
-      }
-      S2CellUnion xCells = new S2CellUnion();
-      S2CellUnion yCells = new S2CellUnion();
-      S2CellUnion xOrYExpected = new S2CellUnion();
-      S2CellUnion xAndYExpected = new S2CellUnion();
-      xCells.initFromCellIds(x);
-      yCells.initFromCellIds(y);
-      xOrYExpected.initFromCellIds(xOrY);
+        val unionPlusOne = S2CellUnion()
+        unionPlusOne.initFromCellIds(Lists.newArrayList(randomCells))
+        assertTrue(unionPlusOne.contains(union))
+        assertFalse(union.contains(unionPlusOne))
 
-      S2CellUnion xOrYCells = new S2CellUnion();
-      xOrYCells.getUnion(xCells, yCells);
-      assertEquals(xOrYExpected, xOrYCells);
+        // Build the set of parent cells and check containment
+        val parents: MutableSet<S2CellId> = HashSet()
+        for (cellId in union) {
+            parents.add(cellId.parent())
+        }
+        val parentUnion = S2CellUnion()
+        parentUnion.initFromCellIds(Lists.newArrayList(parents))
+        assertTrue(parentUnion.contains(union))
+        assertFalse(union.contains(parentUnion))
+    }
 
-      // Compute the intersection of "x" with each cell of "y",
-      // check that this intersection is correct, and append the
-      // results to xAndYExpected.
-      for (int j = 0; j < yCells.size(); ++j) {
-        S2CellId yId = yCells.cellId(j);
-        S2CellUnion u = new S2CellUnion();
-        u.getIntersection(xCells, yId);
-        for (int k = 0; k < xCells.size(); ++k) {
-          S2CellId xId = xCells.cellId(k);
-          if (xId.contains(yId)) {
-            assertEquals(1, u.size());
-            assertEquals(yId, u.cellId(0));
-          } else if (yId.contains(xId)) {
-            if (!u.contains(xId)) {
-              u.getIntersection(xCells, yId);
+    private fun addCells(id: S2CellId, selected: Boolean, input: MutableList<S2CellId>,
+                         expected: ArrayList<S2CellId>) {
+        // Decides whether to add "id" and/or some of its descendants to the
+        // test case. If "selected" is true, then the region covered by "id"
+        // *must* be added to the test case (either by adding "id" itself, or
+        // some combination of its descendants, or both). If cell ids are to
+        // the test case "input", then the corresponding expected result after
+        // simplification is added to "expected".
+        var selected = selected
+        if (id.equals(none())) {
+            // Initial call: decide whether to add cell(s) from each face.
+            for (face in 0..5) {
+                addCells(fromFacePosLevel(face, 0UL, 0), false, input, expected)
             }
-            assertTrue(u.contains(xId));
-          }
+            return
         }
-        for (int k = 0; k < u.size(); ++k) {
-          assertTrue(xCells.contains(u.cellId(k)));
-          assertTrue(yId.contains(u.cellId(k)));
+        if (id.isLeaf()) {
+            // The rnd.OneIn() call below ensures that the parent of a leaf cell
+            // will always be selected (if we make it that far down the hierarchy).
+            assertTrue(selected)
+            input.add(id)
+            return
         }
-        xAndY.addAll(u.cellIds());
-      }
-      xAndYExpected.initFromCellIds(xAndY);
-
-      S2CellUnion xAndYCells = new S2CellUnion();
-      xAndYCells.getIntersection(xCells, yCells);
-      assertEquals(xAndYExpected, xAndYCells);
-
-      ArrayList<S2CellId> test = Lists.newArrayList();
-      ArrayList<S2CellId> dummy = Lists.newArrayList();
-
-      addCells(S2CellId.none(), false, test, dummy);
-      for (int j = 0; j < test.size(); ++j) {
-        boolean contains = false, intersects = false;
-        for (int k = 0; k < expected.size(); ++k) {
-          if (expected.get(k).contains(test.get(j))) {
-            contains = true;
-          }
-          if (expected.get(k).intersects(test.get(j))) {
-            intersects = true;
-          }
+        // The following code ensures that the probability of selecting a cell
+        // at each level is approximately the same, i.e. we test normalization
+        // of cells at all levels.
+        if (!selected && random(S2CellId.kMaxLevel - id.level()) != 0) {
+            // Once a cell has been selected, the expected output is predetermined.
+            // We then make sure that cells are selected that will normalize to
+            // the desired output.
+            expected.add(id)
+            selected = true
         }
-        assertEquals(cellunion.contains(test.get(j)), contains);
-        assertEquals(cellunion.intersects(test.get(j)), intersects);
-      }
 
+        // With the rnd.OneIn() constants below, this function adds an average
+        // of 5/6 * (kMaxLevel - level) cells to "input" where "level" is the
+        // level at which the cell was first selected (level 15 on average).
+        // Therefore the average number of input cells in a test case is about
+        // (5/6 * 15 * 6) = 75. The average number of output cells is about 6.
+
+        // If a cell is selected, we add it to "input" with probability 5/6.
+        var added = false
+        if (selected && random(6) != 0) {
+            input.add(id)
+            added = true
+        }
+        var numChildren = 0
+        var child = id.childBegin()
+        var pos = 0
+        while (pos < 4) {
+
+            // If the cell is selected, on average we recurse on 4/12 = 1/3 child.
+            // This intentionally may result in a cell and some of its children
+            // being included in the test case.
+            //
+            // If the cell is not selected, on average we recurse on one child.
+            // We also make sure that we do not recurse on all 4 children, since
+            // then we might include all 4 children in the input case by accident
+            // (in which case the expected output would not be correct).
+            if (random(if (selected) 12 else 4) == 0 && numChildren < 3) {
+                addCells(child, selected, input, expected)
+                ++numChildren
+            }
+            // If this cell was selected but the cell itself was not added, we
+            // must ensure that all 4 children (or some combination of their
+            // descendents) are added.
+            if (selected && !added) {
+                addCells(child, selected, input, expected)
+            }
+            ++pos
+            child = child.next()
+        }
     }
-  }
 
-  double getMaxAngle(S2CellUnion covering, S2Point axis) {
-    double maxAngle = 0;
-    for (int i = 0; i < covering.size(); ++i) {
-      S2Cell cell = new S2Cell(covering.cellId(i));
-      S2Cap cellCap = cell.getCapBound();
-      double angle = axis.angle(cellCap.getCenter()) + cellCap.radius().getRadians();
-      maxAngle = Math.max(maxAngle, angle);
+    fun testNormalize() {
+        logger.info("TestNormalize")
+
+        // Try a bunch of random test cases, and keep track of average
+        // statistics for normalization (to see if they agree with the
+        // analysis above).
+        val cellunion = S2CellUnion()
+        var inSum = 0.0
+        var outSum = 0.0
+        val kIters = 2000
+        for (i in 0 until kIters) {
+            val input = Lists.newArrayList<S2CellId>()
+            val expected = Lists.newArrayList<S2CellId>()
+            addCells(none(), false, input, expected)
+            inSum += input.size.toDouble()
+            outSum += expected.size.toDouble()
+            cellunion.initFromCellIds(input)
+            assertEquals(cellunion.size(), expected.size)
+            assertEquals(expected, cellunion.cellIds())
+
+            // Test GetCapBound().
+            val cap = cellunion.capBound
+            for (k in 0 until cellunion.size()) {
+                assertTrue(cap.contains(S2Cell(cellunion.cellId(k))))
+            }
+
+            // Test Contains(S2CellId) and Intersects(S2CellId).
+            for (j in input.indices) {
+                assertTrue(cellunion.contains(input[j]))
+                assertTrue(cellunion.intersects(input[j]))
+                if (!input[j].isFace()) {
+                    assertTrue(cellunion.intersects(input[j].parent()))
+                    if (input[j].level() > 1) {
+                        assertTrue(cellunion.intersects(input[j].parent().parent()))
+                        assertTrue(cellunion.intersects(input[j].parent(0)))
+                    }
+                }
+                if (!input[j].isLeaf()) {
+                    assertTrue(cellunion.contains(input[j].childBegin()))
+                    assertTrue(cellunion.intersects(input[j].childBegin()))
+                    assertTrue(cellunion.contains(input[j].childEnd().previous()))
+                    assertTrue(cellunion.intersects(input[j].childEnd().previous()))
+                    assertTrue(cellunion.contains(input[j].childBegin(S2CellId.kMaxLevel)))
+                    assertTrue(cellunion.intersects(input[j].childBegin(S2CellId.kMaxLevel)))
+                }
+            }
+            for (j in expected.indices) {
+                if (!expected[j].isFace()) {
+                    assertTrue(!cellunion.contains(expected[j].parent()))
+                    assertTrue(!cellunion.contains(expected[j].parent(0)))
+                }
+            }
+
+            // Test contains(S2CellUnion) and intersects(S2CellUnion)
+            val x = Lists.newArrayList<S2CellId>()
+            val y = Lists.newArrayList<S2CellId>()
+            val xOrY = Lists.newArrayList<S2CellId>()
+            val xAndY = Lists.newArrayList<S2CellId>()
+            for (j in input.indices) {
+                val inX = random(2) == 0
+                val inY = random(2) == 0
+                if (inX) {
+                    x.add(input[j])
+                }
+                if (inY) {
+                    y.add(input[j])
+                }
+                if (inX || inY) {
+                    xOrY.add(input[j])
+                }
+            }
+            val xCells = S2CellUnion()
+            val yCells = S2CellUnion()
+            val xOrYExpected = S2CellUnion()
+            val xAndYExpected = S2CellUnion()
+            xCells.initFromCellIds(x)
+            yCells.initFromCellIds(y)
+            xOrYExpected.initFromCellIds(xOrY)
+            val xOrYCells = S2CellUnion()
+            xOrYCells.getUnion(xCells, yCells)
+            assertEquals(xOrYExpected, xOrYCells)
+
+            // Compute the intersection of "x" with each cell of "y",
+            // check that this intersection is correct, and append the
+            // results to xAndYExpected.
+            for (j in 0 until yCells.size()) {
+                val yId = yCells.cellId(j)
+                val u = S2CellUnion()
+                u.getIntersection(xCells, yId)
+                for (k in 0 until xCells.size()) {
+                    val xId = xCells.cellId(k)
+                    if (xId.contains(yId)) {
+                        assertEquals(1, u.size())
+                        assertEquals(yId, u.cellId(0))
+                    } else if (yId.contains(xId)) {
+                        if (!u.contains(xId)) {
+                            u.getIntersection(xCells, yId)
+                        }
+                        assertTrue(u.contains(xId))
+                    }
+                }
+                for (k in 0 until u.size()) {
+                    assertTrue(xCells.contains(u.cellId(k)))
+                    assertTrue(yId.contains(u.cellId(k)))
+                }
+                xAndY.addAll(u.cellIds())
+            }
+            xAndYExpected.initFromCellIds(xAndY)
+            val xAndYCells = S2CellUnion()
+            xAndYCells.getIntersection(xCells, yCells)
+            assertEquals(xAndYExpected, xAndYCells)
+            val test = Lists.newArrayList<S2CellId>()
+            val dummy = Lists.newArrayList<S2CellId>()
+            addCells(none(), false, test, dummy)
+            for (j in test.indices) {
+                var contains = false
+                var intersects = false
+                for (k in expected.indices) {
+                    if (expected[k].contains(test[j])) {
+                        contains = true
+                    }
+                    if (expected[k].intersects(test[j])) {
+                        intersects = true
+                    }
+                }
+                assertEquals(cellunion.contains(test[j]), contains)
+                assertEquals(cellunion.intersects(test[j]), intersects)
+            }
+        }
     }
-    return maxAngle;
-  }
 
-  public void testExpand() {
-    logger.info("TestExpand");
-
-    // This test generates coverings for caps of random sizes, and expands
-    // the coverings by a random radius, and then make sure that the new
-    // covering covers the expanded cap. It also makes sure that the
-    // new covering is not too much larger than expected.
-
-    S2RegionCoverer coverer = new S2RegionCoverer();
-    for (int i = 0; i < 1000; ++i) {
-      S2Cap cap = getRandomCap(S2Cell.averageArea(S2CellId.kMaxLevel), 4 * S2.M_PI);
-
-      // Expand the cap by a random factor whose log is uniformly distributed
-      // between 0 and log(1e2).
-      S2Cap expandedCap =
-          S2Cap.fromCenterHeight(cap.getCenter(), Math.min(2.0, Math.pow(1e2, rand.nextDouble())
-              * cap.getHeight()));
-
-      double radius = expandedCap.radius().getRadians() - cap.radius().getRadians();
-      int maxLevelDiff = random(8);
-
-      S2CellUnion covering = new S2CellUnion();
-      coverer.setMaxCells(1 + skewed(10));
-      coverer.getCovering(cap, covering);
-      checkCovering(cap, covering, true, new S2CellId());
-
-      double maxAngle = getMaxAngle(covering, cap.getCenter());
-      int minLevel = S2CellId.kMaxLevel;
-      for (int j = 0; j < covering.size(); ++j) {
-        minLevel = Math.min(minLevel, covering.cellId(j).level());
-      }
-      covering.expand(S1Angle.radians(radius), maxLevelDiff);
-      checkCovering(expandedCap, covering, false, new S2CellId());
-
-      int expandLevel =
-          Math.min(minLevel + maxLevelDiff, S2Projections.MIN_WIDTH.getMaxLevel(radius));
-      double expandedMaxAngle = getMaxAngle(covering, cap.getCenter());
-
-      // If the covering includes a tiny cell along the boundary, in theory the
-      // maximum angle of the covering from the cap axis can increase by up to
-      // twice the maximum length of a cell diagonal. We allow for an increase
-      // of slightly more than this because cell bounding caps are not exact.
-      assertTrue(expandedMaxAngle - maxAngle <= 2.01 * S2Projections.MAX_DIAG
-          .getValue(expandLevel));
+    fun getMaxAngle(covering: S2CellUnion, axis: S2Point): Double {
+        var maxAngle = 0.0
+        for (i in 0 until covering.size()) {
+            val cell = S2Cell(covering.cellId(i))
+            val cellCap = cell.capBound
+            val angle = axis.angle(cellCap.center) + cellCap.radius().radians
+            maxAngle = Math.max(maxAngle, angle)
+        }
+        return maxAngle
     }
-  }
 
-  public void testLeafCellsCovered() {
-    S2CellUnion cellUnion = new S2CellUnion();
+    fun testExpand() {
+        logger.info("TestExpand")
 
-    // empty union
-    assertEquals(0, cellUnion.leafCellsCovered());
+        // This test generates coverings for caps of random sizes, and expands
+        // the coverings by a random radius, and then make sure that the new
+        // covering covers the expanded cap. It also makes sure that the
+        // new covering is not too much larger than expected.
+        val coverer = S2RegionCoverer()
+        for (i in 0..999) {
+            val cap = getRandomCap(averageArea(S2CellId.kMaxLevel), 4 * S2.M_PI)
 
-    ArrayList<S2CellId> ids = Lists.newArrayList();
-    ids.add(S2CellId.fromFacePosLevel(
-        0, (1L << ((S2CellId.kMaxLevel << 1) - 1)), S2CellId.kMaxLevel));
+            // Expand the cap by a random factor whose log is uniformly distributed
+            // between 0 and log(1e2).
+            val expandedCap = fromCenterHeight(cap.center, Math.min(2.0, Math.pow(1e2, rand!!.nextDouble())
+                    * cap.height))
+            val radius = expandedCap.radius().radians - cap.radius().radians
+            val maxLevelDiff = random(8)
+            val covering = S2CellUnion()
+            coverer.setMaxCells(1 + skewed(10))
+            coverer.getCovering(cap, covering)
+            checkCovering(cap, covering, true, S2CellId())
+            val maxAngle = getMaxAngle(covering, cap.center)
+            var minLevel = S2CellId.kMaxLevel
+            for (j in 0 until covering.size()) {
+                minLevel = Math.min(minLevel, covering.cellId(j).level())
+            }
+            covering.expand(radians(radius), maxLevelDiff)
+            checkCovering(expandedCap, covering, false, S2CellId())
+            val expandLevel = Math.min(minLevel + maxLevelDiff, S2Projections.MIN_WIDTH.getMaxLevel(radius))
+            val expandedMaxAngle = getMaxAngle(covering, cap.center)
 
-    // One leaf on face 0.
-    cellUnion.initFromCellIds(ids);
-    assertEquals(1L, cellUnion.leafCellsCovered());
+            // If the covering includes a tiny cell along the boundary, in theory the
+            // maximum angle of the covering from the cap axis can increase by up to
+            // twice the maximum length of a cell diagonal. We allow for an increase
+            // of slightly more than this because cell bounding caps are not exact.
+            assertTrue(expandedMaxAngle - maxAngle <= 2.01 * S2Projections.MAX_DIAG
+                    .getValue(expandLevel))
+        }
+    }
 
-    // Face 0.
-    ids.add(S2CellId.fromFacePosLevel(0, 0, 0));
-    cellUnion.initFromCellIds(ids);
-    assertEquals(1L << 60, cellUnion.leafCellsCovered());
+    fun testLeafCellsCovered() {
+        val cellUnion = S2CellUnion()
 
-    // Five faces.
-    cellUnion.expand(0);
-    assertEquals(5L << 60, cellUnion.leafCellsCovered());
+        // empty union
+        assertEquals(0, cellUnion.leafCellsCovered())
+        val ids = Lists.newArrayList<S2CellId>()
+        ids.add(fromFacePosLevel(
+                0, (1L shl (S2CellId.kMaxLevel shl 1) - 1).toULong(), S2CellId.kMaxLevel))
 
-    // Whole world.
-    cellUnion.expand(0);
-    assertEquals(6L << 60, cellUnion.leafCellsCovered());
+        // One leaf on face 0.
+        cellUnion.initFromCellIds(ids)
+        assertEquals(1L, cellUnion.leafCellsCovered())
 
-    // Add some disjoint cells.
-    ids.add(S2CellId.fromFacePosLevel(1, 0, 1));
-    ids.add(S2CellId.fromFacePosLevel(2, 0, 2));
-    ids.add(S2CellId.fromFacePosLevel(2, (1L << 60), 2));
-    ids.add(S2CellId.fromFacePosLevel(3, 0, 14));
-    ids.add(S2CellId.fromFacePosLevel(4, (1L << 60), 15));
-    ids.add(S2CellId.fromFacePosLevel(4, 0, 27));
-    ids.add(S2CellId.fromFacePosLevel(5, 0, 30));
-    cellUnion.initFromCellIds(ids);
-    long expected = 1L + (1L << 6) + (1L << 30) + (1L << 32) + (2L << 56) + (1L << 58) + (1L << 60);
-    assertEquals(expected, cellUnion.leafCellsCovered());
-  }
+        // Face 0.
+        ids.add(fromFacePosLevel(0, 0UL, 0))
+        cellUnion.initFromCellIds(ids)
+        assertEquals(1L shl 60, cellUnion.leafCellsCovered())
 
+        // Five faces.
+        cellUnion.expand(0)
+        assertEquals(5L shl 60, cellUnion.leafCellsCovered())
 
-  public void testAverageBasedArea() {
-    S2CellUnion cellUnion = new S2CellUnion();
+        // Whole world.
+        cellUnion.expand(0)
+        assertEquals(6L shl 60, cellUnion.leafCellsCovered())
 
-    // empty union
-    assertEquals(0.0, cellUnion.averageBasedArea());
+        // Add some disjoint cells.
+        ids.add(fromFacePosLevel(1, 0UL, 1))
+        ids.add(fromFacePosLevel(2, 0UL, 2))
+        ids.add(fromFacePosLevel(2, (1L shl 60).toULong(), 2))
+        ids.add(fromFacePosLevel(3, 0UL, 14))
+        ids.add(fromFacePosLevel(4, (1L shl 60).toULong(), 15))
+        ids.add(fromFacePosLevel(4, 0UL, 27))
+        ids.add(fromFacePosLevel(5, 0UL, 30))
+        cellUnion.initFromCellIds(ids)
+        val expected = 1L + (1L shl 6) + (1L shl 30) + (1L shl 32) + (2L shl 56) + (1L shl 58) + (1L shl 60)
+        assertEquals(expected, cellUnion.leafCellsCovered())
+    }
 
-    ArrayList<S2CellId> ids = Lists.newArrayList();
-    ids.add(S2CellId.fromFacePosLevel(1, 0, 1));
-    ids.add(S2CellId.fromFacePosLevel(5, 0, 30));
-    cellUnion.initFromCellIds(ids);
+    fun testAverageBasedArea() {
+        val cellUnion = S2CellUnion()
 
-    double expected = S2Cell.averageArea(S2CellId.kMaxLevel) * (1L + (1L << 58));
-    assertEquals(expected, cellUnion.averageBasedArea());
-  }
+        // empty union
+        assertEquals(0.0, cellUnion.averageBasedArea())
+        val ids = Lists.newArrayList<S2CellId>()
+        ids.add(fromFacePosLevel(1, 0UL, 1))
+        ids.add(fromFacePosLevel(5, 0UL, 30))
+        cellUnion.initFromCellIds(ids)
+        val expected = averageArea(S2CellId.kMaxLevel) * (1L + (1L shl 58))
+        assertEquals(expected, cellUnion.averageBasedArea())
+    }
 
-  public void testApproxArea() {
-    S2CellUnion cellUnion = new S2CellUnion();
+    fun testApproxArea() {
+        val cellUnion = S2CellUnion()
 
-    // empty union
-    assertEquals(0.0, cellUnion.approxArea());
+        // empty union
+        assertEquals(0.0, cellUnion.approxArea())
+        val ids = Lists.newArrayList<S2CellId>()
+        ids.add(fromFacePosLevel(1, 0UL, 1))
+        ids.add(fromFacePosLevel(5, 0UL, 30))
+        cellUnion.initFromCellIds(ids)
+        val expected = S2Cell(ids[0]).approxArea() + S2Cell(ids[1]).approxArea()
+        assertEquals(expected, cellUnion.approxArea())
+    }
 
-    ArrayList<S2CellId> ids = Lists.newArrayList();
-    ids.add(S2CellId.fromFacePosLevel(1, 0, 1));
-    ids.add(S2CellId.fromFacePosLevel(5, 0, 30));
-    cellUnion.initFromCellIds(ids);
+    fun testExactArea() {
+        val cellUnion = S2CellUnion()
 
-    double expected = new S2Cell(ids.get(0)).approxArea() + new S2Cell(ids.get(1)).approxArea();
-    assertEquals(expected, cellUnion.approxArea());
-  }
+        // empty union
+        assertEquals(0.0, cellUnion.exactArea())
+        val ids = Lists.newArrayList<S2CellId>()
+        ids.add(fromFacePosLevel(1, 0UL, 1))
+        ids.add(fromFacePosLevel(5, 0UL, 30))
+        cellUnion.initFromCellIds(ids)
+        val expected = S2Cell(ids[0]).exactArea() + S2Cell(ids[1]).exactArea()
+        assertEquals(expected, cellUnion.averageBasedArea())
+    }
 
-  public void testExactArea() {
-    S2CellUnion cellUnion = new S2CellUnion();
-
-    // empty union
-    assertEquals(0.0, cellUnion.exactArea());
-
-    ArrayList<S2CellId> ids = Lists.newArrayList();
-    ids.add(S2CellId.fromFacePosLevel(1, 0, 1));
-    ids.add(S2CellId.fromFacePosLevel(5, 0, 30));
-    cellUnion.initFromCellIds(ids);
-
-    double expected = new S2Cell(ids.get(0)).exactArea() + new S2Cell(ids.get(1)).exactArea();
-    assertEquals(expected, cellUnion.averageBasedArea());
-  }
+    companion object {
+        var logger = Logger.getLogger(S2CellUnionTest::class.java.name)
+    }
 }
