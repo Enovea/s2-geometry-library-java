@@ -111,19 +111,6 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
     // All operators and functions are declared here so that we can put them all
     // in one place.  (The compound assignment operators must be put here.)
 
-    // Comparison operators.
-    //friend bool operator==(S1ChordAngle x, S1ChordAngle y);
-    //friend bool operator!=(S1ChordAngle x, S1ChordAngle y);
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is S1ChordAngle) return false
-        return length2 == other.length2
-    }
-
-    override fun hashCode(): Int {
-        return length2.hashCode()
-    }
-
     //friend bool operator<(S1ChordAngle x, S1ChordAngle y);
     //friend bool operator>(S1ChordAngle x, S1ChordAngle y);
     //friend bool operator<=(S1ChordAngle x, S1ChordAngle y);
@@ -285,11 +272,29 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         return DBL_EPSILON * length2
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is S1ChordAngle) return false
+
+        if (length2 != other.length2) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return length2.hashCode()
+    }
+
+    override fun toString(): String {
+        return "S1ChordAngle(length2=$length2)"
+    }
+
 
     // Return true if the internal representation is valid.  Negative() and
     // Infinity() are both considered valid.
     val isValid: Boolean
         get() = (length2 in 0.0..kMaxLength2) || isSpecial()
+
 
 
     companion object {

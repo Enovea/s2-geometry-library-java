@@ -455,7 +455,7 @@ class S2Cap(val center: S2Point, val radius: S1ChordAngle) : S2Region {
         // accurately represent the complement of a very small cap (a height
         // of 2-epsilon is rounded off to 2).
         val vertices = Array(4) { k ->
-            val vertex = cell.getVertex(k)!!
+            val vertex = cell.getVertex(k)
             if (!contains(vertex)) return false
             vertex
         }

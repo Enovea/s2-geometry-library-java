@@ -452,8 +452,8 @@ class S2CellIdTest : GeometryTestCase() {
     }
 
     fun testToString() {
-        assertEquals("3/ (111000000000000000000000000000000000000000000000000000000000000)", S2CellId.fromFace(3).toString());
-        assertEquals("4/000000000000000000000000000000 (1000000000000000000000000000000000000000000000000000000000000001)", S2CellId.fromFace(4).rangeMin().toString());
+        assertEquals("3/", S2CellId.fromFace(3).toString());
+        assertEquals("4/000000000000000000000000000000", S2CellId.fromFace(4).rangeMin().toString());
         assertEquals("Invalid: 0000000000000000", S2CellId.none().toString());
     }
 
@@ -472,7 +472,7 @@ class S2CellIdTest : GeometryTestCase() {
 
     fun testOutputOperator() {
         val cell = S2CellId (0xbb04000000000000UL)
-        assertEquals("5/31200 (1011101100000100000000000000000000000000000000000000000000000000)", cell.toString())
+        assertEquals("5/31200", cell.toString())
     }
 
     companion object {

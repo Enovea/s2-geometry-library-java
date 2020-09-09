@@ -174,5 +174,13 @@ object S2EdgeDistances {
         return (cos(ax) * a + (sin(ax) / tangent.norm()) * tangent).normalize()
     }
 
+    fun minDistance(point: S2Point, a: S2Point, b: S2Point, minDistance: S1ChordAngle): S1ChordAngle {
+        TODO("Not yet implemented")
+    }
+
+    fun maxDistance(point: S2Point, a: S2Point, b: S2Point, maxDistance: S1ChordAngle): S1ChordAngle {
+        TODO("Not yet implemented")
+    }
+
 
 }

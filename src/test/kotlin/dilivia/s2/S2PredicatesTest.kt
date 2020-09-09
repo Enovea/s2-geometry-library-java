@@ -299,7 +299,9 @@ class S2PredicatesTest : GeometryTestCase() {
             points.add(normalizedB)
             while (points.size < n) {
                 addDegeneracy(points)
+                print("\rPoint count: ${points.size}")
             }
+            println()
             // Remove any (0, 0, 0) points that were accidentically created, then sort
             // the points and remove duplicates.
             val pointsSet = points.filter { it != S2Point(0, 0, 0) }.toSortedSet()
@@ -313,9 +315,9 @@ class S2PredicatesTest : GeometryTestCase() {
             """.trimMargin())
             sortAndTest(points, normalizedA)
             sortAndTest(points, normalizedB)
-           /* for (origin in points) {
+            for (origin in points) {
                 sortAndTest(points, origin)
-            }*/
+            }
         }
     }
 

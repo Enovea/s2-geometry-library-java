@@ -36,7 +36,7 @@ import dilivia.s2.math.R2Vector
  * @since 1.0
  */
 @Strictfp
-open class R2Rect(open val x: R1Interval, open val y: R1Interval) {
+open class R2Rect(open val x: R1Interval, open val y: R1Interval): Cloneable {
 
     init {
         assert({ isValid }, { "Rectangle: $this is not valid" })
@@ -184,6 +184,10 @@ open class R2Rect(open val x: R1Interval, open val y: R1Interval) {
         val yy = y.intersection(other.y)
         if (xx.isEmpty || yy.isEmpty) return empty()
         return R2Rect(xx, yy)
+    }
+
+    public override fun clone(): R2Rect {
+        return R2Rect(x, y)
     }
 
     override fun equals(other: Any?): Boolean {

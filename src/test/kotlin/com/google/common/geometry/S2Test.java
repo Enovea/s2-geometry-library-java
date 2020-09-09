@@ -17,6 +17,7 @@ package com.google.common.geometry;
 
 import dilivia.s2.GeometryTestCase;
 import dilivia.s2.S2CellId;
+import dilivia.s2.S2Coords;
 import dilivia.s2.S2Point;
 
 import java.util.logging.Logger;
@@ -56,78 +57,6 @@ public strictfp class S2Test extends GeometryTestCase {
         }
     }
 
-    public void testSTUV() {
-        // Check boundary conditions.
-        for (double x = -1; x <= 1; ++x) {
-            assertEquals(S2Projections.stToUV(x), x);
-            assertEquals(S2Projections.uvToST(x), x);
-        }
-        // Check that UVtoST and STtoUV are inverses.
-        for (double x = -1; x <= 1; x += 0.0001) {
-            assertDoubleNear(S2Projections.uvToST(S2Projections.stToUV(x)), x);
-            assertDoubleNear(S2Projections.stToUV(S2Projections.uvToST(x)), x);
-        }
-    }
-
-    public void testFaceUVtoXYZ() {
-        // Check that each face appears exactly once.
-        S2Point sum = new S2Point();
-        for (int face = 0; face < 6; ++face) {
-            S2Point center = S2Projections.faceUvToXyz(face, 0, 0);
-            assertEquals(S2Projections.getNorm(face), center);
-            assertEquals(Math.abs(center.get(center.largestAbsComponent())), 1.0);
-            sum = S2Point.plus(sum, S2Point.abs(center));
-        }
-        assertEquals(sum, new S2Point(2, 2, 2));
-
-        // Check that each face has a right-handed coordinate system.
-        for (int face = 0; face < 6; ++face) {
-            assertEquals(
-                    S2Point.crossProd(S2Projections.getUAxis(face), S2Projections.getVAxis(face)).dotProd(
-                            S2Projections.faceUvToXyz(face, 0, 0)), 1.0);
-        }
-
-        // Check that the Hilbert curves on each face combine to form a
-        // continuous curve over the entire cube.
-        for (int face = 0; face < 6; ++face) {
-            // The Hilbert curve on each face starts at (-1,-1) and terminates
-            // at either (1,-1) (if axes not swapped) or (-1,1) (if swapped).
-            int sign = ((face & S2.SWAP_MASK) != 0) ? -1 : 1;
-            assertEquals(S2Projections.faceUvToXyz(face, sign, -sign),
-                    S2Projections.faceUvToXyz((face + 1) % 6, -1, -1));
-        }
-    }
-
-    public void testUVNorms() {
-        // Check that GetUNorm and GetVNorm compute right-handed normals for
-        // an edge in the increasing U or V direction.
-        for (int face = 0; face < 6; ++face) {
-            for (double x = -1; x <= 1; x += 1 / 1024.) {
-                assertDoubleNear(
-                        S2Point.crossProd(
-                                S2Projections.faceUvToXyz(face, x, -1), S2Projections.faceUvToXyz(face, x, 1))
-                                .angle(S2Projections.getUNorm(face, x)), 0);
-                assertDoubleNear(
-                        S2Point.crossProd(
-                                S2Projections.faceUvToXyz(face, -1, x), S2Projections.faceUvToXyz(face, 1, x))
-                                .angle(S2Projections.getVNorm(face, x)), 0);
-            }
-        }
-    }
-
-    public void testUVAxes() {
-        // Check that axes are consistent with FaceUVtoXYZ.
-        for (int face = 0; face < 6; ++face) {
-            assertEquals(S2Projections.getUAxis(face), S2Point.minus(
-                    S2Projections.faceUvToXyz(face, 1, 0),
-                    S2Projections.faceUvToXyz(face, 0, 0)
-            ));
-            assertEquals(S2Projections.getVAxis(face), S2Point.minus(
-                    S2Projections.faceUvToXyz(face, 0, 1),
-                    S2Projections.faceUvToXyz(face, 0, 0)
-            ));
-        }
-    }
 
     public void testAngleArea() {
         S2Point pz = new S2Point(0, 0, 1);
@@ -201,117 +130,6 @@ public strictfp class S2Test extends GeometryTestCase {
         S2Point b = new S2Point(0.7257192746638208, 0.46058826573818168, 0.51106749441312738);
         S2Point c = new S2Point(0.72571927671709457, 0.46058826089853633, 0.51106749585908795);
         assertTrue(S2.robustCCW(a, b, c) != 0);
-    }
-
-    // Note: obviously, I could have defined a bundle of metrics like this in the
-    // S2 class itself rather than just for testing. However, it's not clear that
-    // this is useful other than for testing purposes, and I find
-    // S2.kMinWidth.GetMaxLevel(width) to be slightly more readable than
-    // than S2.kWidth.min().GetMaxLevel(width). Also, there is no fundamental
-    // reason that we need to analyze the minimum, maximum, and average values of
-    // every metric; it would be perfectly reasonable to just define one of these.
-
-    class MetricBundle {
-        public MetricBundle(S2.Metric min, S2.Metric max, S2.Metric avg) {
-            this.min_ = min;
-            this.max_ = max;
-            this.avg_ = avg;
-        }
-
-        S2.Metric min_;
-        S2.Metric max_;
-        S2.Metric avg_;
-    }
-
-    public void testMinMaxAvg(MetricBundle bundle) {
-        assertTrue(bundle.min_.deriv() < bundle.avg_.deriv());
-        assertTrue(bundle.avg_.deriv() < bundle.max_.deriv());
-    }
-
-    public void testLessOrEqual(MetricBundle a, MetricBundle b) {
-        assertTrue(a.min_.deriv() <= b.min_.deriv());
-        assertTrue(a.max_.deriv() <= b.max_.deriv());
-        assertTrue(a.avg_.deriv() <= b.avg_.deriv());
-    }
-
-    public void testMetrics() {
-
-        MetricBundle angleSpan = new MetricBundle(
-                S2Projections.MIN_ANGLE_SPAN, S2Projections.MAX_ANGLE_SPAN, S2Projections.AVG_ANGLE_SPAN);
-        MetricBundle width =
-                new MetricBundle(S2Projections.MIN_WIDTH, S2Projections.MAX_WIDTH, S2Projections.AVG_WIDTH);
-        MetricBundle edge =
-                new MetricBundle(S2Projections.MIN_EDGE, S2Projections.MAX_EDGE, S2Projections.AVG_EDGE);
-        MetricBundle diag =
-                new MetricBundle(S2Projections.MIN_DIAG, S2Projections.MAX_DIAG, S2Projections.AVG_DIAG);
-        MetricBundle area =
-                new MetricBundle(S2Projections.MIN_AREA, S2Projections.MAX_AREA, S2Projections.AVG_AREA);
-
-        // First, check that min <= avg <= max for each metric.
-        testMinMaxAvg(angleSpan);
-        testMinMaxAvg(width);
-        testMinMaxAvg(edge);
-        testMinMaxAvg(diag);
-        testMinMaxAvg(area);
-
-        // Check that the maximum aspect ratio of an individual cell is consistent
-        // with the global minimums and maximums.
-        assertTrue(S2Projections.MAX_EDGE_ASPECT >= 1.0);
-        assertTrue(S2Projections.MAX_EDGE_ASPECT
-                < S2Projections.MAX_EDGE.deriv() / S2Projections.MIN_EDGE.deriv());
-        assertTrue(S2Projections.MAX_DIAG_ASPECT >= 1);
-        assertTrue(S2Projections.MAX_DIAG_ASPECT
-                < S2Projections.MAX_DIAG.deriv() / S2Projections.MIN_DIAG.deriv());
-
-        // Check various conditions that are provable mathematically.
-        testLessOrEqual(width, angleSpan);
-        testLessOrEqual(width, edge);
-        testLessOrEqual(edge, diag);
-
-        assertTrue(S2Projections.MIN_AREA.deriv()
-                >= S2Projections.MIN_WIDTH.deriv() * S2Projections.MIN_EDGE.deriv() - 1e-15);
-        assertTrue(S2Projections.MAX_AREA.deriv()
-                < S2Projections.MAX_WIDTH.deriv() * S2Projections.MAX_EDGE.deriv() + 1e-15);
-
-        // GetMinLevelForLength() and friends have built-in assertions, we just need
-        // to call these functions to test them.
-        //
-        // We don't actually check that the metrics are correct here, e.g. that
-        // GetMinWidth(10) is a lower bound on the width of cells at level 10.
-        // It is easier to check these properties in s2cell_unittest, since
-        // S2Cell has methods to compute the cell vertices, etc.
-
-        for (int level = -2; level <= S2CellId.kMaxLevel + 3; ++level) {
-            double dWidth = (2 * S2Projections.MIN_WIDTH.deriv()) * Math.pow(2, -level);
-            if (level >= S2CellId.kMaxLevel + 3) {
-                dWidth = 0;
-            }
-
-            // Check boundary cases (exactly equal to a threshold value).
-            int expectedLevel = Math.max(0, Math.min(S2CellId.kMaxLevel, level));
-            assertEquals(S2Projections.MIN_WIDTH.getMinLevel(dWidth), expectedLevel);
-            assertEquals(S2Projections.MIN_WIDTH.getMaxLevel(dWidth), expectedLevel);
-            assertEquals(S2Projections.MIN_WIDTH.getClosestLevel(dWidth), expectedLevel);
-
-            // Also check non-boundary cases.
-            assertEquals(S2Projections.MIN_WIDTH.getMinLevel(1.2 * dWidth), expectedLevel);
-            assertEquals(S2Projections.MIN_WIDTH.getMaxLevel(0.8 * dWidth), expectedLevel);
-            assertEquals(S2Projections.MIN_WIDTH.getClosestLevel(1.2 * dWidth), expectedLevel);
-            assertEquals(S2Projections.MIN_WIDTH.getClosestLevel(0.8 * dWidth), expectedLevel);
-
-            // Same thing for area1.
-            double area1 = (4 * S2Projections.MIN_AREA.deriv()) * Math.pow(4, -level);
-            if (level <= -3) {
-                area1 = 0;
-            }
-            assertEquals(S2Projections.MIN_AREA.getMinLevel(area1), expectedLevel);
-            assertEquals(S2Projections.MIN_AREA.getMaxLevel(area1), expectedLevel);
-            assertEquals(S2Projections.MIN_AREA.getClosestLevel(area1), expectedLevel);
-            assertEquals(S2Projections.MIN_AREA.getMinLevel(1.2 * area1), expectedLevel);
-            assertEquals(S2Projections.MIN_AREA.getMaxLevel(0.8 * area1), expectedLevel);
-            assertEquals(S2Projections.MIN_AREA.getClosestLevel(1.2 * area1), expectedLevel);
-            assertEquals(S2Projections.MIN_AREA.getClosestLevel(0.8 * area1), expectedLevel);
-        }
     }
 
     public void testExp() {

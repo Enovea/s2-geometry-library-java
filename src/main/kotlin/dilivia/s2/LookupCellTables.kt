@@ -80,17 +80,4 @@ object LookupCellTables {
         }
     }
 
-    /*
-    fun getBits(n: LongArray, i: Int, j: Int, k: Int, bits: Int): Int {
-        var bits = bits
-        val mask = (1 shl kLookupBits) - 1
-        bits += i shr k * kLookupBits and mask shl kLookupBits + 2
-        bits += j shr k * kLookupBits and mask shl 2
-        bits = lookupPos[bits]
-        n[k shr 2] = n[k shr 2] or (bits.toLong() shr 2 shl (k and 3) * 2 * kLookupBits)
-        bits = bits and (kSwapMask or kInvertMask)
-        return bits
-    }*/
-
-
 }

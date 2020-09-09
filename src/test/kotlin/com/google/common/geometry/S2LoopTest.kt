@@ -209,7 +209,7 @@ class S2LoopTest : GeometryTestCase() {
             var id = begin(level)
             while (!id.equals(end(level))) {
                 val cell = S2Cell(id)
-                points.add(cell.center)
+                points.add(cell.getCenter())
                 for (k in 0..3) {
                     loopVertices.add(cell.getVertex(k))
                     points.add(cell.getVertex(k))

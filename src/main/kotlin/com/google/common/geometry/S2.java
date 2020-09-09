@@ -69,7 +69,7 @@ public final strictfp class S2 {
    * TODO(dbeaumont): Replace this with "DoubleUtils.getExponent(v) - 1" ?
    */
   @VisibleForTesting
-  static int exp(double v) {
+  public static int exp(double v) {
     if (v == 0) {
       return 0;
     }

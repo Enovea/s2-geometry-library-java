@@ -20,10 +20,21 @@ package dilivia.s2
 
 import com.google.common.geometry.S2
 
+/**
+ * Assertion Helpers
+ *
+ * @author Fabien Meurisse
+ * @since 1.0
+ */
 object Assertions {
 
+    /** Indicates if the assertions are enabled. */
     val enabled: Boolean = javaClass.desiredAssertionStatus()
 
+    /**
+     *
+     * @param assertion
+     */
     inline fun assert(assertion: () -> Boolean) {
         if (enabled) {
             assert(assertion()) { "" }

@@ -87,11 +87,59 @@ interface S2Projection {
     // The inverse of the STtoUV transformation.  Note that it is not always
     // true that UVtoST(STtoUV(x)) == x due to numerical errors.
     fun uvToSt(u: Double): Double
+
+    val kMinAngleSpan: LengthMetric
+    val kMaxAngleSpan: LengthMetric
+    val kAvgAngleSpan: LengthMetric
+
+    val kMinWidth: LengthMetric
+    val kMaxWidth: LengthMetric
+    val kAvgWidth: LengthMetric
+
+    val kMinEdge: LengthMetric
+    val kMaxEdge: LengthMetric
+    val kAvgEdge: LengthMetric
+    
+    val kMinDiag: LengthMetric
+    val kMaxDiag: LengthMetric
+    val kAvgDiag: LengthMetric
+    
+    val kMinArea: AreaMetric
+    val kMaxArea: AreaMetric
+    val kAvgArea: AreaMetric
+
+    val kMaxEdgeAspect: Double
+    val kMaxDiagAspect: Double
+
 }
 
 object S2LinearProjection : S2Projection {
     override fun stToUv(s: Double): Double = 2 * s - 1
     override fun uvToSt(u: Double): Double = 0.5 * (u + 1)
+    
+    override val kMinAngleSpan: LengthMetric = LengthMetric(1.0)                                          // 1.000 
+    override val kMaxAngleSpan: LengthMetric = LengthMetric(2.0)                                          // 2.000
+    override val kAvgAngleSpan: LengthMetric = LengthMetric(M_PI / 2)                                     // 1.571
+
+    override val kMinWidth: LengthMetric = LengthMetric(sqrt(2.0 / 3.0))                                     // 0.816
+    override val kMaxWidth: LengthMetric = LengthMetric(kMaxAngleSpan.deriv)
+    override val kAvgWidth: LengthMetric = LengthMetric(1.411459345844456965)                             // 1.411
+
+    override val kMinEdge: LengthMetric = LengthMetric(2 * sqrt(2.0) / 3.0)                            // 0.943
+    override val kMaxEdge: LengthMetric = LengthMetric(kMaxAngleSpan.deriv)
+    override val kAvgEdge: LengthMetric = LengthMetric(1.440034192955603643)                              // 1.440
+
+    override val kMinDiag: LengthMetric = LengthMetric(2.0 * sqrt(2.0) / 3.0)                          // 0.943
+    override val kMaxDiag: LengthMetric = LengthMetric(2.0 * sqrt(2.0))                                // 2.828
+    override val kAvgDiag: LengthMetric = LengthMetric(2.031817866418812674)                              // 2.032
+    
+    override val kMinArea: AreaMetric = AreaMetric(4.0 / (3.0 * sqrt(3.0)))                            // 0.770
+    override val kMaxArea: AreaMetric = AreaMetric(4.0)                                                   // 4.000
+    override val kAvgArea: AreaMetric = AreaMetric(4 * M_PI / 6);                                         // 2.094
+
+    override val kMaxEdgeAspect: Double = sqrt(2.0)                                                          // 1.414
+    override val kMaxDiagAspect: Double = sqrt(3.0)                                                          // 1.732
+
 }
 
 object S2TanProjection : S2Projection {
@@ -112,6 +160,29 @@ object S2TanProjection : S2Projection {
         val a = atan(u)
         return (2 * M_1_PI) * (a + M_PI_4)
     }
+    
+    override val kMinAngleSpan: LengthMetric = LengthMetric(M_PI / 2)                                     // 1.571
+    override val kMaxAngleSpan: LengthMetric = LengthMetric(M_PI / 2)                                     // 1.571
+    override val kAvgAngleSpan: LengthMetric = LengthMetric(M_PI / 2)                                     // 1.571
+
+    override val kMinWidth: LengthMetric = LengthMetric(M_PI / (2 * sqrt(2.0)))                        // 1.111
+    override val kMaxWidth: LengthMetric = LengthMetric(kMaxAngleSpan.deriv)
+    override val kAvgWidth: LengthMetric = LengthMetric(1.437318638925160885)                             // 1.437
+
+    override val kMinEdge: LengthMetric = LengthMetric(M_PI / (2 * sqrt(2.0)))                         // 1.111
+    override val kMaxEdge: LengthMetric = LengthMetric(kMaxAngleSpan.deriv)
+    override val kAvgEdge: LengthMetric = LengthMetric(1.461667032546739266)                              // 1.462
+
+    override val kMinDiag: LengthMetric = LengthMetric(M_PI * sqrt(2.0) / 3)                           // 1.481
+    override val kMaxDiag: LengthMetric = LengthMetric(M_PI * sqrt(2.0 / 3.0))                         // 2.565
+    override val kAvgDiag: LengthMetric = LengthMetric(2.063623197195635753)                              // 2.064
+
+    override val kMinArea: AreaMetric = AreaMetric((M_PI*M_PI) / (4.0 * sqrt(2.0)))                    // 1.745
+    override val kMaxArea: AreaMetric = AreaMetric(M_PI * M_PI / 4.0)                                     // 2.467
+    override val kAvgArea: AreaMetric = AreaMetric(4 * M_PI / 6);                                         // 2.094
+
+    override val kMaxEdgeAspect: Double = sqrt(2.0)                                                          // 1.414
+    override val kMaxDiagAspect: Double = sqrt(3.0)                                                          // 1.732
 
 }
 
@@ -121,6 +192,30 @@ object S2QuadraticProjection : S2Projection {
 
     override fun uvToSt(u: Double): Double = if (u >= 0) 0.5 * sqrt(1 + 3 * u)
     else 1 - 0.5 * sqrt(1 - 3 * u)
+    
+    override val kMinAngleSpan: LengthMetric = LengthMetric(4.0 / 3.0)                                    // 1.333
+    override val kMaxAngleSpan: LengthMetric = LengthMetric(1.704897179199218452)                         // 1.705
+    override val kAvgAngleSpan: LengthMetric = LengthMetric(M_PI / 2)                                     // 1.571
+
+    override val kMinWidth: LengthMetric = LengthMetric(2.0 * sqrt(2.0) / 3.0)                         // 0.943
+    override val kMaxWidth: LengthMetric = LengthMetric(kMaxAngleSpan.deriv)
+    override val kAvgWidth: LengthMetric = LengthMetric(1.434523672886099389)                             // 1.435
+
+    override val kMinEdge: LengthMetric = LengthMetric(2.0 * sqrt(2.0) / 3.0)                          // 0.943
+    override val kMaxEdge: LengthMetric = LengthMetric(kMaxAngleSpan.deriv)
+    override val kAvgEdge: LengthMetric = LengthMetric(1.459213746386106062)                              // 1.459
+
+    override val kMinDiag: LengthMetric = LengthMetric(8.0 * sqrt(2.0) / 9.0)                          // 1.257
+    override val kMaxDiag: LengthMetric = LengthMetric(2.438654594434021032)                              // 2.439
+    override val kAvgDiag: LengthMetric = LengthMetric(2.060422738998471683)                              // 2.060
+
+    override val kMinArea: AreaMetric = AreaMetric(8.0 * sqrt(2.0) / 9.0)                              // 1.257
+    override val kMaxArea: AreaMetric = AreaMetric(2.635799256963161491)                                  // 2.636
+    override val kAvgArea: AreaMetric = AreaMetric(4 * M_PI / 6)                                          // 2.094
+
+    override val kMaxEdgeAspect: Double = 1.442615274452682920                                                  // 1.443
+    override val kMaxDiagAspect: Double = sqrt(3.0)                                                          // 1.732
+
 }
 
 //

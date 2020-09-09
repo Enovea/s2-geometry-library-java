@@ -45,7 +45,7 @@ class S2CellTest : GeometryTestCase() {
             assertEquals(cell.level().toInt(), 0)
             // Top-level faces have alternating orientations to get RHS coordinates.
             assertEquals(cell.orientation().toInt(), face and S2.SWAP_MASK)
-            assertFalse(cell.isLeaf)
+            assertFalse(cell.isLeaf())
             for (k in 0..3) {
                 val edgeRaw = cell.getEdgeRaw(k)
                 println(edgeCounts.containsKey(edgeRaw).toString() + " Edge raw: " + edgeRaw + " in: " + edgeCounts)
@@ -172,10 +172,10 @@ class S2CellTest : GeometryTestCase() {
 
     fun testSubdivide(cell: S2Cell?) {
         gatherStats(cell)
-        if (cell!!.isLeaf) {
+        if (cell!!.isLeaf()) {
             return
         }
-        val children = Array<S2Cell>(4)  { S2Cell() }
+        val children = Array<S2Cell>(4) { S2Cell() }
         assertTrue(cell.subdivide(children))
         var childId = cell.id().childBegin()
         var exactArea = 0.0
@@ -189,12 +189,12 @@ class S2CellTest : GeometryTestCase() {
 
             // Check that the child geometry is consistent with its cell id.
             assertEquals(children[i].id(), childId)
-            assertTrue(children[i].center.approxEquals(childId.toPoint(), 1e-15))
+            assertTrue(children[i].getCenter().approxEquals(childId.toPoint(), 1e-15))
             val direct = S2Cell(childId)
             assertEquals(children[i].face(), direct.face())
             assertEquals(children[i].level(), direct.level())
             assertEquals(children[i].orientation(), direct.orientation())
-            assertEquals(children[i].centerRaw, direct.centerRaw)
+            assertEquals(children[i].getCenterRaw(), direct.getCenterRaw())
             for (k in 0..3) {
                 assertEquals(children[i].getVertexRaw(k), direct.getVertexRaw(k))
                 assertEquals(children[i].getEdgeRaw(k), direct.getEdgeRaw(k))
@@ -204,11 +204,11 @@ class S2CellTest : GeometryTestCase() {
             assertTrue(cell.contains(children[i]))
             assertTrue(cell.mayIntersect(children[i]))
             assertTrue(!children[i].contains(cell))
-            assertTrue(cell.contains(children[i].centerRaw))
+            assertTrue(cell.contains(children[i].getCenterRaw()))
             for (j in 0..3) {
                 assertTrue(cell.contains(children[i].getVertexRaw(j)))
                 if (j != i) {
-                    assertTrue(!children[i].contains(children[j].centerRaw))
+                    assertTrue(!children[i].contains(children[j].getCenterRaw()))
                     assertTrue(!children[i].mayIntersect(children[j]))
                 }
             }
@@ -222,25 +222,25 @@ class S2CellTest : GeometryTestCase() {
             }
             val childCap = children[i].capBound
             val childRect = children[i].rectBound
-            assertTrue(childCap.contains(children[i].center))
-            assertTrue(childRect.contains(children[i].centerRaw))
-            assertTrue(parentCap.contains(children[i].center))
-            assertTrue(parentRect.contains(children[i]!!.centerRaw))
+            assertTrue(childCap.contains(children[i].getCenter()))
+            assertTrue(childRect.contains(children[i].getCenterRaw()))
+            assertTrue(parentCap.contains(children[i].getCenter()))
+            assertTrue(parentRect.contains(children[i].getCenterRaw()))
             for (j in 0..3) {
-                assertTrue(childCap.contains(children[i]!!.getVertex(j)))
-                assertTrue(childRect.contains(children[i]!!.getVertex(j)))
-                assertTrue(childRect.contains(children[i]!!.getVertexRaw(j)))
-                assertTrue(parentCap.contains(children[i]!!.getVertex(j)))
-                if (!parentRect.contains(children[i]!!.getVertex(j))) {
+                assertTrue(childCap.contains(children[i].getVertex(j)))
+                assertTrue(childRect.contains(children[i].getVertex(j)))
+                assertTrue(childRect.contains(children[i].getVertexRaw(j)))
+                assertTrue(parentCap.contains(children[i].getVertex(j)))
+                if (!parentRect.contains(children[i].getVertex(j))) {
                     println("cell: $cell i: $i j: $j")
                     println("Children " + i + ": " + children[i])
                     println("Parent rect: $parentRect")
-                    println("Vertex raw(j) " + children[i]!!.getVertex(j))
-                    println("Latlng of vertex: " + fromPoint(children[i]!!.getVertex(j)))
+                    println("Vertex raw(j) " + children[i].getVertex(j))
+                    println("Latlng of vertex: " + fromPoint(children[i].getVertex(j)))
                     cell.rectBound
                 }
-                assertTrue(parentRect.contains(children[i]!!.getVertex(j)))
-                if (!parentRect.contains(children[i]!!.getVertexRaw(j))) {
+                assertTrue(parentRect.contains(children[i].getVertex(j)))
+                if (!parentRect.contains(children[i].getVertexRaw(j))) {
                     println("cell: $cell i: $i j: $j")
                     println("Children " + i + ": " + children[i])
                     println("Parent rect: $parentRect")

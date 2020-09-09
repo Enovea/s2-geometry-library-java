@@ -451,7 +451,7 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
         if (isEmpty) {
             return false
         }
-        if (contains(cell.center)) {
+        if (contains(cell.getCenter())) {
             return true
         }
         if (cell.contains(center.toPoint())) {
