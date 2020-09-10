@@ -18,7 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2Projections
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.S2Coords.kPosToOrientation
@@ -316,17 +315,17 @@ class S2CellIdTest : GeometryTestCase() {
         // path over the surface of the sphere, i.e. there are no
         // discontinuous jumps from one region to another.
 
-        val max_dist = S2Projections.MAX_EDGE.getValue(kMaxWalkLevel)
+        val maxDist = S2CellMetrics.kMaxEdge.getValue(kMaxWalkLevel)
         val end = S2CellId.end(kMaxWalkLevel)
         var id = S2CellId.begin(kMaxWalkLevel)
         while (id != end) {
-            assertLessOrEquals(id.toPointRaw().angle(id.nextWrap().toPointRaw()), max_dist);
+            assertLessOrEquals(id.toPointRaw().angle(id.nextWrap().toPointRaw()), maxDist);
             assertEquals(id.nextWrap(), id.advanceWrap(1));
             assertEquals(id, id.nextWrap().advanceWrap(-1));
 
             // Check that the ToPointRaw() returns the center of each cell
             // in (s,t) coordinates.
-            val (face, u, v) = S2Coords.xyzToFaceUV(id.toPointRaw())
+            val (_, u, v) = S2Coords.xyzToFaceUV(id.toPointRaw())
             val kCellSize = 1.0 / (1 shl kMaxWalkLevel)
             assertEquals(S2Coords.uvToSt(u).IEEErem(0.5 * kCellSize), 0.0, 1e-15);
             assertEquals(S2Coords.uvToSt(v).IEEErem(0.5 * kCellSize), 0.0, 1e-15);
@@ -342,8 +341,7 @@ class S2CellIdTest : GeometryTestCase() {
         // adjacent values of "i" or "j".  (It is sqrt(2/3) rather than 1/2 because
         // the cells at the corners of each face are stretched -- they have 60 and
         // 120 degree angles.)
-
-        val max_dist = 0.5 * S2Projections.MAX_DIAG.getValue(S2CellId.kMaxLevel);
+        val max_dist = 0.5 * S2CellMetrics.kMaxDiag.getValue(S2CellId.kMaxLevel);
         for (i in 0 until 1000000) {
             val p = randomPoint()
             val q = S2CellId.fromPoint(p).toPointRaw()

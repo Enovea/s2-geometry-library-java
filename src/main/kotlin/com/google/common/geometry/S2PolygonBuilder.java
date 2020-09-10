@@ -23,10 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S2CellId;
-import dilivia.s2.S2Point;
-import dilivia.s2.S2Predicates;
+import dilivia.s2.*;
 
 import java.util.Collection;
 import java.util.List;
@@ -644,7 +641,7 @@ public strictfp class S2PolygonBuilder {
       // S2CellId.getVertexNeighbors). This turns out to be the highest
       // level such that a spherical cap (i.e. "disc") of the given radius
       // fits completely inside all cells at that level.
-      this.level = Math.min(S2Projections.MIN_WIDTH.getMaxLevel(2 * searchRadius), S2CellId.kMaxLevel - 1);
+      this.level = Math.min(S2CellMetrics.INSTANCE.getKMinWidth().getLevelForMinValue(2 * searchRadius), S2CellId.kMaxLevel - 1);
     }
 
     @Override

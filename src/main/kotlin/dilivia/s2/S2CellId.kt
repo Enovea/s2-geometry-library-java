@@ -19,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.DBL_EPSILON
-import com.google.common.geometry.S2Projections
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.Assertions.assertGE
@@ -1153,8 +1152,8 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             val t = 0.5 * (faceUV.v + 1)
             return fromFaceIJ(
                     face = faceUV.face,
-                    i = S2Coords.stToIj(s),
-                    j = S2Coords.stToIj(t)
+                    i = S2Coords.stToIJ(s),
+                    j = S2Coords.stToIJ(t)
             )
         }
 
@@ -1188,103 +1187,16 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
          */
         @JvmStatic
         fun fromPoint(p: S2Point): S2CellId {
-            val faceUV = S2Coords.xyzToFaceUV(p)
-            val i = stToIJ(S2Projections.uvToST(faceUV.u))
-            val j = stToIJ(S2Projections.uvToST(faceUV.v))
-            return fromFaceIJ(faceUV.face, i, j)
+            val (face, u, v) = S2Coords.xyzToFaceUV(p)
+            val i = S2Coords.stToIJ(S2Coords.uvToSt(u))
+            val j = S2Coords.stToIJ(S2Coords.uvToST(v))
+            return fromFaceIJ(face, i, j)
         }
 
         /** Return the leaf cell containing the given S2LatLng.  */
         @JvmStatic
         fun fromLatLng(ll: S2LatLng): S2CellId {
             return fromPoint(ll.toPoint())
-        }
-
-
-        /**
-         * Returns true if (current * radix) + digit is a number too large to be
-         * represented by an unsigned long.  This is useful for detecting overflow
-         * while parsing a string representation of a number.
-         * Does not verify whether supplied radix is valid, passing an invalid radix
-         * will give undefined results or an ArrayIndexOutOfBoundsException.
-         */
-        /**
-         * Returns true if (current * 10) + digit is a number too large to be
-         * represented by an unsigned long.  This is useful for detecting overflow
-         * while parsing a string representation of a number.
-         */
-        private fun overflowInParse(current: Long, digit: Int, radix: Int = 10): Boolean {
-            if (current >= 0) {
-                if (current < maxValueDivs[radix]) {
-                    return false
-                }
-                return if (current > maxValueDivs[radix]) {
-                    true
-                } else digit > maxValueMods[radix]
-                // current == maxValueDivs[radix]
-            }
-
-            // current < 0: high bit is set
-            return true
-        }
-
-        // calculated as 0xffffffffffffffff / radix
-        private val maxValueDivs = longArrayOf(0, 0,  // 0 and 1 are invalid
-                9223372036854775807L, 6148914691236517205L, 4611686018427387903L,  // 2-4
-                3689348814741910323L, 3074457345618258602L, 2635249153387078802L,  // 5-7
-                2305843009213693951L, 2049638230412172401L, 1844674407370955161L,  // 8-10
-                1676976733973595601L, 1537228672809129301L, 1418980313362273201L,  // 11-13
-                1317624576693539401L, 1229782938247303441L, 1152921504606846975L,  // 14-16
-                1085102592571150095L, 1024819115206086200L, 970881267037344821L,  // 17-19
-                922337203685477580L, 878416384462359600L, 838488366986797800L,  // 20-22
-                802032351030850070L, 768614336404564650L, 737869762948382064L,  // 23-25
-                709490156681136600L, 683212743470724133L, 658812288346769700L,  // 26-28
-                636094623231363848L, 614891469123651720L, 595056260442243600L,  // 29-31
-                576460752303423487L, 558992244657865200L, 542551296285575047L,  // 32-34
-                527049830677415760L, 512409557603043100L) // 35-36
-
-        // calculated as 0xffffffffffffffff % radix
-        private val maxValueMods = intArrayOf(0, 0,  // 0 and 1 are invalid
-                1, 0, 3, 0, 3, 1, 7, 6, 5, 4, 3, 2, 1, 0, 15, 0, 15, 16, 15, 15,  // 2-21
-                15, 5, 15, 15, 15, 24, 15, 23, 15, 15, 31, 15, 17, 15, 15) // 22-36
-
-
-        /**
-         * Return the i- or j-index of the leaf cell containing the given s- or
-         * t-value.
-         */
-        private fun stToIJ(s: Double): Int {
-            // Converting from floating-point to integers via static_cast is very slow
-            // on Intel processors because it requires changing the rounding mode.
-            // Rounding to the nearest integer using FastIntRound() is much faster.
-            val m = kMaxSize / 2 // scaling multiplier
-            return Math
-                    .max(0, Math.min(2 * m - 1.toLong(), Math.round(m * s + (m - 0.5)))).toInt()
-        }
-
-        /**
-         * Convert (face, si, ti) coordinates (see s2.h) to a direction vector (not
-         * necessarily unit length).
-         */
-        private fun faceSiTiToXYZ(face: Int, si: Int, ti: Int): S2Point {
-            val kScale = 1.0 / kMaxSize
-            val u = S2Projections.stToUV(kScale * si)
-            val v = S2Projections.stToUV(kScale * ti)
-            return S2Projections.faceUvToXyz(face, u, v)
-        }
-
-        /**
-         * Returns true if x1 < x2, when both values are treated as unsigned.
-         */
-        fun unsignedLongLessThan(x1: Long, x2: Long): Boolean {
-            return x1 + Long.MIN_VALUE < x2 + Long.MIN_VALUE
-        }
-
-        /**
-         * Returns true if x1 > x2, when both values are treated as unsigned.
-         */
-        fun unsignedLongGreaterThan(x1: Long, x2: Long): Boolean {
-            return x1 + Long.MIN_VALUE > x2 + Long.MIN_VALUE
         }
 
         // Print the num_digits low order hex digits.

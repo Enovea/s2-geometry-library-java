@@ -19,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.collect.Lists
-import com.google.common.geometry.S2Projections
 import dilivia.s2.S2Cap.Companion.fromCenterHeight
 import dilivia.s2.S2CellId.Companion.fromPoint
 import dilivia.s2.S2CellId.Companion.lsbForLevel
@@ -385,8 +384,8 @@ class S2CellUnion : S2Region, Iterable<S2CellId?> {
         }
         // Find the maximum level such that all cells are at least "min_radius"
         // wide.
-        val radiusLevel = S2Projections.MIN_WIDTH.getMaxLevel(minRadius.radians)
-        if (radiusLevel == 0 && minRadius.radians > S2Projections.MIN_WIDTH.getValue(0)) {
+        val radiusLevel = S2CellMetrics.kMinWidth.getLevelForMinValue(minRadius.radians)
+        if (radiusLevel == 0 && minRadius.radians > S2CellMetrics.kMinWidth.getValue(0)) {
             // The requested expansion is greater than the width of a face cell.
             // The easiest way to handle this is to expand twice.
             expand(0)

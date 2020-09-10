@@ -327,15 +327,14 @@ class S2CellUnionTest : GeometryTestCase() {
             }
             covering.expand(radians(radius), maxLevelDiff)
             checkCovering(expandedCap, covering, false, S2CellId())
-            val expandLevel = Math.min(minLevel + maxLevelDiff, S2Projections.MIN_WIDTH.getMaxLevel(radius))
+            val expandLevel = Math.min(minLevel + maxLevelDiff, S2CellMetrics.kMinWidth.getLevelForMinValue(radius))
             val expandedMaxAngle = getMaxAngle(covering, cap.center)
 
             // If the covering includes a tiny cell along the boundary, in theory the
             // maximum angle of the covering from the cap axis can increase by up to
             // twice the maximum length of a cell diagonal. We allow for an increase
             // of slightly more than this because cell bounding caps are not exact.
-            assertTrue(expandedMaxAngle - maxAngle <= 2.01 * S2Projections.MAX_DIAG
-                    .getValue(expandLevel))
+            assertTrue(expandedMaxAngle - maxAngle <= 2 * S2CellMetrics.kMaxDiag.getValue(expandLevel))
         }
     }
 

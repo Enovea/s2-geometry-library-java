@@ -82,11 +82,11 @@ interface S2Projection {
     // Convert an s- or t-value to the corresponding u- or v-value.  This is
     // a non-linear transformation from [-1,1] to [-1,1] that attempts to
     // make the cell sizes more uniform.
-    fun stToUv(s: Double): Double
+    fun stToUV(s: Double): Double
 
     // The inverse of the STtoUV transformation.  Note that it is not always
     // true that UVtoST(STtoUV(x)) == x due to numerical errors.
-    fun uvToSt(u: Double): Double
+    fun uvToST(u: Double): Double
 
     val kMinAngleSpan: LengthMetric
     val kMaxAngleSpan: LengthMetric
@@ -114,8 +114,8 @@ interface S2Projection {
 }
 
 object S2LinearProjection : S2Projection {
-    override fun stToUv(s: Double): Double = 2 * s - 1
-    override fun uvToSt(u: Double): Double = 0.5 * (u + 1)
+    override fun stToUV(s: Double): Double = 2 * s - 1
+    override fun uvToST(u: Double): Double = 0.5 * (u + 1)
     
     override val kMinAngleSpan: LengthMetric = LengthMetric(1.0)                                          // 1.000 
     override val kMaxAngleSpan: LengthMetric = LengthMetric(2.0)                                          // 2.000
@@ -144,7 +144,7 @@ object S2LinearProjection : S2Projection {
 
 object S2TanProjection : S2Projection {
 
-    override fun stToUv(s: Double): Double {
+    override fun stToUV(s: Double): Double {
         // Unfortunately, tan(M_PI_4) is slightly less than 1.0.  This isn't due to
         // a flaw in the implementation of tan(), it's because the derivative of
         // tan(x) at x=pi/4 is 2, and it happens that the two adjacent floating
@@ -156,7 +156,7 @@ object S2TanProjection : S2Projection {
         return t + (1.0 / (1L shl 53)) * t
     }
 
-    override fun uvToSt(u: Double): Double {
+    override fun uvToST(u: Double): Double {
         val a = atan(u)
         return (2 * M_1_PI) * (a + M_PI_4)
     }
@@ -187,10 +187,10 @@ object S2TanProjection : S2Projection {
 }
 
 object S2QuadraticProjection : S2Projection {
-    override fun stToUv(s: Double): Double = if (s >= 0.5) (1.0 / 3.0) * (4 * s * s - 1)
+    override fun stToUV(s: Double): Double = if (s >= 0.5) (1.0 / 3.0) * (4 * s * s - 1)
     else (1.0 / 3.0) * (1 - 4 * (1 - s) * (1 - s))
 
-    override fun uvToSt(u: Double): Double = if (u >= 0) 0.5 * sqrt(1 + 3 * u)
+    override fun uvToST(u: Double): Double = if (u >= 0) 0.5 * sqrt(1 + 3 * u)
     else 1 - 0.5 * sqrt(1 - 3 * u)
     
     override val kMinAngleSpan: LengthMetric = LengthMetric(4.0 / 3.0)                                    // 1.333
@@ -424,11 +424,11 @@ object S2Coords {
     // Convert an s- or t-value to the corresponding u- or v-value.  This is
     // a non-linear transformation from [-1,1] to [-1,1] that attempts to
     // make the cell sizes more uniform.
-    fun stToUv(s: Double): Double = projection.stToUv(s)
+    fun stToUv(s: Double): Double = projection.stToUV(s)
 
     // The inverse of the STtoUV transformation.  Note that it is not always
     // true that UVtoST(STtoUV(x)) == x due to numerical errors.
-    fun uvToSt(u: Double): Double = projection.uvToSt(u)
+    fun uvToSt(u: Double): Double = projection.uvToST(u)
 
     // Convert the i- or j-index of a leaf cell to the minimum corresponding s-
     // or t-value contained by that cell.  The argument must be in the range
@@ -443,7 +443,7 @@ object S2Coords {
     // s- or t-value.  If the argument is outside the range spanned by valid
     // leaf cell indices, return the index of the closest valid leaf cell (i.e.,
     // return values are clamped to the range of valid leaf cell indices).
-    fun stToIj(s: Double): Int = max(0, min(kLimitIJ - 1, (kLimitIJ * s - 0.5).roundToInt()))
+    fun stToIJ(s: Double): Int = max(0, min(kLimitIJ - 1, (kLimitIJ * s - 0.5).roundToInt()))
 
     // Convert an si- or ti-value to the corresponding s- or t-value.
     fun siTiToSt(si: UInt): Double {
@@ -536,8 +536,8 @@ object S2Coords {
     // cell, return the level of this cell (-1 otherwise).
     fun xyzToFaceSiTi(p: S2Point): Pair<Int, FaceSiTi> {
         val (face, u, v) = xyzToFaceUV(p)
-        val si = stToSiTi(projection.uvToSt(u))
-        val ti = stToSiTi(projection.uvToSt(v))
+        val si = stToSiTi(projection.uvToST(u))
+        val ti = stToSiTi(projection.uvToST(v))
         val faceSiTi = FaceSiTi(face, si, ti)
         // If the levels corresponding to si,ti are not equal, then p is not a cell
         // center.  The si,ti values 0 and kMaxSiTi need to be handled specially
@@ -561,8 +561,8 @@ object S2Coords {
     // unit length).
     fun faceSiTitoXYZ(faceSiTi: FaceSiTi): S2Point = faceSiTitoXYZ(faceSiTi.face, faceSiTi.si, faceSiTi.ti)
     fun faceSiTitoXYZ(face: Int, si: UInt, ti: UInt): S2Point {
-        val u = projection.stToUv(siTiToSt(si))
-        val v = projection.stToUv(siTiToSt(ti))
+        val u = projection.stToUV(siTiToSt(si))
+        val v = projection.stToUV(siTiToSt(ti))
         return faceUVtoXYZ(face, u, v)
     }
 
@@ -614,6 +614,9 @@ object S2Coords {
         assert(direction in 0..1)
         return kFaceUVWFaces[face][axis][direction]
     }
+
+    fun stToUV(s: Double): Double = projection.stToUV(s)
+    fun uvToST(u: Double): Double = projection.uvToST(u)
 
 }
 

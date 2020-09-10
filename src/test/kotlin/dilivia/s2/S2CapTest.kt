@@ -19,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Projections
 import dilivia.s2.S2LatLng.Companion.fromDegrees
 import kotlin.math.atan
 import kotlin.math.sqrt
@@ -212,10 +211,10 @@ class S2CapTest : GeometryTestCase() {
             val root_cell: S2Cell = S2Cell.fromFace(face)
 
             // A leaf cell at the midpoint of the v=1 edge.
-            val edge_cell: S2Cell = S2Cell(S2Projections.faceUvToXyz(face, 0.0, 1 - kEps))
+            val edge_cell: S2Cell = S2Cell(S2Coords.faceUVtoXYZ(face, 0.0, 1 - kEps))
 
             // A leaf cell at the u=1, v=1 corner.
-            val corner_cell: S2Cell = S2Cell(S2Projections.faceUvToXyz(face, 1 - kEps, 1 - kEps))
+            val corner_cell: S2Cell = S2Cell(S2Coords.faceUVtoXYZ(face, 1 - kEps, 1 - kEps))
 
             // Quick check for full and empty caps.
             assertTrue(S2Cap.full.contains(root_cell))
@@ -308,7 +307,7 @@ cap_face = 5 == 5 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle
     fun testGetCellUnionBoundLevel1Radius() {
         // Check that a cap whose radius is approximately the width of a level 1
         // S2Cell can be covered by only 3 faces.
-        val cap = S2Cap.fromCenterAngle(S2Point(1, 1, 1).normalize(), S1Angle.radians(S2Projections.MIN_WIDTH.getValue(1)))
+        val cap = S2Cap.fromCenterAngle(S2Point(1, 1, 1).normalize(), S1Angle.radians(S2CellMetrics.kMinWidth.getValue(1)))
         val covering = mutableListOf<S2CellId>()
         cap.getCellUnionBound(covering)
         assertEquals(3, covering.size)

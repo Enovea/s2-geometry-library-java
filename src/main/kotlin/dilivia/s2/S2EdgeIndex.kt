@@ -21,7 +21,6 @@ package dilivia.s2
 import com.google.common.base.Preconditions
 import com.google.common.collect.Lists
 import com.google.common.collect.Sets
-import com.google.common.geometry.S2Projections
 import dilivia.s2.S2CellId.Companion.begin
 import dilivia.s2.S2CellId.Companion.end
 import dilivia.s2.S2CellId.Companion.fromPoint
@@ -234,7 +233,7 @@ abstract class S2EdgeIndex {
         // thickening is honored (it's not a big deal if we honor it when we don't
         // request it) when doing the covering-by-cap trick.
         val edgeLength = a.angle(b)
-        val idealLevel = S2Projections.MIN_WIDTH.getMaxLevel(edgeLength * (1 + 2 * THICKENING))
+        val idealLevel = S2CellMetrics.kMinWidth.getLevelForMinValue(edgeLength * (1 + 2 * THICKENING))
         val containingCellId: S2CellId
         containingCellId = if (!thickenEdge) {
             containingCell(a, b)

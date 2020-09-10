@@ -19,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Projections
 import dilivia.s2.Assertions.assertCapIsValid
 import dilivia.s2.Assertions.assertGreaterOrEquals
 import dilivia.s2.Assertions.assertPointIsUnitLength
@@ -380,7 +379,7 @@ class S2Cap(val center: S2Point, val radius: S1ChordAngle) : S2Region {
 
         // Find the maximum level such that the cap contains at most one cell vertex
         // and such that S2CellId::AppendVertexNeighbors() can be called.
-        val level = S2Projections.MIN_WIDTH.getMaxLevel(radius().radians) - 1// S2::kMinWidth.GetLevelForMinValue(GetRadius().radians()) - 1;
+        val level = S2CellMetrics.kMinWidth.getLevelForMinValue(radius().radians) - 1// S2::kMinWidth.GetLevelForMinValue(GetRadius().radians()) - 1;
 
         // If level < 0, then more than three face cells are required.
         if (level < 0) {
