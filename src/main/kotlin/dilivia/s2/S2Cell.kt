@@ -197,23 +197,6 @@ class S2Cell : S2Region, Comparable<S2Cell> {
     fun getCenter(): S2Point = getCenterRaw().normalize()
     fun getCenterRaw(): S2Point = id.toPointRaw()
 
-    /**
-     * Return the center of the cell in (u,v) coordinates (see `S2Projections`). Note that the center of the cell is defined as the point
-     * at which it is recursively subdivided into four children; in general, it is
-     * not at the midpoint of the (u,v) rectangle covered by the cell
-     */
-    private fun getCenterUV(): R2Vector {
-        val (_, i, j) = id.toFaceIJOrientation()
-        val cellSize = 1 shl S2CellId.kMaxLevel - level
-
-        // TODO(dbeaumont): Figure out a better naming of the variables here (and elsewhere).
-        val si = (i and -cellSize) * 2 + cellSize - kMaxCellSize
-        val x = S2Coords.stToUv(1.0 / kMaxCellSize * si)
-        val sj = (j and -cellSize) * 2 + cellSize - kMaxCellSize
-        val y = S2Coords.stToUv(1.0 / kMaxCellSize * sj)
-        return R2Vector(x, y)
-    }
-
     // Returns the average area of cells at this level in steradians.  This is
     // accurate to within a factor of 1.7 (for S2_QUADRATIC_PROJECTION) and is
     // extremely cheap to compute.
@@ -300,7 +283,7 @@ class S2Cell : S2Region, Comparable<S2Cell> {
 
         // First, check the minimum distance to the edge endpoints A and B.
         // (This also detects whether either endpoint is inside the cell.)
-        var minDist = minOf(getDistance(a), getDistance(b))
+        var minDist = minOf(getDistance(a), getDistance(b)).toMutable()
         if (minDist == S1ChordAngle.zero) return minDist
 
         // Otherwise, check whether the edge crosses the cell boundary.
@@ -317,7 +300,7 @@ class S2Cell : S2Region, Comparable<S2Cell> {
         // the interior of a cell edge, because the only way that this distance can
         // be minimal is if the two edges cross (already checked above).
         for (i in 0..3) {
-            minDist = S2EdgeDistances.minDistance(v[i], a, b, minDist)
+            S2EdgeDistances.updateMinDistance(v[i], a, b, minDist)
         }
         return minDist;
     }
@@ -356,11 +339,11 @@ class S2Cell : S2Region, Comparable<S2Cell> {
         val va = (0..3).map { i -> getVertex(i) }
         val vb = (0..3).map { i -> target.getVertex(i) }
 
-        var minDist = S1ChordAngle.infinity
+        var minDist = S1ChordAngle.infinity.toMutable()
         for (i in 0..3) {
             for (j in 0..3) {
-                minDist = S2EdgeDistances.minDistance(va[i], vb[j], vb[(j + 1) and 3], minDist)
-                minDist = S2EdgeDistances.minDistance(vb[i], va[j], va[(j + 1) and 3], minDist)
+                S2EdgeDistances.updateMinDistance(va[i], vb[j], vb[(j + 1) and 3], minDist)
+                S2EdgeDistances.updateMinDistance(vb[i], va[j], va[(j + 1) and 3], minDist)
             }
         }
         return minDist;
@@ -384,11 +367,11 @@ class S2Cell : S2Region, Comparable<S2Cell> {
         // faster by testing each vertex pair once rather than the current 4 times.
         val va = (0..3).map { i -> getVertex(i) }
         val vb = (0..3).map { i -> target.getVertex(i) }
-        var maxDist = S1ChordAngle.negative
+        var maxDist = S1ChordAngle.negative.toMutable()
         for (i in 0..3) {
             for (j in 0..3) {
-                maxDist = S2EdgeDistances.maxDistance(va[i], vb[j], vb[(j + 1) and 3], maxDist)
-                maxDist = S2EdgeDistances.maxDistance(vb[i], va[j], va[(j + 1) and 3], maxDist)
+                S2EdgeDistances.updateMaxDistance(va[i], vb[j], vb[(j + 1) and 3], maxDist)
+                S2EdgeDistances.updateMaxDistance(vb[i], va[j], va[(j + 1) and 3], maxDist)
             }
         }
         return maxDist;
@@ -425,8 +408,7 @@ class S2Cell : S2Region, Comparable<S2Cell> {
             // It's possible to show that the two vertices that are furthest from
             // the (u,v)-origin never determine the maximum cap size (this is a
             // possible future optimization).
-            val centerUV = getCenterUV()
-            val center = S2Coords.faceUVtoXYZ(face(), centerUV[0], centerUV[1]).normalize()
+            val center = S2Coords.faceUVtoXYZ(face(), boundUV.center).normalize();
             var cap = S2Cap.fromPoint(center)
             for (k in 0..3) {
                 cap = cap.addPoint(getVertex(k))

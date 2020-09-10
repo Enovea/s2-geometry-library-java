@@ -461,6 +461,7 @@ object S2Coords {
     // Convert (face, u, v) coordinates to a direction vector (not
     // necessarily unit length).
     fun faceUVtoXYZ(faceUV: FaceUV): S2Point = faceUVtoXYZ(faceUV.face, faceUV.u, faceUV.v)
+    fun faceUVtoXYZ(face: Int, uv: R2Point): S2Point = faceUVtoXYZ(face, uv[0], uv[1])
     fun faceUVtoXYZ(face: Int, u: Double, v: Double): S2Point {
         return when (face) {
             0 -> S2Point(1.0, u, v)

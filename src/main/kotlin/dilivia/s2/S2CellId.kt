@@ -1110,8 +1110,6 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
                             hi = S2Coords.stToUv(S2Coords.ijToStMin(jLo + cell_size))
                     )
             )
-            println("ijLevelToBoundUV: i = $i, j = $j, level = $level => $boundUV")
-            // [Lo[-1, -0.416667], Hi[-0.416667, 0]]
             return boundUV
         }
 

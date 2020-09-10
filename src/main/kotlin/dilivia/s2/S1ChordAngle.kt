@@ -289,6 +289,8 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         return "S1ChordAngle(length2=$length2)"
     }
 
+    fun toMutable(): MutableS1ChordAngle = MutableS1ChordAngle(length2)
+
 
     // Return true if the internal representation is valid.  Negative() and
     // Infinity() are both considered valid.

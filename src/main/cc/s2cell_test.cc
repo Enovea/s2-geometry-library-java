@@ -160,6 +160,7 @@ static void GatherStats(const S2Cell& cell) {
 }
 
 static void TestSubdivide(const S2Cell& cell) {
+  std::cout << "Test subdivide: " << cell << "\n";
   GatherStats(cell);
   if (cell.is_leaf()) return;
 
@@ -170,6 +171,7 @@ static void TestSubdivide(const S2Cell& cell) {
   double approx_area = 0;
   double average_area = 0;
   for (int i = 0; i < 4; ++i, child_id = child_id.next()) {
+    std::cout << "Check children " << i << ": " << children[i] << "\n";
     exact_area += children[i].ExactArea();
     approx_area += children[i].ApproxArea();
     average_area += children[i].AverageArea();
@@ -213,6 +215,7 @@ static void TestSubdivide(const S2Cell& cell) {
     EXPECT_TRUE(parent_cap.Contains(children[i].GetCenter()));
     EXPECT_TRUE(parent_rect.Contains(children[i].GetCenterRaw()));
     for (int j = 0; j < 4; ++j) {
+      std::cout << "Check vertex " << j << " = " << children[i].GetVertex(j) << ", raw = " << children[i].GetVertexRaw(j) << "\n";
       EXPECT_TRUE(child_cap.Contains(children[i].GetVertex(j)));
       EXPECT_TRUE(child_rect.Contains(children[i].GetVertex(j)));
       EXPECT_TRUE(child_rect.Contains(children[i].GetVertexRaw(j)));
@@ -225,8 +228,10 @@ static void TestSubdivide(const S2Cell& cell) {
         int cap_count = 0;
         int rect_count = 0;
         for (int k = 0; k < 4; ++k) {
-          if (child_cap.Contains(children[j].GetVertex(k)))
+          if (child_cap.Contains(children[j].GetVertex(k))) {
+            std::cout << "Child cap " << child_cap << " contains vertex " << k << " = " << children[j].getVertex(k) << " of child " << j << " = " << children[j] << "\n";
             ++cap_count;
+          }
           if (child_rect.Contains(children[j].GetVertexRaw(k)))
             ++rect_count;
         }
