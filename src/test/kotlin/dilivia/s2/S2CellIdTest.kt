@@ -441,10 +441,12 @@ class S2CellIdTest : GeometryTestCase() {
     }
 
     fun testExpandedByDistanceUV() {
-        val max_dist_degrees = 1.0
+        val max_dist_degrees = 10.0
         for (iter in 0 until 100) {
             val id = randomCellId
-            val dist_degrees = Random.Default.nextDouble(-max_dist_degrees, max_dist_degrees);
+            val cellSize = S2Cell(id).boundUV().size
+            val min = S1Angle.radians(min(cellSize[0], cellSize[1])).degrees()
+            val dist_degrees = Random.Default.nextDouble(-min, max_dist_degrees);
             testExpandedByDistanceUV(id, S1Angle.degrees(dist_degrees))
         }
     }

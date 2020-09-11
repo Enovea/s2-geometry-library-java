@@ -4,7 +4,7 @@
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -42,7 +42,7 @@ import kotlin.math.sqrt
  * An S2CellId is a 64-bit unsigned integer that uniquely identifies a cell in the S2 cell decomposition. It has the
  * following format:
  *
- *   id = [face][face_pos]
+ *   id = [face][facePos]
  *
  *   face:     a 3-bit number (range 0..5) encoding the cube face.
  *
@@ -109,7 +109,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
      * @see S2Coords
      */
     fun getCenterST(): R2Point {
-        val (_, si, ti) = getCenterSiTi();
+        val (_, si, ti) = getCenterSiTi()
         return R2Point(S2Coords.siTiToSt(si), S2Coords.siTiToSt(ti))
     }
 
@@ -139,7 +139,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
      * @see S2Coords
     */
     fun getCenterUV(): R2Point {
-        val (_, si, ti) = getCenterSiTi();
+        val (_, si, ti) = getCenterSiTi()
         return R2Point(
                 S2Coords.stToUv(S2Coords.siTiToSt(si)),
                 S2Coords.stToUv(S2Coords.siTiToSt(ti))
@@ -222,10 +222,10 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         // We can't just assert(isValid()) because we want level() to be
         // defined for end-iterators, i.e. S2CellId::End(kLevel).  However there is
         // no good way to define S2CellId::None().level(), so we do prohibit that.
-        assert(id != 0UL);
+        assert(id != 0UL)
 
         // A special case for leaf cells is not worthwhile.
-        return kMaxLevel - (Bits.findLSBSetNonZero64(id) shr 1);
+        return kMaxLevel - (Bits.findLSBSetNonZero64(id) shr 1)
     }
 
     /**
@@ -379,7 +379,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         // new_lsb.  Then to advance to the given child cell, we add
         // (2 * position * new_lsb).
         val newLsb = lsb() shr 2
-        return S2CellId(id + (2UL * position.toULong() + 1UL - 4UL) * newLsb);
+        return S2CellId(id + (2UL * position.toULong() + 1UL - 4UL) * newLsb)
     }
 
     /**
@@ -484,7 +484,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         val stepShift = 2 * (kMaxLevel - level()) + 1
         if (s < 0L) {
             val minSteps = -(id shr stepShift).toLong()
-            if (s < minSteps) s = minSteps;
+            if (s < minSteps) s = minSteps
         } else {
             val maxSteps = ((kWrapOffset + lsb() - id) shr stepShift).toLong()
             if (s > maxSteps) s = maxSteps
@@ -553,8 +553,8 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             val maxSteps = ((kWrapOffset - id) shr stepShift).toLong()
             if (wrappedSteps > maxSteps) {
                 val stepWrap = (kWrapOffset shr stepShift).toLong()
-                wrappedSteps %= stepWrap;
-                if (wrappedSteps > maxSteps) wrappedSteps -= stepWrap;
+                wrappedSteps %= stepWrap
+                if (wrappedSteps > maxSteps) wrappedSteps -= stepWrap
             }
         }
         return S2CellId(id + (wrappedSteps.toULong() shl stepShift))
@@ -599,7 +599,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             if (parent.rangeMin() != start || parent.rangeMax() >= limit) break
             cellId = parent
         }
-        return cellId;
+        return cellId
     }
 
     internal fun getCommonAncestorLevel(other: S2CellId): Int {
@@ -607,7 +607,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         // differ and convert that to a level.  The max() below is necessary for the
         // case where one S2CellId is a descendant of the other.
         val bits: ULong = max(id xor other.id, max(lsb(), other.lsb()))
-        assertNE(bits, 0);  // Because lsb() is non-zero.
+        assertNE(bits, 0)  // Because lsb() is non-zero.
 
         // Compute the position of the most significant bit, and then map the bit
         // position as follows:
@@ -642,8 +642,8 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
 
         // "0" with trailing 0s stripped is the empty string, which is not a
         // reasonable token.  Encode as "X".
-        if (id == 0UL) return "X";
-        val numZeroDigits = Bits.findLSBSetNonZero64(id) / 4;
+        if (id == 0UL) return "X"
+        val numZeroDigits = Bits.findLSBSetNonZero64(id) / 4
         return hexFormatString(id shr (4 * numZeroDigits), 16 - numZeroDigits)
     }
 
@@ -754,7 +754,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
      * @param output The list to append to.
      */
     fun appendAllNeighbors(nbrLevel: Int, output: MutableList<S2CellId>) {
-        assertGE(nbrLevel, level());
+        assertGE(nbrLevel, level())
         var (face, i, j, _) = toFaceIJOrientation(false)
 
         // Find the coordinates of the lower left-hand leaf cell.  We need to
@@ -764,28 +764,28 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         i = i and -size
         j = j and -size
 
-        val nbr_size = getSizeIJ(nbrLevel)
-        assertLE(nbr_size, size);
+        val nbrSize = getSizeIJ(nbrLevel)
+        assertLE(nbrSize, size)
 
         // We compute the top-bottom, left-right, and diagonal neighbors in one
         // pass.  The loop test is at the end of the loop to avoid 32-bit overflow.
-        var k = -nbr_size
+        var k = -nbrSize
         while (true) {
-            val same_face: Boolean = when {
+            val sameFace: Boolean = when {
                 k < 0 -> j + k >= 0
                 k >= size -> (j + k) < kMaxSize
                 else -> {
                     // Top and bottom neighbors.
-                    output.add(fromFaceIJSame(face, i + k, j - nbr_size, j - size >= 0).parent(nbrLevel))
-                    output.add(fromFaceIJSame(face, i + k, j + size, j + size < kMaxSize).parent(nbrLevel));
+                    output.add(fromFaceIJSame(face, i + k, j - nbrSize, j - size >= 0).parent(nbrLevel))
+                    output.add(fromFaceIJSame(face, i + k, j + size, j + size < kMaxSize).parent(nbrLevel))
                     true
                 }
             }
             // Left, right, and diagonal neighbors.
-            output.add(fromFaceIJSame(face, i - nbr_size, j + k, same_face && i - size >= 0).parent(nbrLevel));
-            output.add(fromFaceIJSame(face, i + size, j + k, same_face && i + size < kMaxSize).parent(nbrLevel));
-            if (k >= size) break;
-            k += nbr_size
+            output.add(fromFaceIJSame(face, i - nbrSize, j + k, sameFace && i - size >= 0).parent(nbrLevel))
+            output.add(fromFaceIJSame(face, i + size, j + k, sameFace && i + size < kMaxSize).parent(nbrLevel))
+            if (k >= size) break
+            k += nbrSize
         }
     }
 
@@ -831,8 +831,8 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             // by (kMaxLevel-n-1) repetitions of "00", followed by "0".  The "10" has
             // no effect, while each occurrence of "00" has the effect of reversing
             // the kSwapMask bit.
-            assertEQ(0, kPosToOrientation[2]);
-            assertEQ(kSwapMask, kPosToOrientation[0]);
+            assertEQ(0, kPosToOrientation[2])
+            assertEQ(kSwapMask, kPosToOrientation[0])
             if ((lsb() and 0x1111111111111110UL) != 0UL) {
                 bits = bits xor kSwapMask.toUInt()
             }
@@ -930,7 +930,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         // it contains all points within 5km of the original cell.  You can then
         // test whether a point lies within the expanded bounds like this:
         //
-        //   R2Point uv;
+        //   R2Point uv
         //   if (S2::FaceXYZtoUV(face, point, &uv) && bound.Contains(uv)) { ... }
         //
         // Limitations:
@@ -953,13 +953,12 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             val u1 = uv[0][1]
             val v0 = uv[1][0]
             val v1 = uv[1][1]
-            val max_u = max(abs(u0), abs(u1))
-            val max_v = max(abs(v0), abs(v1))
-            val sin_dist = sin(distance)
-            println("expandedByDistanceUV  uv = $uv , distance = $distance")
+            val maxU = max(abs(u0), abs(u1))
+            val maxV = max(abs(v0), abs(v1))
+            val sinDist = sin(distance)
             return R2Rect(
-                    R1Interval(expandEndpoint(u0, max_v, -sin_dist), expandEndpoint(u1, max_v, sin_dist)),
-                    R1Interval(expandEndpoint(v0, max_u, -sin_dist), expandEndpoint(v1, max_u, sin_dist))
+                    R1Interval(expandEndpoint(u0, maxV, -sinDist), expandEndpoint(u1, maxV, sinDist)),
+                    R1Interval(expandEndpoint(v0, maxU, -sinDist), expandEndpoint(v1, maxU, sinDist))
             )
         }
 
@@ -972,10 +971,10 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         private fun expandEndpoint(u: Double, max_v: Double, sin_dist: Double): Double {
             // This is based on solving a spherical right triangle, similar to the
             // calculation in S2Cap::GetRectBound.
-            val sin_u_shift = sin_dist * sqrt((1 + u * u + max_v * max_v) / (1 + u * u));
-            val cos_u_shift = sqrt(1 - sin_u_shift * sin_u_shift);
+            val sinUShift = sin_dist * sqrt((1 + u * u + max_v * max_v) / (1 + u * u))
+            val cosUShift = sqrt(1 - sinUShift * sinUShift)
             // The following is an expansion of tan(atan(u) + asin(sin_u_shift)).
-            return (cos_u_shift * u + sin_u_shift) / (cos_u_shift - sin_u_shift * u);
+            return (cosUShift * u + sinUShift) / (cosUShift - sinUShift * u)
         }
 
         // Like the above, but return the size of cells at the given level.
@@ -1002,15 +1001,15 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
          */
         @JvmStatic
         fun fromToken(token: String): S2CellId {
-            if (token.length > 16) return S2CellId.none()
+            if (token.length > 16) return none()
             var id: ULong = 0UL
-            var pos: Int = 60
+            var pos = 60
             for (i in token.indices) {
                 val d: ULong = when {
                     token[i] in '0'..'9' -> (token[i] - '0').toULong()
                     token[i] in 'a'..'f' -> (token[i] - 'a' + 10).toULong()
                     token[i] in 'A'..'F' -> (token[i] - 'A' + 10).toULong()
-                    else -> return S2CellId.none()
+                    else -> return none()
                 }
                 id = id or (d shl pos)
                 pos -= 4
@@ -1033,11 +1032,11 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             if (face < 0 || face > 5 || str[1] != '/') return none()
             var id = fromFace(face)
             for (i in 2 until str.length) {
-                val child_pos = str[i] - '0'
-                if (child_pos < 0 || child_pos > 3) return S2CellId.none()
-                id = id.child(child_pos)
+                val childPos = str[i] - '0'
+                if (childPos < 0 || childPos > 3) return none()
+                id = id.child(childPos)
             }
-            return id;
+            return id
         }
 
         // ///////////////////////////////////////////////////////////////////
@@ -1096,20 +1095,19 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
         // the leaf cell with the given (i,j)-coordinates.
         @JvmStatic
         fun ijLevelToBoundUV(i: Int, j: Int, level: Int): R2Rect {
-            val cell_size = getSizeIJ(level)
-            val iLo = i and -cell_size
-            val jLo = j and -cell_size
-            val boundUV = R2Rect(
+            val cellSize = getSizeIJ(level)
+            val iLo = i and -cellSize
+            val jLo = j and -cellSize
+            return R2Rect(
                     x = R1Interval(
                             lo = S2Coords.stToUv(S2Coords.ijToStMin(iLo)),
-                            hi = S2Coords.stToUv(S2Coords.ijToStMin(iLo + cell_size))
+                            hi = S2Coords.stToUv(S2Coords.ijToStMin(iLo + cellSize))
                     ),
                     y = R1Interval(
                             lo = S2Coords.stToUv(S2Coords.ijToStMin(jLo)),
-                            hi = S2Coords.stToUv(S2Coords.ijToStMin(jLo + cell_size))
+                            hi = S2Coords.stToUv(S2Coords.ijToStMin(jLo + cellSize))
                     )
             )
-            return boundUV
         }
 
         // Given a face and a point (i,j) where either i or j is outside the valid
@@ -1122,8 +1120,8 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
             // Convert i and j to the coordinates of a leaf cell just beyond the
             // boundary of this face.  This prevents 32-bit overflow in the case
             // of finding the neighbors of a face cell.
-            val i = max(-1, min(kMaxSize, i))
-            val j = max(-1, min(kMaxSize, j))
+            val normalizedI = max(-1, min(kMaxSize, i))
+            val normalizedJ = max(-1, min(kMaxSize, j))
 
             // We want to wrap these coordinates onto the appropriate adjacent face.
             // The easiest way to do this is to convert the (i,j) coordinates to (x,y,z)
@@ -1141,8 +1139,8 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
 
             // The arithmetic below is designed to avoid 32-bit integer overflows.
             assertEQ(0, kMaxSize % 2)
-            val u = max(-kLimit, min(kLimit, kScale * (2 * (i - kMaxSize / 2) + 1)))
-            val v = max(-kLimit, min(kLimit, kScale * (2 * (j - kMaxSize / 2) + 1)))
+            val u = max(-kLimit, min(kLimit, kScale * (2 * (normalizedI - kMaxSize / 2) + 1)))
+            val v = max(-kLimit, min(kLimit, kScale * (2 * (normalizedJ - kMaxSize / 2) + 1)))
 
             // Find the leaf cell coordinates on the adjacent face, and convert
             // them to a cell id at the appropriate level.
@@ -1210,7 +1208,7 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
                 v = v shr 4
                 i--
             }
-            return result;
+            return result
         }
 
     }

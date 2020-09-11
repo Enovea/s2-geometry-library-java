@@ -190,7 +190,7 @@ class S2PredicatesTest : GeometryTestCase() {
         // tangent toward B, and such that A, A1, and A2 are exactly collinear
         // (i.e. even with infinite-precision arithmetic).
         fun addTangentPoints(a: S2Point, b: S2Point, points: MutableList<S2Point>) {
-            var dir = S2.robustCrossProd(a, b).crossProd(a)
+            var dir = robustCrossProd(a, b).crossProd(a)
             if (dir.approxEquals(S2Point(0, 0, 0), 1e-20)) return
             dir = dir.normalize()
             while (true) {

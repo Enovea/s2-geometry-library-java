@@ -4,7 +4,7 @@
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -18,17 +18,188 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
+import com.google.common.geometry.S2.*
 import kotlin.math.*
 
+/**
+ * Defines a collection of functions for computing the distance to an edge, interpolating along an edge, projecting
+ * points onto edges, etc.
+ */
 object S2EdgeDistances {
 
     /////////////////////////////////////////////////////////////////////////////
-    ///////////////         (point along edge) functions          ///////////////
+    ///////////////            (point, edge) functions            ///////////////
+    /////////////////////////////////////////////////////////////////////////////
 
-    // Given a point X and an edge AB, returns the distance ratio AX / (AX + BX).
-    // If X happens to be on the line segment AB, this is the fraction "t" such
-    // that X == Interpolate(t, A, B).  Requires that A and B are distinct.
+    /**
+     * Gets the minimum distance from X to any point on the edge AB. All arguments should be unit length. The result is
+     * very accurate for small distances but may have some numerical error if the distance is large
+     * (approximately Pi/2 or greater).  The case A == B is handled correctly.
+     *
+     * If you want to compare a distance against a fixed threshold, e.g.
+     *       if (S2EdgeDistances.getDistance(x, a, b) < limit)
+     * then it is significantly faster to use UpdateMinDistance() below.
+     *
+     * @param x A point.
+     * @param a The begin point of the edge.
+     * @param b The end point of the edge.
+     * @return The minimum distance from X to the edge AB.
+     */
+    fun getDistance(x: S2Point, a: S2Point, b: S2Point): S1Angle {
+        val minDist = MutableS1ChordAngle(Double.MAX_VALUE)
+        alwaysUpdateMinDistance(x, a, b, minDist, true)
+        return minDist.toAngle()
+    }
+
+    /**
+     * Indicates if the distance from X to the edge AB is less than "limit". (Specify limit.successor() for "less than
+     * or equal to".) This method is significantly faster than GetDistance(). If you want to compare against a fixed
+     * S1Angle, you should convert it to an S1ChordAngle once and save the value, since this step is relatively
+     * expensive.
+     *
+     * @param x A point.
+     * @param a The begin point of the edge.
+     * @param b The end point of the edge.
+     * @param limit The limit distance.
+     * @see S2Predicates.compareDistances for an exact version of this predicate.
+     */
+    fun isDistanceLess(x: S2Point, a: S2Point, b: S2Point, limit: S1ChordAngle): Boolean = updateMinDistance(x, a, b, limit.toMutable())
+
+    /**
+     * If the distance from X to the edge AB is less than "minDist", this method updates "minDist" and returns true.
+     * Otherwise it returns false. The case A == B is handled correctly.
+     *
+     * Use this method when you want to compute many distances and keep track of the minimum. It is significantly faster
+     * than using getDistance(), because (1) using S1ChordAngle is much faster than S1Angle, and (2) it can save a lot
+     * of work by not actually computing the distance when it is obviously larger than the current minimum.
+     *
+     * @param x A point.
+     * @param a The begin point of the edge.
+     * @param b The end point of the edge.
+     * @param minDist The minimum distance to update if the distance from X to AB is less than minDist.
+     * @return true if the distance has been updated and false otherwise.
+     */
+    fun updateMinDistance(x: S2Point, a: S2Point, b: S2Point, minDist: MutableS1ChordAngle): Boolean = alwaysUpdateMinDistance(x, a, b, minDist, false)
+
+    /**
+     * If the maximum distance from X to the edge AB is greater than "max_dist", this method updates "max_dist" and
+     * returns true. Otherwise it returns false.
+     * The case A == B is handled correctly.
+     *
+     * @param x A point.
+     * @param a The begin point of the edge.
+     * @param b The end point of the edge.
+     * @param maxDist The maximum distance to update if the distance from X to AB is greater than maxDist.
+     * @return true if the distance has been updated and false otherwise.
+     */
+    fun updateMaxDistance(x: S2Point, a: S2Point, b: S2Point, maxDist: MutableS1ChordAngle): Boolean {
+        val dist = maxOf(S1ChordAngle.between(x, a), S1ChordAngle.between(x, b)).toMutable()
+        if (dist > S1ChordAngle.right) {
+            alwaysUpdateMinDistance(-x, a, b, dist, true)
+            dist.length2 = (S1ChordAngle.straight - dist).length2
+        }
+        if (maxDist < dist) {
+            maxDist.length2 = dist.length2
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Gets the maximum error in the result of updateMinDistance (and associated functions such as
+     * updateMinInteriorDistance, isDistanceLess, etc), assuming that all input points are normalized to within
+     * the bounds guaranteed by S2Point.normalize(). The error can be added or subtracted from an S1ChordAngle "x"
+     * using x.plusError(error).
+     *
+     * Note that accuracy goes down as the distance approaches 0 degrees or 180 degrees (for different reasons).
+     * Near 0 degrees the error is acceptable for all practical purposes (about 1.2e-15 radians ~= 8 nanometers). For
+     * exactly antipodal points the maximum error is quite high (0.5 meters), but this error drops rapidly as the points
+     * move away from antipodality (approximately 1 millimeter for points that are 50 meters from antipodal,
+     * and 1 micrometer for points that are 50km from antipodal).
+     *
+     * TODO(ericv): Currently the error bound does not hold for edges whose endpoints are antipodal to within about
+     * 1e-15 radians (less than 1 micron). This could be fixed by extending S2::RobustCrossProd to use higher
+     * precision when necessary.
+     */
+    fun getUpdateMinDistanceMaxError(dist: S1ChordAngle): Double {
+        // There are two cases for the maximum error in UpdateMinDistance(),
+        // depending on whether the closest point is interior to the edge.
+        return max(getUpdateMinInteriorDistanceMaxError(dist), dist.getS2PointConstructorMaxError())
+    }
+
+    // Returns the maximum error in the result of UpdateMinInteriorDistance,
+    // assuming that all input points are normalized to within the bounds
+    // guaranteed by S2Point::Normalize().  The error can be added or subtracted
+    // from an S1ChordAngle "x" using x.PlusError(error).
+    private fun getUpdateMinInteriorDistanceMaxError(dist: S1ChordAngle): Double {
+        // If a point is more than 90 degrees from an edge, then the minimum
+        // distance is always to one of the endpoints, not to the edge interior.
+        if (dist >= S1ChordAngle.right) return 0.0
+
+        // This bound includes all source of error, assuming that the input points
+        // are normalized to within the bounds guaranteed to S2Point::Normalize().
+        // "a" and "b" are components of chord length that are perpendicular and
+        // parallel to the plane containing the edge respectively.
+        val b = min(1.0, 0.5 * dist.length2)
+        val a = sqrt(b * (2 - b))
+        return ((2.5 + 2 * M_SQRT3 + 8.5 * a) * a +
+                (2 + 2 * M_SQRT3 / 3 + 6.5 * (1 - b)) * b +
+                (23 + 16 / M_SQRT3) * DBL_EPSILON) * DBL_EPSILON
+    }
+
+    /**
+     * Indicates if the minimum distance from X to the edge AB is attained at an interior point of AB (i.e., not an
+     * endpoint), and that distance is less than "limit". (Specify limit.successor() for "less than or equal to".)
+     */
+    fun isInteriorDistanceLess(x: S2Point, a: S2Point, b: S2Point, limit: S1ChordAngle): Boolean = updateMinInteriorDistance(x, a, b, limit.toMutable())
+
+    /**
+     * If the minimum distance from X to AB is attained at an interior point of AB (i.e., not an endpoint), and that
+     * distance is less than "min_dist", then this method updates "min_dist" and returns true.  Otherwise returns false.
+     */
+    fun updateMinInteriorDistance(x: S2Point, a: S2Point, b: S2Point, minDist: MutableS1ChordAngle): Boolean {
+        val xa2 = (x - a).norm2()
+        val xb2 = (x - b).norm2()
+        return alwaysUpdateMinInteriorDistance(x, a, b, xa2, xb2, minDist, false)
+    }
+
+    /**
+     * Returns the point along the edge AB that is closest to the point X. The fractional distance of this point along
+     * the edge AB can be obtained using getDistanceFraction() above.  Requires that all vectors have
+     * unit length.
+     */
+    fun project(x: S2Point, a: S2Point, b: S2Point): S2Point = project(x, a, b, robustCrossProd(a, b))
+
+    /**
+     * A slightly more efficient version of project() where the cross product of the two endpoints has been precomputed.
+     * The cross product does not need to be normalized, but should be computed using S2::RobustCrossProd() for the
+     * most accurate results.  Requires that x, a, and b have unit length.
+     */
+    fun project(x: S2Point, a: S2Point, b: S2Point, aCrossB: S2Point): S2Point {
+        Assertions.assertPointIsUnitLength(a)
+        Assertions.assertPointIsUnitLength(b)
+        Assertions.assertPointIsUnitLength(x)
+
+        // Find the closest point to X along the great circle through AB.
+        val p = x - (x.dotProd(aCrossB) / aCrossB.norm2()) * aCrossB
+
+        // If this point is on the edge AB, then it's the closest point.
+        if (simpleCCW(aCrossB, a, p) && simpleCCW(p, b, aCrossB)) {
+            return p.normalize()
+        }
+        // Otherwise, the closest point is either A or B.
+        return if ((x - a).norm2() <= (x - b).norm2()) a else b
+    }
+
+    /////////////////////////////////////////////////////////////////////////////
+    ///////////////         (point along edge) functions          ///////////////
+    /////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Given a point X and an edge AB, returns the distance ratio AX / (AX + BX). If X happens to be on the line segment
+     * AB, this is the fraction "t" such that X == Interpolate(t, A, B).  Requires that A and B are distinct.
+     */
     fun getDistanceFraction(x: S2Point, a: S2Point, b: S2Point): Double {
         assert(a <= b)
         val d0 = x.angle(a)
@@ -59,7 +230,7 @@ object S2EdgeDistances {
         // Use RobustCrossProd() to compute the tangent vector at A towards B.  The
         // result is always perpendicular to A, even if A=B or A=-B, but it is not
         // necessarily unit length.  (We effectively normalize it below.)
-        val normal = S2.robustCrossProd(a, b)
+        val normal = robustCrossProd(a, b)
         val tangent = normal.crossProd(a)
         assert(tangent != S2Point(0, 0, 0))
 
@@ -71,59 +242,167 @@ object S2EdgeDistances {
         return (cos(ax) * a + (sin(ax) / tangent.norm()) * tangent).normalize()
     }
 
+    //////////////////////////////////////////////////////////////////////////////
+    ////////////////            (edge, edge) functions             ///////////////
     /////////////////////////////////////////////////////////////////////////////
-    ///////////////            (point, edge) functions            ///////////////
 
-    // Returns the minimum distance from X to any point on the edge AB.  All
-    // arguments should be unit length.  The result is very accurate for small
-    // distances but may have some numerical error if the distance is large
-    // (approximately Pi/2 or greater).  The case A == B is handled correctly.
-    //
-    // If you want to compare a distance against a fixed threshold, e.g.
-    //    if (S2::GetDistance(x, a, b) < limit)
-    // then it is significantly faster to use UpdateMinDistance() below.
-    fun getDistance(x: S2Point, a: S2Point, b: S2Point): S1Angle {
-        val minDist = MutableS1ChordAngle(Double.MAX_VALUE)
-        alwaysUpdateMinDistance(x, a, b, minDist, true)
-        return minDist.toAngle()
+
+    // Like UpdateMinDistance(), but computes the minimum distance between the
+    // given pair of edges.  (If the two edges cross, the distance is zero.)
+    // The cases a0 == a1 and b0 == b1 are handled correctly.
+    fun updateEdgePairMinDistance(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point, minDist: MutableS1ChordAngle): Boolean {
+        if (minDist == S1ChordAngle.zero) {
+            return false
+        }
+        if (S2EdgeCrossings.crossingSign(a0, a1, b0, b1) > 0) {
+            minDist.length2 = S1ChordAngle.zero.length2
+            return true
+        }
+        // Otherwise, the minimum distance is achieved at an endpoint of at least
+        // one of the two edges.  We use "|" rather than "||" below to ensure that
+        // all four possibilities are always checked.
+        //
+        // The calculation below computes each of the six vertex-vertex distances
+        // twice (this could be optimized).
+        return (updateMinDistance(a0, b0, b1, minDist) or
+                updateMinDistance(a1, b0, b1, minDist) or
+                updateMinDistance(b0, a0, a1, minDist) or
+                updateMinDistance(b1, a0, a1, minDist))
     }
 
-    // Returns true if the distance from X to the edge AB is less than "limit".
-    // (Specify limit.Successor() for "less than or equal to".)  This method is
-    // significantly faster than GetDistance().  If you want to compare against a
-    // fixed S1Angle, you should convert it to an S1ChordAngle once and save the
-    // value, since this step is relatively expensive.
-    //
-    // See s2pred::CompareEdgeDistance() for an exact version of this predicate.
-    fun isDistanceLess(x: S2Point, a: S2Point, b: S2Point, limit: S1ChordAngle): Boolean = TODO()
-
-    // If the distance from X to the edge AB is less than "min_dist", this
-    // method updates "min_dist" and returns true.  Otherwise it returns false.
-    // The case A == B is handled correctly.
-    //
-    // Use this method when you want to compute many distances and keep track of
-    // the minimum.  It is significantly faster than using GetDistance(),
-    // because (1) using S1ChordAngle is much faster than S1Angle, and (2) it
-    // can save a lot of work by not actually computing the distance when it is
-    // obviously larger than the current minimum.
-    fun updateMinDistance(x: S2Point, a: S2Point, b: S2Point, minDistance: MutableS1ChordAngle): Boolean = alwaysUpdateMinDistance(x, a, b, minDistance, false)
-
-    // If the maximum distance from X to the edge AB is greater than "max_dist",
-    // this method updates "max_dist" and returns true.  Otherwise it returns false.
-    // The case A == B is handled correctly.
-    fun updateMaxDistance(x: S2Point, a: S2Point, b: S2Point, maxDistance: MutableS1ChordAngle): Boolean {
-        val dist = maxOf(S1ChordAngle.between(x, a), S1ChordAngle.between(x, b)).toMutable()
-        if (dist > S1ChordAngle.right) {
-            alwaysUpdateMinDistance(-x, a, b, dist, true)
-            dist.length2 = (S1ChordAngle.straight - dist).length2
+    // As above, but for maximum distances.  If one edge crosses the antipodal
+    // reflection of the other, the distance is Pi.
+    fun updateEdgePairMaxDistance(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point, maxDist: MutableS1ChordAngle): Boolean {
+        if (maxDist == S1ChordAngle.straight) {
+            return false
         }
-        if (maxDistance < dist) {
-            maxDistance.length2 = dist.length2;
-            return true;
+        if (S2EdgeCrossings.crossingSign(a0, a1, -b0, -b1) > 0) {
+            maxDist.length2 = S1ChordAngle.straight.length2
+            return true
         }
-
-        return false;
+        // Otherwise, the maximum distance is achieved at an endpoint of at least
+        // one of the two edges.  We use "|" rather than "||" below to ensure that
+        // all four possibilities are always checked.
+        //
+        // The calculation below computes each of the six vertex-vertex distances
+        // twice (this could be optimized).
+        return (updateMaxDistance(a0, b0, b1, maxDist) or
+                updateMaxDistance(a1, b0, b1, maxDist) or
+                updateMaxDistance(b0, a0, a1, maxDist) or
+                updateMaxDistance(b1, a0, a1, maxDist))
     }
+
+    // Returns the pair of points (a, b) that achieves the minimum distance
+    // between edges a0a1 and b0b1, where "a" is a point on a0a1 and "b" is a
+    // point on b0b1.  If the two edges intersect, "a" and "b" are both equal to
+    // the intersection point.  Handles a0 == a1 and b0 == b1 correctly.
+    fun getEdgePairClosestPoints(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): Pair<S2Point, S2Point> {
+        if (S2EdgeCrossings.crossingSign(a0, a1, b0, b1) > 0) {
+            val x = S2EdgeCrossings.getIntersection(a0, a1, b0, b1)
+            return x to x
+        }
+        // We save some work by first determining which vertex/edge pair achieves
+        // the minimum distance, and then computing the closest point on that edge.
+        val minDist = MutableS1ChordAngle(0.0)
+        alwaysUpdateMinDistance(a0, b0, b1, minDist, true)
+        var closestVertex = Vertex.A0
+        if (updateMinDistance(a1, b0, b1, minDist)) { closestVertex = Vertex.A1; }
+        if (updateMinDistance(b0, a0, a1, minDist)) { closestVertex = Vertex.B0; }
+        if (updateMinDistance(b1, a0, a1, minDist)) { closestVertex = Vertex.B1; }
+        return when (closestVertex) {
+            Vertex.A0 -> Pair(a0, project(a0, b0, b1))
+            Vertex.A1 -> Pair(a1, project(a1, b0, b1))
+            Vertex.B0 -> Pair(project(b0, a0, a1), b0)
+            Vertex.B1 -> Pair(project(b1, a0, a1), b1)
+        }
+    }
+    enum class Vertex { A0, A1, B0, B1 }
+
+    // Returns true if every point on edge B=b0b1 is no further than "tolerance"
+    // from some point on edge A=a0a1.  Equivalently, returns true if the directed
+    // Hausdorff distance from B to A is no more than "tolerance".
+    // Requires that tolerance is less than 90 degrees.
+    fun isEdgeBNearEdgeA(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point, tolerance: S1Angle): Boolean {
+        assert(tolerance.radians <= M_PI / 2)
+        assert(tolerance.radians >= 0)
+        // The point on edge B=b0b1 furthest from edge A=a0a1 is either b0, b1, or
+        // some interior point on B.  If it is an interior point on B, then it must be
+        // one of the two points where the great circle containing B (circ(B)) is
+        // furthest from the great circle containing A (circ(A)).  At these points,
+        // the distance between circ(B) and circ(A) is the angle between the planes
+        // containing them.
+
+        var aOrtho = robustCrossProd(a0, a1).normalize()
+        val aNearestB0 = project(b0, a0, a1, aOrtho)
+        val aNearestB1 = project(b1, a0, a1, aOrtho)
+        // If a_nearest_b0 and a_nearest_b1 have opposite orientation from a0 and a1,
+        // we invert a_ortho so that it points in the same direction as a_nearest_b0 x
+        // a_nearest_b1.  This helps us handle the case where A and B are oppositely
+        // oriented but otherwise might be near each other.  We check orientation and
+        // invert rather than computing a_nearest_b0 x a_nearest_b1 because those two
+        // points might be equal, and have an unhelpful cross product.
+        if (S2Predicates.sign(aOrtho, aNearestB0, aNearestB1) < 0) aOrtho = -aOrtho
+
+        // To check if all points on B are within tolerance of A, we first check to
+        // see if the endpoints of B are near A.  If they are not, B is not near A.
+        val b0Distance = S1Angle(b0, aNearestB0)
+        val b1Distance = S1Angle(b1, aNearestB1)
+        if (b0Distance > tolerance || b1Distance > tolerance)
+            return false
+
+        // If b0 and b1 are both within tolerance of A, we check to see if the angle
+        // between the planes containing B and A is greater than tolerance.  If it is
+        // not, no point on B can be further than tolerance from A (recall that we
+        // already know that b0 and b1 are close to A, and S2Edges are all shorter
+        // than 180 degrees).  The angle between the planes containing circ(A) and
+        // circ(B) is the angle between their normal vectors.
+        val bOrtho = robustCrossProd(b0, b1).normalize()
+        val planarAngle = S1Angle(aOrtho, bOrtho)
+        if (planarAngle <= tolerance)
+            return true
+
+        // As planar_angle approaches M_PI, the projection of a_ortho onto the plane
+        // of B approaches the null vector, and normalizing it is numerically
+        // unstable.  This makes it unreliable or impossible to identify pairs of
+        // points where circ(A) is furthest from circ(B).  At this point in the
+        // algorithm, this can only occur for two reasons:
+        //
+        //  1.) b0 and b1 are closest to A at distinct endpoints of A, in which case
+        //      the opposite orientation of a_ortho and b_ortho means that A and B are
+        //      in opposite hemispheres and hence not close to each other.
+        //
+        //  2.) b0 and b1 are closest to A at the same endpoint of A, in which case
+        //      the orientation of a_ortho was chosen arbitrarily to be that of a0
+        //      cross a1.  B must be shorter than 2*tolerance and all points in B are
+        //      close to one endpoint of A, and hence to A.
+        //
+        // The logic applies when planar_angle is robustly greater than M_PI/2, but
+        // may be more computationally expensive than the logic beyond, so we choose a
+        // value close to M_PI.
+        if (planarAngle >= S1Angle.radians(M_PI - 0.01)) {
+            return (S1Angle(b0, a0) < S1Angle(b0, a1)) == (S1Angle(b1, a0) < S1Angle(b1, a1))
+        }
+
+        // Finally, if either of the two points on circ(B) where circ(B) is furthest
+        // from circ(A) lie on edge B, edge B is not near edge A.
+        //
+        // The normalized projection of a_ortho onto the plane of circ(B) is one of
+        // the two points along circ(B) where it is furthest from circ(A).  The other
+        // is -1 times the normalized projection.
+        val furthest = (aOrtho - aOrtho.dotProd(bOrtho) * bOrtho).normalize()
+        Assertions.assertPointIsUnitLength(furthest)
+        val furthestInv = -furthest
+
+        // A point p lies on B if you can proceed from b_ortho to b0 to p to b1 and
+        // back to b_ortho without ever turning right.  We test this for furthest and
+        // furthest_inv, and return true if neither point lies on B.
+        return !((S2Predicates.sign(bOrtho, b0, furthest) > 0 && S2Predicates.sign(furthest, b1, bOrtho) > 0) ||
+                (S2Predicates.sign(bOrtho, b0, furthestInv) > 0 && S2Predicates.sign(furthestInv, b1, bOrtho) > 0))
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    ////////////////              internal functions              ///////////////
+    /////////////////////////////////////////////////////////////////////////////
 
     // This function computes the distance from a point X to a line segment AB.
     // If the distance is less than "min_dist" or "always_update" is true, it
@@ -133,7 +412,7 @@ object S2EdgeDistances {
     // AlwaysUpdateMinDistance<true> always updates the given distance, while
     // AlwaysUpdateMinDistance<false> does not.  This optimization increases the
     // speed of GetDistance() by about 10% without creating code duplication.
-    fun alwaysUpdateMinDistance(x: S2Point, a: S2Point, b: S2Point, min_dist: MutableS1ChordAngle, always_update: Boolean = true): Boolean {
+    private fun alwaysUpdateMinDistance(x: S2Point, a: S2Point, b: S2Point, min_dist: MutableS1ChordAngle, always_update: Boolean = true): Boolean {
         Assertions.assertPointIsUnitLength(x)
         Assertions.assertPointIsUnitLength(a)
         Assertions.assertPointIsUnitLength(b)
@@ -167,7 +446,7 @@ object S2EdgeDistances {
         Assertions.assertPointIsUnitLength(a)
         Assertions.assertPointIsUnitLength(b)
         Assertions.assert { xa2 == (x - a).norm2() }
-        Assertions.assert { xb2 == (x-b).norm2() }
+        Assertions.assert { xb2 == (x - b).norm2() }
 
         // The closest point on AB could either be one of the two vertices (the
         // "vertex case") or in the interior (the "interior case").  Let C = A x B.
@@ -187,7 +466,7 @@ object S2EdgeDistances {
         //
         //             max(XA^2, XB^2) < min(XA^2, XB^2) + AB^2
         //
-        if (max(xa2, xb2) >= min(xa2, xb2) + (a-b).norm2()) {
+        if (max(xa2, xb2) >= min(xa2, xb2) + (a - b).norm2()) {
             return false
         }
         // The minimum distance might be to a point on the edge interior.  Let R
@@ -203,7 +482,7 @@ object S2EdgeDistances {
         // We ignore the QR^2 term and instead use XQ^2 as a lower bound, since it
         // is faster and the corresponding distance on the Earth's surface is
         // accurate to within 1% for distances up to about 1800km.
-        val c = S2.robustCrossProd(a, b)
+        val c = robustCrossProd(a, b)
         val c2 = c.norm2()
         val xDotC = x.dotProd(c)
         val xDotC2 = xDotC * xDotC
@@ -234,7 +513,5 @@ object S2EdgeDistances {
         min_dist.length2 = dist2
         return true
     }
-
-
 
 }

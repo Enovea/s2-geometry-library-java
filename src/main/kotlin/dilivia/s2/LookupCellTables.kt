@@ -18,7 +18,9 @@
  */
 package dilivia.s2
 
+import com.google.common.base.Preconditions
 import com.google.common.geometry.S2
+import dilivia.s2.S2Coords.kPosToIJ
 
 /**
  * The following lookup tables are used to convert efficiently between an
@@ -72,12 +74,46 @@ object LookupCellTables {
             currentPos = currentPos shl 2
             // Initialize each sub-cell recursively.
             for (subPos in 0..3) {
-                val ij = S2.posToIJ(orientation, subPos)
-                val orientationMask = S2.posToOrientation(subPos)
+                val ij = posToIJ(orientation, subPos)
+                val orientationMask = posToOrientation(subPos)
                 initLookupCell(currentLevel, currentI + (ij ushr 1), currentJ + (ij and 1), origOrientation,
                         currentPos + subPos, orientation xor orientationMask)
             }
         }
+    }
+
+    /**
+     * Returns an XOR bit mask indicating how the orientation of a child subcell
+     * is related to the orientation of its parent cell. The returned value can
+     * be XOR'd with the parent cell's orientation to give the orientation of
+     * the child cell.
+     *
+     * @param position the position of the subcell in the Hilbert traversal, in
+     * the range [0,3].
+     * @return a bit mask containing some combination of [.SWAP_MASK] and
+     * [.INVERT_MASK].
+     * @throws IllegalArgumentException if position is out of bounds.
+     */
+    private fun posToOrientation(position: Int): Int {
+        assert(position in 0..3)
+        return S2Coords.kPosToOrientation[position]
+    }
+
+    /**
+     * Return the IJ-index of the subcell at the given position in the Hilbert
+     * curve traversal with the given orientation. This is the inverse of
+     * [.ijToPos].
+     *
+     * @param orientation the subcell orientation, in the range [0,3].
+     * @param position the position of the subcell in the Hilbert traversal, in
+     * the range [0,3].
+     * @return the IJ-index where `0->(0,0), 1->(0,1), 2->(1,0), 3->(1,1)`.
+     * @throws IllegalArgumentException if either parameter is out of bounds.
+     */
+    fun posToIJ(orientation: Int, position: Int): Int {
+        assert(orientation in 0..3)
+        assert(position in 0..3)
+        return kPosToIJ[orientation].get(position)
     }
 
 }
