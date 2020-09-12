@@ -177,6 +177,69 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
             return m * q;
         }
 
+        /**
+        // Return true if the points A, B, C are strictly counterclockwise.  Return
+        // false if the points are clockwise or collinear (i.e. if they are all
+        // contained on some great circle).
+        //
+        // Due to numerical errors, situations may arise that are mathematically
+        // impossible, e.g. ABC may be considered strictly CCW while BCA is not.
+        // However, the implementation guarantees the following:
+        //
+        //   If SimpleCCW(a,b,c), then !SimpleCCW(c,b,a) for all a,b,c.
+                ABSL_DEPRECATED("Use s2pred::Sign instead.")
+         */
+        @Deprecated("Use S2Predicates.sign instead.", replaceWith = ReplaceWith("S2Predicates.sign"))
+        @JvmStatic
+        fun simpleCCW(a: S2Point, b: S2Point, c: S2Point): Boolean {
+            // We compute the signed volume of the parallelepiped ABC.  The usual
+            // formula for this is (AxB).C, but we compute it here using (CxA).B
+            // in order to ensure that ABC and CBA are not both CCW.  This follows
+            // from the following identities (which are true numerically, not just
+            // mathematically):
+            //
+            //     (1) x.CrossProd(y) == -(y.CrossProd(x))
+            //     (2) (-x).DotProd(y) == -(x.DotProd(y))
+
+            return c.crossProd(a).dotProd(b) > 0;
+        }
+
+        // Return a vector "c" that is orthogonal to the given unit-length vectors
+        // "a" and "b".  This function is similar to a.CrossProd(b) except that it
+        // does a better job of ensuring orthogonality when "a" is nearly parallel
+        // to "b", and it returns a non-zero result even when a == b or a == -b.
+        //
+        // It satisfies the following properties (RCP == RobustCrossProd):
+        //
+        //   (1) RCP(a,b) != 0 for all a, b
+        //   (2) RCP(b,a) == -RCP(a,b) unless a == b or a == -b
+        //   (3) RCP(-a,b) == -RCP(a,b) unless a == b or a == -b
+        //   (4) RCP(a,-b) == -RCP(a,b) unless a == b or a == -b
+        //
+        // The result is not guaranteed to be unit length.
+        @JvmStatic
+        fun robustCrossProd(a: S2Point, b: S2Point): S2Point {
+            // The direction of a.CrossProd(b) becomes unstable as (a + b) or (a - b)
+            // approaches zero.  This leads to situations where a.CrossProd(b) is not
+            // very orthogonal to "a" and/or "b".  We could fix this using Gram-Schmidt,
+            // but we also want b.RobustCrossProd(a) == -a.RobustCrossProd(b).
+            //
+            // The easiest fix is to just compute the cross product of (b+a) and (b-a).
+            // Mathematically, this cross product is exactly twice the cross product of
+            // "a" and "b", but it has the numerical advantage that (b+a) and (b-a)
+            // are always perpendicular (since "a" and "b" are unit length).  This
+            // yields a result that is nearly orthogonal to both "a" and "b" even if
+            // these two values differ only in the lowest bit of one component.
+            assertPointIsUnitLength(a)
+            assertPointIsUnitLength(b)
+            val x = (b + a).crossProd(b - a);
+            if (x != S2Point(0, 0, 0)) return x
+
+            // The only result that makes sense mathematically is to return zero, but
+            // we find it more convenient to return an arbitrary orthogonal vector.
+            return ortho(a)
+        }
+
     }
 
 }

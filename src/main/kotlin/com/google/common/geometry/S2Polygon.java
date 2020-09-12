@@ -564,9 +564,9 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
     if (crossing > 0) {
       // There is a proper edge crossing.
       S2Point x = S2EdgeUtil.getIntersection(a0, a1, b0, b1);
-      double t = S2EdgeUtil.getDistanceFraction(x, a0, a1);
+      double t = S2EdgeDistances.getDistanceFraction(x, a0, a1);
       intersections.add(new ParametrizedS2Point(t, x));
-    } else if (S2EdgeUtil.vertexCrossing(a0, a1, b0, b1)) {
+    } else if (S2EdgeCrossings.vertexCrossing(a0, a1, b0, b1)) {
       // There is a crossing at one of the vertices. The basic rule is simple:
       // if a0 equals one of the "b" vertices, the crossing occurs at t=0;
       // otherwise, it occurs at t=1.

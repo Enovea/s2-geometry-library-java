@@ -135,7 +135,7 @@ public strictfp class S2EdgeUtil {
         return true;
       }
 
-      return vertexCrossing(a, b, c2, d);
+      return S2EdgeCrossings.vertexCrossing(a, b, c2, d);
     }
 
     /**
@@ -196,7 +196,7 @@ public strictfp class S2EdgeUtil {
         // "dir" in this plane that also passes through the equator. We use
         // RobustCrossProd to ensure that the edge normal is accurate even
         // when the two points are very close together.
-        S2Point aCrossB = S2.robustCrossProd(a, b);
+        S2Point aCrossB = S2Point.robustCrossProd(a, b);
         S2Point dir = S2Point.crossProd(aCrossB, new S2Point(0, 0, 1));
         double da = dir.dotProd(a);
         double db = dir.dotProd(b);
@@ -391,7 +391,7 @@ public strictfp class S2EdgeUtil {
       // For A to contain B (where each loop interior is defined to be its left
       // side), the CCW edge order around ab1 must be a2 b2 b0 a0. We split
       // this test into two parts that test three vertices each.
-      return S2.orderedCCW(a2, b2, b0, ab1) && S2.orderedCCW(b0, a0, a2, ab1) ? 1 : 0;
+      return S2Predicates.orderedCCW(a2, b2, b0, ab1) && S2Predicates.orderedCCW(b0, a0, a2, ab1) ? 1 : 0;
     }
   }
 
@@ -411,7 +411,7 @@ public strictfp class S2EdgeUtil {
       // Note that it's important to write these conditions as negatives
       // (!OrderedCCW(a,b,c,o) rather than Ordered(c,b,a,o)) to get correct
       // results when two vertices are the same.
-      return (S2.orderedCCW(a0, b2, b0, ab1) && S2.orderedCCW(b0, a2, a0, ab1) ? 0 : -1);
+      return (S2Predicates.orderedCCW(a0, b2, b0, ab1) && S2Predicates.orderedCCW(b0, a2, a0, ab1) ? 0 : -1);
     }
   }
 
@@ -427,12 +427,12 @@ public strictfp class S2EdgeUtil {
       // distinguish cases (1) [A contains B], (3) [A and B are disjoint],
       // and (2,4,5,6) [A intersects but does not contain B].
 
-      if (S2.orderedCCW(a0, a2, b2, ab1)) {
+      if (S2Predicates.orderedCCW(a0, a2, b2, ab1)) {
         // We are in case 1, 5, or 6, or case 2 if a2 == b2.
-        return S2.orderedCCW(b2, b0, a0, ab1) ? 1 : -1; // Case 1 vs. 2,5,6.
+        return S2Predicates.orderedCCW(b2, b0, a0, ab1) ? 1 : -1; // Case 1 vs. 2,5,6.
       }
       // We are in cases 2, 3, or 4.
-      if (!S2.orderedCCW(a2, b0, b2, ab1)) {
+      if (!S2Predicates.orderedCCW(a2, b0, b2, ab1)) {
         return 0; // Case 3.
       }
 
@@ -474,10 +474,10 @@ public strictfp class S2EdgeUtil {
       // particular note that if orderedCCW(a,b,c,o) returns true, it may be
       // possible that orderedCCW(c,b,a,o) is also true (if a == b or b == c).
 
-      if (S2.orderedCCW(a0, a2, b2, ab1)) {
+      if (S2Predicates.orderedCCW(a0, a2, b2, ab1)) {
         // The cases with this vertex ordering are 1, 5, and 6,
         // although case 2 is also possible if a2 == b2.
-        if (S2.orderedCCW(b2, b0, a0, ab1)) {
+        if (S2Predicates.orderedCCW(b2, b0, a0, ab1)) {
           return 1; // Case 1 (A contains B)
         }
 
@@ -485,36 +485,8 @@ public strictfp class S2EdgeUtil {
         return (a2.equals(b2)) ? 0 : -1; // Case 2 vs. 5,6.
       }
       // We are in case 2, 3, or 4.
-      return S2.orderedCCW(a0, b0, a2, ab1) ? 0 : -1; // Case 2,3 vs. 4.
+      return S2Predicates.orderedCCW(a0, b0, a2, ab1) ? 0 : -1; // Case 2,3 vs. 4.
     }
-  }
-
-  /**
-   * Return true if edge AB crosses CD at a point that is interior to both
-   * edges. Properties:
-   *
-   *  (1) simpleCrossing(b,a,c,d) == simpleCrossing(a,b,c,d) (2)
-   * simpleCrossing(c,d,a,b) == simpleCrossing(a,b,c,d)
-   */
-  public static boolean simpleCrossing(S2Point a, S2Point b, S2Point c, S2Point d) {
-    // We compute simpleCCW() for triangles ACB, CBD, BDA, and DAC. All
-    // of these triangles need to have the same orientation (CW or CCW)
-    // for an intersection to exist. Note that this is slightly more
-    // restrictive than the corresponding definition for planar edges,
-    // since we need to exclude pairs of line segments that would
-    // otherwise "intersect" by crossing two antipodal points.
-
-    S2Point ab = S2Point.crossProd(a, b);
-    double acb = -(ab.dotProd(c));
-    double bda = ab.dotProd(d);
-    if (acb * bda <= 0) {
-      return false;
-    }
-
-    S2Point cd = S2Point.crossProd(c, d);
-    double cbd = -(cd.dotProd(b));
-    double dac = cd.dotProd(a);
-    return (acb * cbd > 0) && (acb * dac > 0);
   }
 
   /**
@@ -570,57 +542,6 @@ public strictfp class S2EdgeUtil {
   }
 
   /**
-   * Given two edges AB and CD where at least two vertices are identical (i.e.
-   * robustCrossing(a,b,c,d) == 0), this function defines whether the two edges
-   * "cross" in a such a way that point-in-polygon containment tests can be
-   * implemented by counting the number of edge crossings. The basic rule is
-   * that a "crossing" occurs if AB is encountered after CD during a CCW sweep
-   * around the shared vertex starting from a fixed reference point.
-   *
-   *  Note that according to this rule, if AB crosses CD then in general CD does
-   * not cross AB. However, this leads to the correct result when counting
-   * polygon edge crossings. For example, suppose that A,B,C are three
-   * consecutive vertices of a CCW polygon. If we now consider the edge
-   * crossings of a segment BP as P sweeps around B, the crossing number changes
-   * parity exactly when BP crosses BA or BC.
-   *
-   *  Useful properties of VertexCrossing (VC):
-   *
-   *  (1) VC(a,a,c,d) == VC(a,b,c,c) == false (2) VC(a,b,a,b) == VC(a,b,b,a) ==
-   * true (3) VC(a,b,c,d) == VC(a,b,d,c) == VC(b,a,c,d) == VC(b,a,d,c) (3) If
-   * exactly one of a,b equals one of c,d, then exactly one of VC(a,b,c,d) and
-   * VC(c,d,a,b) is true
-   *
-   * It is an error to call this method with 4 distinct vertices.
-   */
-  public static boolean vertexCrossing(S2Point a, S2Point b, S2Point c, S2Point d) {
-    // If A == B or C == D there is no intersection. We need to check this
-    // case first in case 3 or more input points are identical.
-    if (a.equals(b) || c.equals(d)) {
-      return false;
-    }
-
-    // If any other pair of vertices is equal, there is a crossing if and only
-    // if orderedCCW() indicates that the edge AB is further CCW around the
-    // shared vertex than the edge CD.
-    if (a.equals(d)) {
-      return S2.orderedCCW(S2Point.ortho(a), c, b, a);
-    }
-    if (b.equals(c)) {
-      return S2.orderedCCW(S2Point.ortho(b), d, a, b);
-    }
-    if (a.equals(c)) {
-      return S2.orderedCCW(S2Point.ortho(a), d, b, a);
-    }
-    if (b.equals(d)) {
-      return S2.orderedCCW(S2Point.ortho(b), c, a, b);
-    }
-
-    // assert (false);
-    return false;
-  }
-
-  /**
    * A convenience function that calls robustCrossing() to handle cases where
    * all four vertices are distinct, and VertexCrossing() to handle cases where
    * two or more vertices are the same. This defines a crossing function such
@@ -635,7 +556,7 @@ public strictfp class S2EdgeUtil {
     if (crossing > 0) {
       return true;
     }
-    return vertexCrossing(a, b, c, d);
+    return S2EdgeCrossings.vertexCrossing(a, b, c, d);
   }
 
   static class CloserResult {
@@ -684,9 +605,9 @@ public strictfp class S2EdgeUtil {
 
     // We use robustCrossProd() to get accurate results even when two endpoints
     // are close together, or when the two line segments are nearly parallel.
-    S2Point aNorm = S2Point.normalize(S2.robustCrossProd(a0, a1));
-    S2Point bNorm = S2Point.normalize(S2.robustCrossProd(b0, b1));
-    S2Point x = S2Point.normalize(S2.robustCrossProd(aNorm, bNorm));
+    S2Point aNorm = S2Point.normalize(S2Point.robustCrossProd(a0, a1));
+    S2Point bNorm = S2Point.normalize(S2Point.robustCrossProd(b0, b1));
+    S2Point x = S2Point.normalize(S2Point.robustCrossProd(aNorm, bNorm));
 
     // Make sure the intersection point is on the correct side of the sphere.
     // Since all vertices are unit length, and edges are less than 180 degrees,
@@ -706,84 +627,26 @@ public strictfp class S2EdgeUtil {
     // (a0,a1) but outside the range covered by (a0,a1). In this case we do
     // additional clipping to ensure that it does.
 
-    if (S2.orderedCCW(a0, x, a1, aNorm) && S2.orderedCCW(b0, x, b1, bNorm)) {
+    if (S2Predicates.orderedCCW(a0, x, a1, aNorm) && S2Predicates.orderedCCW(b0, x, b1, bNorm)) {
       return x;
     }
 
     // Find the acceptable endpoint closest to x and return it. An endpoint is
     // acceptable if it lies between the endpoints of the other line segment.
     CloserResult r = new CloserResult(10, x);
-    if (S2.orderedCCW(b0, a0, b1, bNorm)) {
+    if (S2Predicates.orderedCCW(b0, a0, b1, bNorm)) {
       r.replaceIfCloser(x, a0);
     }
-    if (S2.orderedCCW(b0, a1, b1, bNorm)) {
+    if (S2Predicates.orderedCCW(b0, a1, b1, bNorm)) {
       r.replaceIfCloser(x, a1);
     }
-    if (S2.orderedCCW(a0, b0, a1, aNorm)) {
+    if (S2Predicates.orderedCCW(a0, b0, a1, aNorm)) {
       r.replaceIfCloser(x, b0);
     }
-    if (S2.orderedCCW(a0, b1, a1, aNorm)) {
+    if (S2Predicates.orderedCCW(a0, b1, a1, aNorm)) {
       r.replaceIfCloser(x, b1);
     }
     return r.getVmin();
-  }
-
-  /**
-   * Given a point X and an edge AB, return the distance ratio AX / (AX + BX).
-   * If X happens to be on the line segment AB, this is the fraction "t" such
-   * that X == Interpolate(A, B, t). Requires that A and B are distinct.
-   */
-  public static double getDistanceFraction(S2Point x, S2Point a0, S2Point a1) {
-    Preconditions.checkArgument(!a0.equals(a1));
-    double d0 = x.angle(a0);
-    double d1 = x.angle(a1);
-    return d0 / (d0 + d1);
-  }
-
-  /**
-   * Return the minimum distance from X to any point on the edge AB. The result
-   * is very accurate for small distances but may have some numerical error if
-   * the distance is large (approximately Pi/2 or greater). The case A == B is
-   * handled correctly. Note: x, a and b must be of unit length. Throws
-   * IllegalArgumentException if this is not the case.
-   */
-  public static S1Angle getDistance(S2Point x, S2Point a, S2Point b) {
-    return getDistance(x, a, b, S2.robustCrossProd(a, b));
-  }
-
-  /**
-   * A slightly more efficient version of getDistance() where the cross product
-   * of the two endpoints has been precomputed. The cross product does not need
-   * to be normalized, but should be computed using S2.robustCrossProd() for the
-   * most accurate results.
-   */
-  public static S1Angle getDistance(S2Point x, S2Point a, S2Point b, S2Point aCrossB) {
-    Preconditions.checkArgument(S2Point.isUnitLength(x));
-    Preconditions.checkArgument(S2Point.isUnitLength(a));
-    Preconditions.checkArgument(S2Point.isUnitLength(b));
-
-    // There are three cases. If X is located in the spherical wedge defined by
-    // A, B, and the axis A x B, then the closest point is on the segment AB.
-    // Otherwise the closest point is either A or B; the dividing line between
-    // these two cases is the great circle passing through (A x B) and the
-    // midpoint of AB.
-
-    if (S2.simpleCCW(aCrossB, a, x) && S2.simpleCCW(x, b, aCrossB)) {
-      // The closest point to X lies on the segment AB. We compute the distance
-      // to the corresponding great circle. The result is accurate for small
-      // distances but not necessarily for large distances (approaching Pi/2).
-
-      double sinDist = Math.abs(x.dotProd(aCrossB)) / aCrossB.norm();
-      return S1Angle.radians(Math.asin(Math.min(1.0, sinDist)));
-    }
-
-    // Otherwise, the closest point is either A or B. The cheapest method is
-    // just to compute the minimum of the two linear (as opposed to spherical)
-    // distances and convert the result to an angle. Again, this method is
-    // accurate for small but not large distances (approaching Pi).
-
-    double linearDist2 = Math.min(S2Point.minus(x, a).norm2(), S2Point.minus(x, b).norm2());
-    return S1Angle.radians(2 * Math.asin(Math.min(1.0, 0.5 * Math.sqrt(linearDist2))));
   }
 
   /**
@@ -796,12 +659,12 @@ public strictfp class S2EdgeUtil {
     Preconditions.checkArgument(S2Point.isUnitLength(a));
     Preconditions.checkArgument(S2Point.isUnitLength(b));
 
-    S2Point crossProd = S2.robustCrossProd(a, b);
+    S2Point crossProd = S2Point.robustCrossProd(a, b);
     // Find the closest point to X along the great circle through AB.
     S2Point p = S2Point.minus(x, S2Point.times(crossProd, x.dotProd(crossProd) / crossProd.norm2()));
 
     // If p is on the edge AB, then it's the closest point.
-    if (S2.simpleCCW(crossProd, a, p) && S2.simpleCCW(p, b, crossProd)) {
+    if (S2Point.simpleCCW(crossProd, a, p) && S2Point.simpleCCW(p, b, crossProd)) {
       return S2Point.normalize(p);
     }
     // Otherwise, the closest point is either A or B.

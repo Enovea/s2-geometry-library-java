@@ -36,117 +36,6 @@ public strictfp class S2EdgeUtilTest extends GeometryTestCase {
         }
     }
 
-    private void assertCrossing(S2Point a,
-                                S2Point b,
-                                S2Point c,
-                                S2Point d,
-                                int robust,
-                                boolean edgeOrVertex,
-                                boolean simple) {
-        a = S2Point.normalize(a);
-        b = S2Point.normalize(b);
-        c = S2Point.normalize(c);
-        d = S2Point.normalize(d);
-
-        compareResult(S2EdgeUtil.robustCrossing(a, b, c, d), robust);
-        if (simple) {
-            assertEquals(robust > 0, S2EdgeUtil.simpleCrossing(a, b, c, d));
-        }
-        S2EdgeUtil.EdgeCrosser crosser = new S2EdgeUtil.EdgeCrosser(a, b, c);
-        compareResult(crosser.robustCrossing(d), robust);
-        compareResult(crosser.robustCrossing(c), robust);
-
-        assertEquals(S2EdgeUtil.edgeOrVertexCrossing(a, b, c, d), edgeOrVertex);
-        assertEquals(edgeOrVertex, crosser.edgeOrVertexCrossing(d));
-        assertEquals(edgeOrVertex, crosser.edgeOrVertexCrossing(c));
-    }
-
-    private void assertCrossings(S2Point a,
-                                 S2Point b,
-                                 S2Point c,
-                                 S2Point d,
-                                 int robust,
-                                 boolean edgeOrVertex,
-                                 boolean simple) {
-        assertCrossing(a, b, c, d, robust, edgeOrVertex, simple);
-        assertCrossing(b, a, c, d, robust, edgeOrVertex, simple);
-        assertCrossing(a, b, d, c, robust, edgeOrVertex, simple);
-        assertCrossing(b, a, d, c, robust, edgeOrVertex, simple);
-        assertCrossing(a, a, c, d, DEGENERATE, false, false);
-        assertCrossing(a, b, c, c, DEGENERATE, false, false);
-        assertCrossing(a, b, a, b, 0, true, false);
-        assertCrossing(c, d, a, b, robust, (edgeOrVertex ^ (robust == 0)), simple);
-    }
-
-    public void testCrossings() {
-        // The real tests of edge crossings are in s2{loop,polygon}_unittest,
-        // but we do a few simple tests here.
-
-        // Two regular edges that cross.
-        assertCrossings(new S2Point(1, 2, 1),
-                new S2Point(1, -3, 0.5),
-                new S2Point(1, -0.5, -3),
-                new S2Point(0.1, 0.5, 3),
-                1,
-                true,
-                true);
-
-        // Two regular edges that cross antipodal points.
-        assertCrossings(new S2Point(1, 2, 1),
-                new S2Point(1, -3, 0.5),
-                new S2Point(-1, 0.5, 3),
-                new S2Point(-0.1, -0.5, -3),
-                -1,
-                false,
-                true);
-
-        // Two edges on the same great circle.
-        assertCrossings(new S2Point(0, 0, -1),
-                new S2Point(0, 1, 0),
-                new S2Point(0, 1, 1),
-                new S2Point(0, 0, 1),
-                -1,
-                false,
-                true);
-
-        // Two edges that cross where one vertex is S2.Origin().
-        assertCrossings(new S2Point(1, 0, 0),
-                new S2Point(0, 1, 0),
-                new S2Point(0, 0, 1),
-                new S2Point(1, 1, -1),
-                1,
-                true,
-                true);
-
-        // Two edges that cross antipodal points where one vertex is S2.Origin().
-        assertCrossings(new S2Point(1, 0, 0),
-                new S2Point(0, 1, 0),
-                new S2Point(0, 0, -1),
-                new S2Point(-1, -1, 1),
-                -1,
-                false,
-                true);
-
-        // Two edges that share an endpoint. The Ortho() direction is (-4,0,2),
-        // and edge CD is further CCW around (2,3,4) than AB.
-        assertCrossings(new S2Point(2, 3, 4),
-                new S2Point(-1, 2, 5),
-                new S2Point(7, -2, 3),
-                new S2Point(2, 3, 4),
-                0,
-                false,
-                true);
-
-        // Two edges that barely cross edge other.
-        assertCrossings(new S2Point(1, 1, 1),
-                new S2Point(1, 1 - 1e-15, -1),
-                new S2Point(-1, -1, 0),
-                new S2Point(1, 1, 0),
-                1,
-                true,
-                false);
-    }
-
     private S2LatLngRect getEdgeBound(double x1,
                                       double y1,
                                       double z1,
@@ -423,7 +312,7 @@ public strictfp class S2EdgeUtilTest extends GeometryTestCase {
         b = S2Point.normalize(b);
         expectedClosest = S2Point.normalize(expectedClosest);
 
-        assertEquals(distanceRadians, S2EdgeUtil.getDistance(x, a, b).getRadians(), kEpsilon);
+        assertEquals(distanceRadians, S2EdgeDistances.getDistance(x, a, b).getRadians(), kEpsilon);
 
         S2Point closest = S2EdgeUtil.getClosestPoint(x, a, b);
         if (expectedClosest.equals(new S2Point(0, 0, 0))) {
@@ -509,15 +398,15 @@ public strictfp class S2EdgeUtilTest extends GeometryTestCase {
             S2Point c = S2Point.normalize(S2Point.plus(p, S2Point.times(d2, Math.pow(1e-15 / slope, rand.nextDouble()))));
             S2Point d = S2Point.normalize(S2Point.minus(p, S2Point.times(d2, Math.pow(1e-15 / slope, rand.nextDouble()))));
             S2Point x = S2EdgeUtil.getIntersection(a, b, c, d);
-            S1Angle distAb = S2EdgeUtil.getDistance(x, a, b);
-            S1Angle distCd = S2EdgeUtil.getDistance(x, c, d);
+            S1Angle distAb = S2EdgeDistances.getDistance(x, a, b);
+            S1Angle distCd = S2EdgeDistances.getDistance(x, c, d);
 
             assertTrue(distAb.lessThan(S2EdgeUtil.DEFAULT_INTERSECTION_TOLERANCE));
             assertTrue(distCd.lessThan(S2EdgeUtil.DEFAULT_INTERSECTION_TOLERANCE));
 
             // test getIntersection() post conditions
-            assertTrue(S2.orderedCCW(a, x, b, S2Point.normalize(S2.robustCrossProd(a, b))));
-            assertTrue(S2.orderedCCW(c, x, d, S2Point.normalize(S2.robustCrossProd(c, d))));
+            assertTrue(S2Predicates.orderedCCW(a, x, b, S2Point.normalize(S2Point.robustCrossProd(a, b))));
+            assertTrue(S2Predicates.orderedCCW(c, x, d, S2Point.normalize(S2Point.robustCrossProd(c, d))));
 
             maxEdgeDist = S1Angle.max(maxEdgeDist, S1Angle.max(distAb, distCd));
             maxPointDist = S1Angle.max(maxPointDist, new S1Angle(p, x));

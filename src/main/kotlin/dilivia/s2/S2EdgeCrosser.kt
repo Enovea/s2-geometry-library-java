@@ -233,7 +233,7 @@ class S2EdgeCrosser() {
         // opposite sides of the plane perpendicular to one of these tangents.  This
         // is moderately expensive but still much cheaper than s2pred::ExpensiveSign.
         if (!have_tangents) {
-            val norm = S2.robustCrossProd(a, b).normalize()
+            val norm = S2Point.robustCrossProd(a, b).normalize()
             a_tangent = a.crossProd(norm)
             b_tangent = norm.crossProd(b)
             have_tangents = true;

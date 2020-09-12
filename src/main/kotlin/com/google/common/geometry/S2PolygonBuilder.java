@@ -468,7 +468,7 @@ public strictfp class S2PolygonBuilder {
           if (v.equals(v0)) {
             continue;
           }
-          if (!v2Found || S2.orderedCCW(v0, v2, v, v1)) {
+          if (!v2Found || S2Predicates.orderedCCW(v0, v2, v, v1)) {
             v2 = v;
           }
           v2Found = true;

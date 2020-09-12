@@ -72,6 +72,7 @@ object S2EdgeCrossings {
     //
     // Note that if you want to check an edge against a collection of other edges,
     // it is much more efficient to use an S2EdgeCrosser (see s2edge_crosser.h).
+    @JvmStatic
     fun crossingSign(a: S2Point, b: S2Point, c: S2Point, d: S2Point): Int {
         val crosser = S2EdgeCrosser(a, b, c)
         return crosser.crossingSign(d)
@@ -100,6 +101,7 @@ object S2EdgeCrossings {
     //      VC(a,b,c,d) and VC(c,d,a,b) is true
     //
     // It is an error to call this method with 4 distinct vertices.
+    @JvmStatic
     fun vertexCrossing(a: S2Point, b: S2Point, c: S2Point, d: S2Point): Boolean {
         // If A == B or C == D there is no intersection.  We need to check this
         // case first in case 3 or more input points are identical.

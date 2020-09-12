@@ -45,6 +45,7 @@ object S2EdgeDistances {
      * @param b The end point of the edge.
      * @return The minimum distance from X to the edge AB.
      */
+    @JvmStatic
     fun getDistance(x: S2Point, a: S2Point, b: S2Point): S1Angle {
         val minDist = MutableS1ChordAngle(Double.MAX_VALUE)
         alwaysUpdateMinDistance(x, a, b, minDist, true)
@@ -169,7 +170,7 @@ object S2EdgeDistances {
      * the edge AB can be obtained using getDistanceFraction() above.  Requires that all vectors have
      * unit length.
      */
-    fun project(x: S2Point, a: S2Point, b: S2Point): S2Point = project(x, a, b, robustCrossProd(a, b))
+    fun project(x: S2Point, a: S2Point, b: S2Point): S2Point = project(x, a, b, S2Point.robustCrossProd(a, b))
 
     /**
      * A slightly more efficient version of project() where the cross product of the two endpoints has been precomputed.
@@ -185,7 +186,7 @@ object S2EdgeDistances {
         val p = x - (x.dotProd(aCrossB) / aCrossB.norm2()) * aCrossB
 
         // If this point is on the edge AB, then it's the closest point.
-        if (simpleCCW(aCrossB, a, p) && simpleCCW(p, b, aCrossB)) {
+        if (S2Point.simpleCCW(aCrossB, a, p) && S2Point.simpleCCW(p, b, aCrossB)) {
             return p.normalize()
         }
         // Otherwise, the closest point is either A or B.
@@ -200,6 +201,7 @@ object S2EdgeDistances {
      * Given a point X and an edge AB, returns the distance ratio AX / (AX + BX). If X happens to be on the line segment
      * AB, this is the fraction "t" such that X == Interpolate(t, A, B).  Requires that A and B are distinct.
      */
+    @JvmStatic
     fun getDistanceFraction(x: S2Point, a: S2Point, b: S2Point): Double {
         assert(a <= b)
         val d0 = x.angle(a)
@@ -230,7 +232,7 @@ object S2EdgeDistances {
         // Use RobustCrossProd() to compute the tangent vector at A towards B.  The
         // result is always perpendicular to A, even if A=B or A=-B, but it is not
         // necessarily unit length.  (We effectively normalize it below.)
-        val normal = robustCrossProd(a, b)
+        val normal = S2Point.robustCrossProd(a, b)
         val tangent = normal.crossProd(a)
         assert(tangent != S2Point(0, 0, 0))
 
@@ -332,7 +334,7 @@ object S2EdgeDistances {
         // the distance between circ(B) and circ(A) is the angle between the planes
         // containing them.
 
-        var aOrtho = robustCrossProd(a0, a1).normalize()
+        var aOrtho = S2Point.robustCrossProd(a0, a1).normalize()
         val aNearestB0 = project(b0, a0, a1, aOrtho)
         val aNearestB1 = project(b1, a0, a1, aOrtho)
         // If a_nearest_b0 and a_nearest_b1 have opposite orientation from a0 and a1,
@@ -356,7 +358,7 @@ object S2EdgeDistances {
         // already know that b0 and b1 are close to A, and S2Edges are all shorter
         // than 180 degrees).  The angle between the planes containing circ(A) and
         // circ(B) is the angle between their normal vectors.
-        val bOrtho = robustCrossProd(b0, b1).normalize()
+        val bOrtho = S2Point.robustCrossProd(b0, b1).normalize()
         val planarAngle = S1Angle(aOrtho, bOrtho)
         if (planarAngle <= tolerance)
             return true
@@ -482,7 +484,7 @@ object S2EdgeDistances {
         // We ignore the QR^2 term and instead use XQ^2 as a lower bound, since it
         // is faster and the corresponding distance on the Earth's surface is
         // accurate to within 1% for distances up to about 1800km.
-        val c = robustCrossProd(a, b)
+        val c = S2Point.robustCrossProd(a, b)
         val c2 = c.norm2()
         val xDotC = x.dotProd(c)
         val xDotC2 = xDotC * xDotC

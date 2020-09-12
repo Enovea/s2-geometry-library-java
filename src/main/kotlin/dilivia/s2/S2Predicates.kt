@@ -75,6 +75,7 @@ object S2Predicates {
     // On the other hand, note that it is not true in general that
     // Sign(-a,b,c) == -Sign(a,b,c), or any similar identities
     // involving antipodal points.
+    @JvmStatic
     fun sign(a: S2Point, b: S2Point, c: S2Point): Int {
         // We don't need RobustCrossProd() here because Sign() does its own
         // error estimation and calls ExpensiveSign() if there is any uncertainty
@@ -116,7 +117,7 @@ object S2Predicates {
         if (sign(c, o, b) >= 0) ++sum
         if (sign(a, o, c) > 0) ++sum
 
-        logger.debug { "orderedCCW(a = $a, b = $b, c = $c, o = $o) = $sum >= 2" }
+        logger.trace { "orderedCCW(a = $a, b = $b, c = $c, o = $o) = $sum >= 2" }
         return sum >= 2
     }
 

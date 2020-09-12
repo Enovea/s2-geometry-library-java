@@ -520,7 +520,7 @@ class S2LoopTest : GeometryTestCase() {
                     i,
                     i + 1,
                     S2.robustCCW(a, o, c),
-                    S2.orderedCCW(a, b, c, o))
+                    S2Predicates.orderedCCW(a, b, c, o))
         }
         for (i in 0 until loop.numVertices() + 2) {
             var orig: S2Point? = origin()

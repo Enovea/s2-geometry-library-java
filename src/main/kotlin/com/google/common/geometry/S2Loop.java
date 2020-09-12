@@ -667,7 +667,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     S1Angle minDistance = S1Angle.radians(Math.PI);
     for (int i = 0; i < numVertices(); i++) {
       minDistance =
-          S1Angle.min(minDistance, S2EdgeUtil.getDistance(normalized, vertex(i), vertex(i + 1)));
+          S1Angle.min(minDistance, S2EdgeDistances.getDistance(normalized, vertex(i), vertex(i + 1)));
     }
     return minDistance;
   }
@@ -831,7 +831,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     // The test below is written so that B is inside if C=R but not if A=R.
 
     originInside = false; // Initialize before calling Contains().
-    boolean v1Inside = S2.orderedCCW(S2Point.ortho(vertex(1)), vertex(0), vertex(2), vertex(1));
+    boolean v1Inside = S2Predicates.orderedCCW(S2Point.ortho(vertex(1)), vertex(0), vertex(2), vertex(1));
     if (v1Inside != contains(vertex(1))) {
       originInside = true;
     }

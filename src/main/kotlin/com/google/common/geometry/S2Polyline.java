@@ -225,7 +225,7 @@ public final strictfp class S2Polyline implements S2Region {
 
     // Find the line segment in the polyline that is closest to the point given.
     for (int i = 0; i < numVertices() - 1; ++i) {
-      S1Angle distanceToSegment = S2EdgeUtil.getDistance(point, vertex(i), vertex(i + 1));
+      S1Angle distanceToSegment = S2EdgeDistances.getDistance(point, vertex(i), vertex(i + 1));
       if (distanceToSegment.lessThan(minDistance)) {
         minDistance = distanceToSegment;
         minIndex = i;

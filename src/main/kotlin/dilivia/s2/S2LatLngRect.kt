@@ -562,11 +562,11 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
         val aHi = S2LatLng.fromLatLng(a.latHi(), aLng).toPoint()
         val bLo = S2LatLng.fromLatLng(b.latLo(), bLng).toPoint()
         val bHi = S2LatLng.fromLatLng(b.latHi(), bLng).toPoint()
-        return minOf(S2EdgeUtil.getDistance(aLo, bLo, bHi),
-                minOf(S2EdgeUtil.getDistance(aHi, bLo, bHi),
+        return minOf(S2EdgeDistances.getDistance(aLo, bLo, bHi),
+                minOf(S2EdgeDistances.getDistance(aHi, bLo, bHi),
                         minOf(
-                                S2EdgeUtil.getDistance(bLo, aLo, aHi),
-                                S2EdgeUtil.getDistance(bHi, aLo, aHi)
+                                S2EdgeDistances.getDistance(bLo, aLo, aHi),
+                                S2EdgeDistances.getDistance(bHi, aLo, aHi)
                         )
                 )
         )
@@ -593,7 +593,7 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
         }
         val lo = S2LatLng.fromRadians(a.lat.lo, aLng).toPoint()
         val hi = S2LatLng.fromRadians(a.lat.hi, aLng).toPoint()
-        return S2EdgeUtil.getDistance(p.toPoint(), lo, hi)
+        return S2EdgeDistances.getDistance(p.toPoint(), lo, hi)
     }
 
     // Returns the (directed or undirected) Hausdorff distance (measured along the
@@ -845,7 +845,7 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
             // this plane that also passes through the equator. We use RobustCrossProd
             // to ensure that the edge normal is accurate even when the two points are
             // very close together.
-            val ab = S2.robustCrossProd(a, b)
+            val ab = S2Point.robustCrossProd(a, b)
             val dir = S2Point.crossProd(ab, S2Point(0, 0, 1))
             val da = dir.dotProd(a)
             val db = dir.dotProd(b)
@@ -891,14 +891,14 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
             assertPointIsUnitLength(b)
 
             // First, compute the normal to the plane AB that points vaguely north.
-            var z = S2.robustCrossProd(a, b).normalize()
+            var z = S2Point.robustCrossProd(a, b).normalize()
             if (z[2] < 0) {
                 z = -z
             }
 
             // Extend this to an orthonormal frame (x,y,z) where x is the direction
             // where the great circle through AB achieves its maximium latitude.
-            val y = S2.robustCrossProd(z, S2Point(0, 0, 1)).normalize()
+            val y = S2Point.robustCrossProd(z, S2Point(0, 0, 1)).normalize()
             val x = y.crossProd(z)
             assertPointIsUnitLength(x)
             assert(x[2] >= 0)
@@ -994,8 +994,8 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
             // Cases A1 and B1.
             val a_lo = S2LatLng.fromRadians(a.lo, 0.0).toPoint()
             val a_hi = S2LatLng.fromRadians(a.hi, 0.0).toPoint()
-            max_distance = S2EdgeUtil.getDistance(a_lo, b_lo, b_hi)
-            max_distance = maxOf(max_distance, S2EdgeUtil.getDistance(a_hi, b_lo, b_hi))
+            max_distance = S2EdgeDistances.getDistance(a_lo, b_lo, b_hi)
+            max_distance = maxOf(max_distance, S2EdgeDistances.getDistance(a_hi, b_lo, b_hi))
 
             if (lng_diff <= M_PI_2) {
                 // Case A2.
@@ -1036,7 +1036,7 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
             }
             // A vector orthogonal to longitude 0.
             val orthoLng = S2Point(0, -1, 0)
-            return S2.robustCrossProd(orthoLng, orthoBisector.toPoint())
+            return S2Point.robustCrossProd(orthoLng, orthoBisector.toPoint())
         }
 
         // Return max distance from a point b to the segment spanning latitude range

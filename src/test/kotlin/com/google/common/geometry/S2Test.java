@@ -110,17 +110,4 @@ public strictfp class S2Test extends GeometryTestCase {
         assertTrue(S2.robustCCW(a, b, c) != 0);
     }
 
-    public void testExp() {
-        for (int i = 0; i < 10; ++i) {
-            assertEquals(i + 1, S2.exp(Math.pow(2, i)));
-        }
-
-        for (int i = 0; i < 10; ++i) {
-            assertEquals(i + 1, S2.exp(-Math.pow(2, i)));
-        }
-
-        assertEquals(0, S2.exp(0));
-        assertEquals(2, S2.exp(3));
-        assertEquals(3, S2.exp(5));
-    }
 }

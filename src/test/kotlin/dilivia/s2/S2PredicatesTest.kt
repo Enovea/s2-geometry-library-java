@@ -190,7 +190,7 @@ class S2PredicatesTest : GeometryTestCase() {
         // tangent toward B, and such that A, A1, and A2 are exactly collinear
         // (i.e. even with infinite-precision arithmetic).
         fun addTangentPoints(a: S2Point, b: S2Point, points: MutableList<S2Point>) {
-            var dir = robustCrossProd(a, b).crossProd(a)
+            var dir = S2Point.robustCrossProd(a, b).crossProd(a)
             if (dir.approxEquals(S2Point(0, 0, 0), 1e-20)) return
             dir = dir.normalize()
             while (true) {
@@ -244,8 +244,8 @@ class S2PredicatesTest : GeometryTestCase() {
                     // Add the intersection point of AB with X=0, Y=0, or Z=0.
                     val dir = MutableS2Point(0.0, 0.0, 0.0)
                     dir[coord] = if (rnd.nextBoolean()) 1.0 else -1.0
-                    val norm = S2.robustCrossProd(a, b).normalize()
-                    val p = S2.robustCrossProd(dir, norm)
+                    val norm = S2Point.robustCrossProd(a, b).normalize()
+                    val p = S2Point.robustCrossProd(dir, norm)
                     if (p.norm() != 0.0) {
                         addNormalized(p, points)
                     }
@@ -891,7 +891,7 @@ class S2PredicatesTest : GeometryTestCase() {
             var a1 = S2EdgeDistances.interpolateAtDistance(len, a0, choosePoint())
             if (rnd.nextBoolean()) a1 = -a1
             if (a0 == -a1) continue;  // Not allowed by API.
-            val n = S2.robustCrossProd(a0, a1).normalize()
+            val n = S2Point.robustCrossProd(a0, a1).normalize()
             val f = pow(1e-20, rnd.nextDouble())
             val a = ((1 - f) * a0 + f * a1).normalize()
             var r = S1Angle.radians(M_PI_2 * pow(1e-20, rnd.nextDouble()))
@@ -985,7 +985,7 @@ class S2PredicatesTest : GeometryTestCase() {
             val a0 = choosePoint()
             val a_len = S1Angle.radians(M_PI * pow(1e-20, rnd.nextDouble()))
             val a1 = S2EdgeDistances.interpolateAtDistance(a_len, a0, choosePoint())
-            val a_norm = S2.robustCrossProd(a0, a1).normalize()
+            val a_norm = S2Point.robustCrossProd(a0, a1).normalize()
             val b0 = choosePoint()
             val b_len = S1Angle.radians(M_PI * pow(1e-20, rnd.nextDouble()))
             val b1 = S2EdgeDistances.interpolateAtDistance(b_len, b0, a_norm)

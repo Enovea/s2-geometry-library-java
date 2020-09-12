@@ -113,7 +113,7 @@ class S2LatLngRectTest : GeometryTestCase() {
             val lng = M_PI_2 * (i - 2) + 0.2
             val r = S2LatLngRect(R1Interval(lat, lat + M_PI_4), S1Interval(Math.IEEEremainder(lng, 2 * M_PI), Math.IEEEremainder(lng + M_PI_2, 2 * M_PI)))
             for (k in 0..3) {
-                assertTrue(S2.simpleCCW(r.getVertex(k - 1).toPoint(), r.getVertex(k).toPoint(), r.getVertex(k + 1).toPoint()))
+                assertTrue(S2Point.simpleCCW(r.getVertex(k - 1).toPoint(), r.getVertex(k).toPoint(), r.getVertex(k + 1).toPoint()))
             }
         }
     }

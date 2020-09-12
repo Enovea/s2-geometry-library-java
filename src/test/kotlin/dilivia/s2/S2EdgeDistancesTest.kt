@@ -52,7 +52,7 @@ class S2EdgeDistancesTest : GeometryTestCase() {
             // be exceeded when the edge endpoints are antipodal to within 0.8e-13
             // radians, but the only examples found in testing require the endpoints
             // to be nearly-antipodal to within 1e-16 radians.
-            val n = S2.robustCrossProd(a0, a1).normalize()
+            val n = S2Point.robustCrossProd(a0, a1).normalize()
             val f = pow(1e-20, rnd.nextDouble())
             val a = ((1 - f) * a0 + f * a1).normalize()
             var r = S1Angle.radians(M_PI_2 * pow(1e-20, rnd.nextDouble()))
