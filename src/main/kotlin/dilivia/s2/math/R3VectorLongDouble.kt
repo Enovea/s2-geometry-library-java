@@ -99,5 +99,6 @@ open class R3VectorLongDouble constructor(coords: List<BigDecimal>) : R3Vector<R
     }
 }
 
+operator fun BigDecimal.times(other: R3VectorLongDouble): R3VectorLongDouble = other * this
 fun Int.toLD(): BigDecimal = LongDoubleType.fromDouble(this.toDouble())
 fun Double.toLD(): BigDecimal = LongDoubleType.fromDouble(this)

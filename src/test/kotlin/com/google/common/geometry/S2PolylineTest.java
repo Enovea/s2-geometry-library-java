@@ -24,12 +24,7 @@ import java.util.List;
 /**
  * Tests for {@link S2Polyline}.
  */
-public strictfp class S2PolylineTest extends GeometryTestCase {
-
-    @Override
-    public void setUp() {
-        super.setUp();
-    }
+public strictfp class S2PolylineTest extends S2GeometryTestCase {
 
     public void testBasic() {
         List<S2Point> vertices = Lists.newArrayList();

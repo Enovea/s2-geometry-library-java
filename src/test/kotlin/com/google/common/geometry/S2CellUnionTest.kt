@@ -25,11 +25,16 @@ import dilivia.s2.S2Cap.Companion.fromCenterHeight
 import dilivia.s2.S2Cell.Companion.averageArea
 import dilivia.s2.S2CellId.Companion.fromFacePosLevel
 import dilivia.s2.S2CellId.Companion.none
+import mu.KotlinLogging
 import java.util.*
-import java.util.logging.Logger
+import kotlin.math.min
+import kotlin.math.pow
 
 @Strictfp
-class S2CellUnionTest : GeometryTestCase() {
+class S2CellUnionTest : S2GeometryTestCase() {
+
+    val logger = KotlinLogging.logger {  }
+
     fun testBasic() {
         logger.info("TestBasic")
         val empty = S2CellUnion()
@@ -416,7 +421,4 @@ class S2CellUnionTest : GeometryTestCase() {
         assertEquals(expected, cellUnion.averageBasedArea())
     }
 
-    companion object {
-        var logger = Logger.getLogger(S2CellUnionTest::class.java.name)
-    }
 }

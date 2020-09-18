@@ -15,14 +15,13 @@
  */
 package com.google.common.geometry;
 
-import dilivia.s2.GeometryTestCase;
-import dilivia.s2.S2CellId;
-import dilivia.s2.S2Coords;
+import dilivia.s2.S2GeometryTestCase;
 import dilivia.s2.S2Point;
+import dilivia.s2.S2Random;
 
 import java.util.logging.Logger;
 
-public strictfp class S2Test extends GeometryTestCase {
+public strictfp class S2Test extends S2GeometryTestCase {
 
     private static Logger logger = Logger.getLogger(S2Test.class.getName());
 

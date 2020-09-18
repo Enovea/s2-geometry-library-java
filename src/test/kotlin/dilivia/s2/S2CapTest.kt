@@ -25,7 +25,7 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 @Strictfp
-class S2CapTest : GeometryTestCase() {
+class S2CapTest : S2GeometryTestCase() {
 
     fun getLatLngPoint(latDegrees: Double, lngDegrees: Double): S2Point {
         return fromDegrees(latDegrees, lngDegrees).toPoint()
@@ -208,98 +208,98 @@ class S2CapTest : GeometryTestCase() {
 
         for (face in 0..5) {
             // The cell consisting of the entire face.
-            val root_cell: S2Cell = S2Cell.fromFace(face)
+            val rootCell = S2Cell.fromFace(face)
 
             // A leaf cell at the midpoint of the v=1 edge.
-            val edge_cell: S2Cell = S2Cell(S2Coords.faceUVtoXYZ(face, 0.0, 1 - kEps))
+            val edgeCell = S2Cell(S2Coords.faceUVtoXYZ(face, 0.0, 1 - kEps))
 
             // A leaf cell at the u=1, v=1 corner.
-            val corner_cell: S2Cell = S2Cell(S2Coords.faceUVtoXYZ(face, 1 - kEps, 1 - kEps))
+            val cornerCell = S2Cell(S2Coords.faceUVtoXYZ(face, 1 - kEps, 1 - kEps))
 
             // Quick check for full and empty caps.
-            assertTrue(S2Cap.full.contains(root_cell))
-            assertFalse(S2Cap.empty.mayIntersect(root_cell))
+            assertTrue(S2Cap.full.contains(rootCell))
+            assertFalse(S2Cap.empty.mayIntersect(rootCell))
 
             // Check intersections with the bounding caps of the leaf cells that are
             // adjacent to 'corner_cell' along the Hilbert curve.  Because this corner
             // is at (u=1,v=1), the curve stays locally within the same cube face.
-            var first = corner_cell.id()
+            var first = cornerCell.id()
             repeat(3) { first = first.previous() }
-            var last = corner_cell.id()
+            var last = cornerCell.id()
             repeat(3) { last = last.next()}
             var id = first
             while (id.lessOrEquals(last)) {
                 val cell = S2Cell(id)
-                assertEquals(id == corner_cell.id(), cell.capBound.contains(corner_cell))
-                assertEquals(id.parent().contains(corner_cell.id()), cell.capBound.mayIntersect(corner_cell))
+                assertEquals(id == cornerCell.id(), cell.capBound.contains(cornerCell))
+                assertEquals(id.parent().contains(cornerCell.id()), cell.capBound.mayIntersect(cornerCell))
                 id = id.next()
             }
 
-            val anti_face = (face + 3) % 6  // Opposite face.
-            for (cap_face in 0..5) {
-                // A cap that barely contains all of 'cap_face'.
-                val center = S2Coords.getNorm(cap_face)
+            val antiFace = (face + 3) % 6  // Opposite face.
+            for (capFace in 0..5) {
+                // A cap that barely contains all of 'capFace'.
+                val center = S2Coords.getNorm(capFace)
                 val covering = S2Cap.fromCenterAngle(center, S1Angle.radians(kFaceRadius + kEps))
-                assertEquals(cap_face == face, covering.contains(root_cell))
-                assertEquals(cap_face != anti_face, covering.mayIntersect(root_cell))
-                assertEquals(center.dotProd(edge_cell.getCenter()) > 0.1, covering.contains(edge_cell))
-                assertEquals(covering.mayIntersect(edge_cell), covering.contains(edge_cell))
-                assertEquals(cap_face == face, covering.contains(corner_cell))
-                assertEquals(center.dotProd(corner_cell.getCenter()) > 0, covering.mayIntersect(corner_cell))
+                assertEquals(capFace == face, covering.contains(rootCell))
+                assertEquals(capFace != antiFace, covering.mayIntersect(rootCell))
+                assertEquals(center.dotProd(edgeCell.getCenter()) > 0.1, covering.contains(edgeCell))
+                assertEquals(covering.mayIntersect(edgeCell), covering.contains(edgeCell))
+                assertEquals(capFace == face, covering.contains(cornerCell))
+                assertEquals(center.dotProd(cornerCell.getCenter()) > 0, covering.mayIntersect(cornerCell))
 
-                // A cap that barely intersects the edges of 'cap_face'.
+                // A cap that barely intersects the edges of 'capFace'.
                 val bulging = S2Cap.fromCenterAngle(center, S1Angle.radians(M_PI_4 + kEps))
-                assertFalse(bulging.contains(root_cell))
-                assertEquals(cap_face != anti_face, bulging.mayIntersect(root_cell))
-                assertEquals("cap_face = $cap_face == $face != $bulging.contains($edge_cell) == ${bulging.contains(edge_cell)}", cap_face == face, bulging.contains(edge_cell))
-                assertEquals(center.dotProd(edge_cell.getCenter()) > 0.1, bulging.mayIntersect(edge_cell))
-                assertFalse(bulging.contains(corner_cell))
-                assertFalse(bulging.mayIntersect(corner_cell))
+                assertFalse(bulging.contains(rootCell))
+                assertEquals(capFace != antiFace, bulging.mayIntersect(rootCell))
+                assertEquals("capFace = $capFace == $face != $bulging.contains($edgeCell) == ${bulging.contains(edgeCell)}", capFace == face, bulging.contains(edgeCell))
+                assertEquals(center.dotProd(edgeCell.getCenter()) > 0.1, bulging.mayIntersect(edgeCell))
+                assertFalse(bulging.contains(cornerCell))
+                assertFalse(bulging.mayIntersect(cornerCell))
 
                 /*
-                cap_face = 0 == 0 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == true
-cap_face = 1 == 0 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
-cap_face = 2 == 0 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
-cap_face = 3 == 0 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
-cap_face = 4 == 0 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
-cap_face = 5 == 0 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
-cap_face = 0 == 1 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
-cap_face = 1 == 1 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == true
-cap_face = 2 == 1 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
-cap_face = 3 == 1 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
-cap_face = 4 == 1 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
-cap_face = 5 == 1 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
-cap_face = 0 == 2 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
-cap_face = 1 == 2 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
-cap_face = 2 == 2 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == true
-cap_face = 3 == 2 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
-cap_face = 4 == 2 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
-cap_face = 5 == 2 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
-cap_face = 0 == 3 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
-cap_face = 1 == 3 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
-cap_face = 2 == 3 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
-cap_face = 3 == 3 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == true
-cap_face = 4 == 3 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
-cap_face = 5 == 3 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
-cap_face = 0 == 4 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
-cap_face = 1 == 4 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
-cap_face = 2 == 4 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
-cap_face = 3 == 4 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
-cap_face = 4 == 4 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == true
-cap_face = 5 == 4 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
-cap_face = 0 == 5 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
-cap_face = 1 == 5 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
-cap_face = 2 == 5 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
-cap_face = 3 == 5 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
-cap_face = 4 == 5 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
-cap_face = 5 == 5 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == true
+                capFace = 0 == 0 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == true
+capFace = 1 == 0 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
+capFace = 2 == 0 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
+capFace = 3 == 0 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
+capFace = 4 == 0 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
+capFace = 5 == 0 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([0, 30, 0, 0/211111111111111111111111111111]) == false
+capFace = 0 == 1 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
+capFace = 1 == 1 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == true
+capFace = 2 == 1 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
+capFace = 3 == 1 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
+capFace = 4 == 1 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
+capFace = 5 == 1 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([1, 30, 2, 1/233333333333333333333333333333]) == false
+capFace = 0 == 2 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
+capFace = 1 == 2 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
+capFace = 2 == 2 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == true
+capFace = 3 == 2 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
+capFace = 4 == 2 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
+capFace = 5 == 2 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([2, 30, 0, 2/211111111111111111111111111111]) == false
+capFace = 0 == 3 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
+capFace = 1 == 3 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
+capFace = 2 == 3 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
+capFace = 3 == 3 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == true
+capFace = 4 == 3 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
+capFace = 5 == 3 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([3, 30, 2, 3/233333333333333333333333333333]) == false
+capFace = 0 == 4 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
+capFace = 1 == 4 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
+capFace = 2 == 4 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
+capFace = 3 == 4 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
+capFace = 4 == 4 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == true
+capFace = 5 == 4 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([4, 30, 0, 4/211111111111111111111111111111]) == false
+capFace = 0 == 5 != [Center = (1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
+capFace = 1 == 5 != [Center = (0.0, 1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
+capFace = 2 == 5 != [Center = (0.0, 0.0, 1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
+capFace = 3 == 5 != [Center = (-1.0, 0.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
+capFace = 4 == 5 != [Center = (0.0, -1.0, 0.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == false
+capFace = 5 == 5 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle@ce336b0].contains([5, 30, 2, 5/233333333333333333333333333333]) == true
                  */
 
                 // A singleton cap.
                 val singleton = S2Cap.fromCenterAngle (center, S1Angle.zero)
-                assertEquals(cap_face == face, singleton.mayIntersect(root_cell))
-                assertFalse(singleton.mayIntersect(edge_cell))
-                assertFalse(singleton.mayIntersect(corner_cell))
+                assertEquals(capFace == face, singleton.mayIntersect(rootCell))
+                assertFalse(singleton.mayIntersect(edgeCell))
+                assertFalse(singleton.mayIntersect(cornerCell))
             }
         }
     }
@@ -331,7 +331,7 @@ cap_face = 5 == 5 != [Center = (0.0, 0.0, -1.0) Radius = dilivia.s2.S1ChordAngle
 
         // Random caps.
         for (i in 0 until 100) {
-            val center = randomPoint()
+            val center = S2Random.randomPoint()
             val height = Random.nextDouble(0.0, 2.0)
             val cap = S2Cap.fromCenterHeight(center, height)
             val centroid = cap.centroid

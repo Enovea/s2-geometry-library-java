@@ -32,7 +32,7 @@ import kotlin.random.Random
 
 
 @ExperimentalUnsignedTypes
-class S2PredicatesTest : GeometryTestCase() {
+class S2PredicatesTest : S2GeometryTestCase() {
 
     private val logger = KotlinLogging.logger { }
     private val kConsistencyIters: Int = 5000
@@ -632,7 +632,7 @@ class S2PredicatesTest : GeometryTestCase() {
             // precondition that the exact sign must be zero.
             val symbolic_sign = S2Predicates.symbolicCompareDistances(x, a, b)
             assertEquals(symbolic_sign, S2Predicates.compareDistances(x, a, b))
-            return PrecisionStats.Precision.SYMBOLIC
+            return SYMBOLIC
         }
     }
 
@@ -1084,7 +1084,7 @@ class S2PredicatesTest : GeometryTestCase() {
             // precondition that the exact sign must be zero.
             val symbolic_sign = S2Predicates.symbolicEdgeCircumcenterSign(x0, x1, a, b, c)
             assertEquals(symbolic_sign, S2Predicates.edgeCircumcenterSign(x0, x1, a, b, c))
-            return PrecisionStats.Precision.SYMBOLIC
+            return SYMBOLIC
         }
     }
 
@@ -1114,7 +1114,7 @@ class S2PredicatesTest : GeometryTestCase() {
                 // This precision would be SYMBOLIC if we handled this degeneracy.
                 assertEquals(EXACT, prec)
             } else if (a == b || b == c || c == a) {
-                assertEquals(PrecisionStats.Precision.SYMBOLIC, prec)
+                assertEquals(SYMBOLIC, prec)
             } else {
                 stats.tally(prec)
             }
@@ -1124,7 +1124,7 @@ class S2PredicatesTest : GeometryTestCase() {
 
     // Verifies that VoronoiSiteExclusion(a, b, x0, x1, r) == expected_result, and
     // furthermore checks that the minimum required precision is "expected_prec".
-    fun testVoronoiSiteExclusion(a: S2Point, b: S2Point, x0: S2Point, x1: S2Point, r: S1ChordAngle, expected_result: S2Predicates.Excluded, expected_prec: PrecisionStats.Precision) {
+    private fun testVoronoiSiteExclusion(a: S2Point, b: S2Point, x0: S2Point, x1: S2Point, r: S1ChordAngle, expected_result: S2Predicates.Excluded, expected_prec: PrecisionStats.Precision) {
         //constexpr Excluded UNCERTAIN = Excluded::UNCERTAIN
 
         var a = a;

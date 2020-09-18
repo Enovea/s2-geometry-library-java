@@ -21,7 +21,6 @@ package com.google.common.geometry
 import com.google.common.collect.Lists
 import com.google.common.collect.Maps
 import com.google.common.collect.Sets
-import com.google.common.geometry.S2Loop
 import dilivia.s2.*
 import dilivia.s2.S2CellId.Companion.begin
 import dilivia.s2.S2CellId.Companion.end
@@ -34,8 +33,8 @@ import dilivia.s2.S2Point.Companion.origin
 import dilivia.s2.S2Point.Companion.ortho
 import dilivia.s2.S2Point.Companion.plus
 import dilivia.s2.S2Point.Companion.times
-import junit.framework.TestCase
 import java.util.logging.Logger
+import kotlin.math.*
 
 /**
  * Tests for [S2Loop].
@@ -45,7 +44,7 @@ import java.util.logging.Logger
  *
  */
 @Strictfp
-class S2LoopTest : GeometryTestCase() {
+class S2LoopTest : S2GeometryTestCase() {
     // A stripe that slightly over-wraps the equator.
     private val candyCane = makeLoop("-20:150, -20:-70, 0:70, 10:-150, 10:70, -10:-70")
 
@@ -120,7 +119,7 @@ class S2LoopTest : GeometryTestCase() {
         assertDoubleNear(arctic80.rectBound.latHi().radians, fromPoint(mid).lat().radians)
         arctic80.invert()
         assertTrue(southHemi.rectBound.lng.isFull)
-        TestCase.assertEquals(southHemi.rectBound.lat, R1Interval(-S2.M_PI_2, 0.0))
+        assertEquals(southHemi.rectBound.lat, R1Interval(-S2.M_PI_2, 0.0))
     }
 
     fun testAreaCentroid() {

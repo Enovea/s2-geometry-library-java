@@ -25,7 +25,7 @@ import dilivia.s2.math.R2Vector
 
 
 @Strictfp
-class R1IntervalTest : GeometryTestCase() {
+class R1IntervalTest : S2GeometryTestCase() {
     /**
      * Test all of the interval operations on the given pair of intervals.
      * "expected_relation" is a sequence of "T" and "F" characters corresponding

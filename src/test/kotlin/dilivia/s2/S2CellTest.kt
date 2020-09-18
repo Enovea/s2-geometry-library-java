@@ -8,13 +8,13 @@ import dilivia.s2.math.R2Point
 import mu.KotlinLogging
 import kotlin.math.*
 
-class S2CellTest : GeometryTestCase() {
+class S2CellTest : S2GeometryTestCase() {
 
     private val logger = KotlinLogging.logger {  }
 
     fun testTestFaces() {
-        val edge_counts = mutableMapOf<S2Point, Int>()
-        val vertex_counts = mutableMapOf<S2Point, Int>()
+        val edgeCounts = mutableMapOf<S2Point, Int>()
+        val vertexCounts = mutableMapOf<S2Point, Int>()
         for (face in 0..5) {
             val id = S2CellId.fromFace(face)
             val cell = S2Cell(id)
@@ -26,18 +26,18 @@ class S2CellTest : GeometryTestCase() {
             assertFalse(cell.isLeaf())
 
             for (k in 0..3) {
-                edge_counts.compute(cell.getEdgeRaw(k)) { _, i -> (i ?: 0) + 1 }
-                vertex_counts.compute(cell.getVertexRaw(k)) { _, i -> (i ?: 0) + 1 }
+                edgeCounts.compute(cell.getEdgeRaw(k)) { _, i -> (i ?: 0) + 1 }
+                vertexCounts.compute(cell.getVertexRaw(k)) { _, i -> (i ?: 0) + 1 }
                 assertDoubleNear(0.0, cell.getVertexRaw(k).dotProd(cell.getEdgeRaw(k)))
-                assertDoubleNear(0.0, cell.getVertexRaw(k + 1).dotProd(cell.getEdgeRaw(k)));
+                assertDoubleNear(0.0, cell.getVertexRaw(k + 1).dotProd(cell.getEdgeRaw(k)))
                 assertDoubleNear(1.0, cell.getVertexRaw(k).crossProd(cell.getVertexRaw(k + 1)).normalize().dotProd(cell.getEdge(k)))
             }
         }
         // Check that edges have multiplicity 2 and vertices have multiplicity 3.
-        for (p in edge_counts) {
+        for (p in edgeCounts) {
             assertEquals(2, p.value)
         }
-        for (p in vertex_counts) {
+        for (p in vertexCounts) {
             assertEquals(3, p.value)
         }
     }
@@ -65,82 +65,82 @@ class S2CellTest : GeometryTestCase() {
             var max_approx_ratio: Double = 0.0
     )
 
-    fun gatherStats(cell: S2Cell, level_stats: MutableList<LevelStats>) {
-        val exact_area = cell.exactArea()
-        val approx_area = cell.approxArea()
-        var min_edge = 100.0
-        var max_edge = 0.0
-        var avg_edge = 0.0
-        var min_diag = 100.0
-        var max_diag = 0.0
-        var min_width = 100.0
-        var max_width = 0.0
-        var min_angle_span = 100.0
-        var max_angle_span = 0.0
+    private fun gatherStats(cell: S2Cell, level_stats: MutableList<LevelStats>) {
+        val exactArea = cell.exactArea()
+        val approxArea = cell.approxArea()
+        var minEdge = 100.0
+        var maxEdge = 0.0
+        var avgEdge = 0.0
+        var minDiag = 100.0
+        var maxDiag = 0.0
+        var minWidth = 100.0
+        var maxWidth = 0.0
+        var minAngleSpan = 100.0
+        var maxAngleSpan = 0.0
         for (i in 0..3) {
             val edge = cell.getVertexRaw(i).angle(cell.getVertexRaw(i + 1))
-            min_edge = min(edge, min_edge)
-            max_edge = max(edge, max_edge)
-            avg_edge += 0.25 * edge
+            minEdge = min(edge, minEdge)
+            maxEdge = max(edge, maxEdge)
+            avgEdge += 0.25 * edge
             val mid = cell.getVertexRaw(i) + cell.getVertexRaw(i + 1)
             val width = M_PI_2 - mid.angle(cell.getEdgeRaw(i + 2))
-            min_width = min(width, min_width)
-            max_width = max(width, max_width)
+            minWidth = min(width, minWidth)
+            maxWidth = max(width, maxWidth)
             if (i < 2) {
                 val diag = cell.getVertexRaw(i).angle(cell.getVertexRaw(i + 2))
-                min_diag = min(diag, min_diag)
-                max_diag = max(diag, max_diag)
-                val angle_span = cell.getEdgeRaw(i).angle(-cell.getEdgeRaw(i + 2))
-                min_angle_span = min(angle_span, min_angle_span);
-                max_angle_span = max(angle_span, max_angle_span);
+                minDiag = min(diag, minDiag)
+                maxDiag = max(diag, maxDiag)
+                val angleSpan = cell.getEdgeRaw(i).angle(-cell.getEdgeRaw(i + 2))
+                minAngleSpan = min(angleSpan, minAngleSpan)
+                maxAngleSpan = max(angleSpan, maxAngleSpan)
             }
         }
 
         val s = level_stats[cell.level()]
-        s.count += 1;
-        s.min_area = min(exact_area, s.min_area);
-        s.max_area = max(exact_area, s.max_area);
-        s.avg_area += exact_area;
-        s.min_width = min(min_width, s.min_width);
-        s.max_width = max(max_width, s.max_width);
-        s.avg_width += 0.5 * (min_width + max_width);
-        s.min_edge = min(min_edge, s.min_edge);
-        s.max_edge = max(max_edge, s.max_edge);
-        s.avg_edge += avg_edge;
-        s.max_edge_aspect = max(max_edge / min_edge, s.max_edge_aspect);
-        s.min_diag = min(min_diag, s.min_diag);
-        s.max_diag = max(max_diag, s.max_diag);
-        s.avg_diag += 0.5 * (min_diag + max_diag);
-        s.max_diag_aspect = max(max_diag / min_diag, s.max_diag_aspect);
-        s.min_angle_span = min(min_angle_span, s.min_angle_span);
-        s.max_angle_span = max(max_angle_span, s.max_angle_span);
-        s.avg_angle_span += 0.5 * (min_angle_span + max_angle_span);
-        val approx_ratio = approx_area / exact_area;
-        s.min_approx_ratio = min(approx_ratio, s.min_approx_ratio);
-        s.max_approx_ratio = max(approx_ratio, s.max_approx_ratio);
+        s.count += 1
+        s.min_area = min(exactArea, s.min_area)
+        s.max_area = max(exactArea, s.max_area)
+        s.avg_area += exactArea
+        s.min_width = min(minWidth, s.min_width)
+        s.max_width = max(maxWidth, s.max_width)
+        s.avg_width += 0.5 * (minWidth + maxWidth)
+        s.min_edge = min(minEdge, s.min_edge)
+        s.max_edge = max(maxEdge, s.max_edge)
+        s.avg_edge += avgEdge
+        s.max_edge_aspect = max(maxEdge / minEdge, s.max_edge_aspect)
+        s.min_diag = min(minDiag, s.min_diag)
+        s.max_diag = max(maxDiag, s.max_diag)
+        s.avg_diag += 0.5 * (minDiag + maxDiag)
+        s.max_diag_aspect = max(maxDiag / minDiag, s.max_diag_aspect)
+        s.min_angle_span = min(minAngleSpan, s.min_angle_span)
+        s.max_angle_span = max(maxAngleSpan, s.max_angle_span)
+        s.avg_angle_span += 0.5 * (minAngleSpan + maxAngleSpan)
+        val apprapproxratioxRatio = approxArea / exactArea
+        s.min_approx_ratio = min(apprapproxratioxRatio, s.min_approx_ratio)
+        s.max_approx_ratio = max(apprapproxratioxRatio, s.max_approx_ratio)
     }
 
-    fun testSubdivide(cell: S2Cell, level_stats: MutableList<LevelStats>) {
+    private fun testSubdivide(cell: S2Cell, level_stats: MutableList<LevelStats>) {
         logger.trace { "Test subdivide: $cell" }
         gatherStats(cell, level_stats)
         if (cell.isLeaf()) return
 
         val children = Array<S2Cell>(4) { S2Cell() }
-        assertTrue(cell.subdivide(children));
-        var child_id = cell.id().childBegin()
-        var exact_area = 0.0
-        var approx_area = 0.0
-        var average_area = 0.0
+        assertTrue(cell.subdivide(children))
+        var childId = cell.id().childBegin()
+        var exactArea = 0.0
+        var approxArea = 0.0
+        var averageArea = 0.0
         for (i in 0..3) {
             logger.trace { "Check children $i: ${children[i]}" }
-            exact_area += children[i].exactArea()
-            approx_area += children[i].approxArea()
-            average_area += children[i].averageArea()
+            exactArea += children[i].exactArea()
+            approxArea += children[i].approxArea()
+            averageArea += children[i].averageArea()
 
             // Check that the child geometry is consistent with its cell ID.
-            assertEquals(child_id, children[i].id())
-            assertTrue(S2Point.approxEquals(children[i].getCenter(), child_id.toPoint()))
-            val direct = S2Cell(child_id)
+            assertEquals(childId, children[i].id())
+            assertTrue(S2Point.approxEquals(children[i].getCenter(), childId.toPoint()))
+            val direct = S2Cell(childId)
             assertEquals(direct.face(), children[i].face())
             assertEquals(direct.level(), children[i].level())
             assertEquals(direct.orientation(), children[i].orientation())
@@ -151,10 +151,10 @@ class S2CellTest : GeometryTestCase() {
             }
 
             // Test Contains() and MayIntersect().
-            assertTrue(cell.contains(children[i]));
-            assertTrue(cell.mayIntersect(children[i]));
-            assertFalse(children[i].contains(cell));
-            assertTrue(cell.contains(children[i].getCenterRaw()));
+            assertTrue(cell.contains(children[i]))
+            assertTrue(cell.mayIntersect(children[i]))
+            assertFalse(children[i].contains(cell))
+            assertTrue(cell.contains(children[i].getCenterRaw()))
             for (j in 0..3) {
                 assertTrue(cell.contains(children[i].getVertexRaw(j)))
                 if (j != i) {
@@ -164,46 +164,46 @@ class S2CellTest : GeometryTestCase() {
             }
 
             // Test GetCapBound and GetRectBound.
-            val parent_cap = cell.capBound
-            val parent_rect = cell.rectBound
+            val parentCap = cell.capBound
+            val parentRect = cell.rectBound
             if (cell.contains(S2Point(0, 0, 1)) || cell.contains(S2Point(0, 0, -1))) {
-                assertTrue(parent_rect.lng.isFull)
+                assertTrue(parentRect.lng.isFull)
             }
             val child_cap = children[i].capBound
             val child_rect = children[i].rectBound
             assertTrue(child_cap.contains(children[i].getCenter()))
             assertTrue(child_rect.contains(children[i].getCenterRaw()))
-            assertTrue(parent_cap.contains(children[i].getCenter()))
-            assertTrue(parent_rect.contains(children[i].getCenterRaw()))
+            assertTrue(parentCap.contains(children[i].getCenter()))
+            assertTrue(parentRect.contains(children[i].getCenterRaw()))
             for (j in 0..3) {
                 val vertex = children[i].getVertex(j)
                 val vertexRaw = children[i].getVertexRaw(j)
                 logger.trace { "Check vertex $j = $vertex, raw = $vertexRaw" }
-                assertTrue(child_cap.contains(vertex));
-                assertTrue(child_rect.contains(vertex));
-                assertTrue(child_rect.contains(vertexRaw));
-                assertTrue(parent_cap.contains(vertex));
-                assertTrue(parent_rect.contains(vertex));
-                assertTrue(parent_rect.contains(vertexRaw));
+                assertTrue(child_cap.contains(vertex))
+                assertTrue(child_rect.contains(vertex))
+                assertTrue(child_rect.contains(vertexRaw))
+                assertTrue(parentCap.contains(vertex))
+                assertTrue(parentRect.contains(vertex))
+                assertTrue(parentRect.contains(vertexRaw))
                 if (j != i) {
                     // The bounding caps and rectangles should be tight enough so that
                     // they exclude at least two vertices of each adjacent cell.
-                    var cap_count = 0;
-                    var rect_count = 0;
+                    var cap_count = 0
+                    var rect_count = 0
                     for (k in 0..3) {
                         if (child_cap.contains(children[j].getVertex(k))) {
                             logger.trace { "Child cap $child_cap contains vertex $k = ${children[j].getVertex(k)} of child $j = ${children[j]}" }
                             ++cap_count
-                        };
+                        }
                         if (child_rect.contains(children[j].getVertexRaw(k))) {
                             ++rect_count
-                        };
+                        }
                     }
                     assertTrue(cap_count <= 2)
                     if (child_rect.latLo().radians > -M_PI_2 && child_rect.latHi().radians < M_PI_2) {
                         // Bounding rectangles may be too large at the poles because the
                         // pole itself has an arbitrary fixed longitude.
-                        assertTrue(rect_count <= 2);
+                        assertTrue(rect_count <= 2)
                     }
                 }
             }
@@ -224,12 +224,12 @@ class S2CellTest : GeometryTestCase() {
             var force_subdivide = false
             for (uv in special_uv) {
                 if (children[i].boundUV().contains(uv))
-                    force_subdivide = true;
+                    force_subdivide = true
             }
             if (force_subdivide || cell.level() < 6 || rand!!.nextInt(5) == 0) {
                 testSubdivide(children[i], level_stats)
             }
-            child_id = child_id.next()
+            childId = childId.next()
         }
 
         // Check sum of child areas equals parent area.
@@ -243,14 +243,14 @@ class S2CellTest : GeometryTestCase() {
         // For AverageArea(), the areas themselves are not very accurate, but
         // the average area of a parent is exactly 4 times the area of a child.
 
-        assertTrue(abs(ln(exact_area / cell.exactArea())) <= abs(ln(1 + 1e-6)))
-        assertTrue(abs(ln(approx_area / cell.approxArea())) <= abs(ln(1.03)))
-        assertTrue(abs(ln(average_area / cell.averageArea())) <= abs(ln(1 + 1e-15)))
+        assertTrue(abs(ln(exactArea / cell.exactArea())) <= abs(ln(1 + 1e-6)))
+        assertTrue(abs(ln(approxArea / cell.approxArea())) <= abs(ln(1.03)))
+        assertTrue(abs(ln(averageArea / cell.averageArea())) <= abs(ln(1 + 1e-15)))
     }
 
-    fun checkMinMaxAvg(dim: Int, label: String, level: Int, count: Double, abs_error: Double,
-                       min_value: Double, max_value: Double, avg_value: Double,
-                       min_metric: S2CellMetric, max_metric: S2CellMetric, avg_metric: S2CellMetric) {
+    private fun checkMinMaxAvg(dim: Int, label: String, level: Int, count: Double, abs_error: Double,
+                               min_value: Double, max_value: Double, avg_value: Double,
+                               min_metric: S2CellMetric, max_metric: S2CellMetric, avg_metric: S2CellMetric) {
 
         // All metrics are minimums, maximums, or averages of differential
         // quantities, and therefore will not be exact for cells at any finite
@@ -267,16 +267,16 @@ class S2CellTest : GeometryTestCase() {
         // quantities across the cells, while at high levels error is dominated by
         // the effects of random sampling.
         var tolerance = (max_metric.getValue(level) - min_metric.getValue(level)) / sqrt(min(count, 0.5 * (1 shl level).toDouble()))
-        if (tolerance == 0.0) tolerance = abs_error;
+        if (tolerance == 0.0) tolerance = abs_error
 
-        val min_error = min_value - min_metric.getValue(level)
-        val max_error = max_metric.getValue(level) - max_value
-        val avg_error = abs(avg_metric.getValue(level) - avg_value)
+        val minError = min_value - min_metric.getValue(level)
+        val maxError = max_metric.getValue(level) - max_value
+        val avgError = abs(avg_metric.getValue(level) - avg_value)
         println(String.format("%-10s (%6.0f samples, tolerance %8.3g) - min %9.4g (%9.3g : %9.3g) max %9.4g (%9.3g : %9.3g), avg %9.4g (%9.3g : %9.3g)",
                 label, count, tolerance,
-                min_value, min_error / min_value, min_error / tolerance,
-                max_value, max_error / max_value, max_error / tolerance,
-                avg_value, avg_error / avg_value, avg_error / tolerance)
+                min_value, minError / min_value, minError / tolerance,
+                max_value, maxError / max_value, maxError / tolerance,
+                avg_value, avgError / avg_value, avgError / tolerance)
         )
 
         assertTrue(min_metric.getValue(level) <= min_value + abs_error)
@@ -310,7 +310,7 @@ class S2CellTest : GeometryTestCase() {
                 | Area     Length        Length       Exact Area    Exact Area
                 | Level   Ratio  Ratio Aspect  Ratio Aspect    Min    Max    Min    Max
                 | --------------------------------------------------------------------
-                | """.trimMargin());
+                | """.trimMargin())
         for (i in 0..S2CellId.kMaxLevel) {
             val s = levelStats[i]
             if (s.count > 0) {
@@ -335,17 +335,17 @@ class S2CellTest : GeometryTestCase() {
             val s = levelStats[i]
             if (s.count == 0.0) continue
 
-            println(String.format("Level %2d - metric value (error/actual : error/tolerance)", i));
+            println(String.format("Level %2d - metric value (error/actual : error/tolerance)", i))
 
             // The various length calculations are only accurate to 1e-15 or so,
             // so we need to allow for this amount of discrepancy with the theoretical
             // minimums and maximums.  The area calculation is accurate to about 1e-15
             // times the cell width.
-            checkMinMaxAvg(2, "area", i, s.count, 1e-15 * s.min_width, s.min_area, s.max_area, s.avg_area, S2CellMetrics.kMinArea, S2CellMetrics.kMaxArea, S2CellMetrics.kAvgArea);
-            checkMinMaxAvg(1, "width", i, s.count, 1e-15, s.min_width, s.max_width, s.avg_width, S2CellMetrics.kMinWidth, S2CellMetrics.kMaxWidth, S2CellMetrics.kAvgWidth);
-            checkMinMaxAvg(1, "edge", i, s.count, 1e-15, s.min_edge, s.max_edge, s.avg_edge, S2CellMetrics.kMinEdge, S2CellMetrics.kMaxEdge, S2CellMetrics.kAvgEdge);
-            checkMinMaxAvg(1, "diagonal", i, s.count, 1e-15, s.min_diag, s.max_diag, s.avg_diag, S2CellMetrics.kMinDiag, S2CellMetrics.kMaxDiag, S2CellMetrics.kAvgDiag);
-            checkMinMaxAvg(1, "angle span", i, s.count, 1e-15, s.min_angle_span, s.max_angle_span, s.avg_angle_span, S2CellMetrics.kMinAngleSpan, S2CellMetrics.kMaxAngleSpan, S2CellMetrics.kAvgAngleSpan);
+            checkMinMaxAvg(2, "area", i, s.count, 1e-15 * s.min_width, s.min_area, s.max_area, s.avg_area, S2CellMetrics.kMinArea, S2CellMetrics.kMaxArea, S2CellMetrics.kAvgArea)
+            checkMinMaxAvg(1, "width", i, s.count, 1e-15, s.min_width, s.max_width, s.avg_width, S2CellMetrics.kMinWidth, S2CellMetrics.kMaxWidth, S2CellMetrics.kAvgWidth)
+            checkMinMaxAvg(1, "edge", i, s.count, 1e-15, s.min_edge, s.max_edge, s.avg_edge, S2CellMetrics.kMinEdge, S2CellMetrics.kMaxEdge, S2CellMetrics.kAvgEdge)
+            checkMinMaxAvg(1, "diagonal", i, s.count, 1e-15, s.min_diag, s.max_diag, s.avg_diag, S2CellMetrics.kMinDiag, S2CellMetrics.kMaxDiag, S2CellMetrics.kAvgDiag)
+            checkMinMaxAvg(1, "angle span", i, s.count, 1e-15, s.min_angle_span, s.max_angle_span, s.avg_angle_span, S2CellMetrics.kMinAngleSpan, S2CellMetrics.kMaxAngleSpan, S2CellMetrics.kAvgAngleSpan)
 
             // The aspect ratio calculations are ratios of lengths and are therefore
             // less accurate at higher subdivision levels.
@@ -367,7 +367,7 @@ class S2CellTest : GeometryTestCase() {
         // amount, while the S2Loop bound does no expansion at all.
 
         // Possible additional S2Cell error compared to S2Loop error:
-        val kCellError = S2LatLng.fromRadians(2 * DBL_EPSILON, 4 * DBL_EPSILON);
+        val kCellError = S2LatLng.fromRadians(2 * DBL_EPSILON, 4 * DBL_EPSILON)
         // Possible additional S2Loop error compared to S2Cell error:
         val kLoopError = S2LatLngRectBounder.maxErrorForTests()
 
@@ -430,23 +430,23 @@ class S2CellTest : GeometryTestCase() {
         assertTrue(cell.contains(p))
     }
 
-    fun getDistanceToPointBruteForce(cell: S2Cell, target: S2Point): S1ChordAngle {
-        var min_distance = S1ChordAngle.infinity.toMutable()
+    private fun getDistanceToPointBruteForce(cell: S2Cell, target: S2Point): S1ChordAngle {
+        val minDistance = S1ChordAngle.infinity.toMutable()
         for (i in 0..3) {
-            S2EdgeDistances.updateMinDistance(target, cell.getVertex(i), cell.getVertex(i + 1), min_distance)
+            S2EdgeDistances.updateMinDistance(target, cell.getVertex(i), cell.getVertex(i + 1), minDistance)
         }
-        return min_distance;
+        return minDistance
     }
 
-    fun getMaxDistanceToPointBruteForce(cell: S2Cell, target: S2Point): S1ChordAngle {
+    private fun getMaxDistanceToPointBruteForce(cell: S2Cell, target: S2Point): S1ChordAngle {
         if (cell.contains(-target)) {
             return S1ChordAngle.straight
         }
-        var max_distance = S1ChordAngle.negative.toMutable()
+        val maxDistance = S1ChordAngle.negative.toMutable()
         for (i in 0..3) {
-            S2EdgeDistances.updateMaxDistance(target, cell.getVertex(i), cell.getVertex(i + 1), max_distance);
+            S2EdgeDistances.updateMaxDistance(target, cell.getVertex(i), cell.getVertex(i + 1), maxDistance)
         }
-        return max_distance;
+        return maxDistance
     }
 
     fun testGetDistanceToPoint() {
@@ -461,15 +461,15 @@ class S2CellTest : GeometryTestCase() {
             val actual_max = cell.getMaxDistance(target).toAngle()
             // The error has a peak near Pi/2 for edge distance, and another peak near
             // Pi for vertex distance.
-            assertDoubleNear(expected_to_boundary.radians, actual_to_boundary.radians, 1e-12);
-            assertDoubleNear(expected_to_interior.radians, actual_to_interior.radians, 1e-12);
-            assertDoubleNear(expected_max.radians, actual_max.radians, 1e-12);
+            assertDoubleNear(expected_to_boundary.radians, actual_to_boundary.radians, 1e-12)
+            assertDoubleNear(expected_to_interior.radians, actual_to_interior.radians, 1e-12)
+            assertDoubleNear(expected_max.radians, actual_max.radians, 1e-12)
             if (expected_to_boundary.radians <= M_PI / 3) {
-                assertDoubleNear(expected_to_boundary.radians, actual_to_boundary.radians, 1e-15);
-                assertDoubleNear(expected_to_interior.radians, actual_to_interior.radians, 1e-15);
+                assertDoubleNear(expected_to_boundary.radians, actual_to_boundary.radians, 1e-15)
+                assertDoubleNear(expected_to_interior.radians, actual_to_interior.radians, 1e-15)
             }
             if (expected_max.radians <= M_PI / 3) {
-                assertDoubleNear(expected_max.radians, actual_max.radians, 1e-15);
+                assertDoubleNear(expected_max.radians, actual_max.radians, 1e-15)
             }
         }
     }
@@ -502,7 +502,7 @@ class S2CellTest : GeometryTestCase() {
             return S1ChordAngle.zero
         }
 
-        var min_dist = S1ChordAngle.infinity.toMutable()
+        val minDist = S1ChordAngle.infinity.toMutable()
         for (i in 0..3) {
             val v0 = cell.getVertex(i)
             val v1 = cell.getVertex(i + 1)
@@ -510,11 +510,11 @@ class S2CellTest : GeometryTestCase() {
             if (S2EdgeCrossings.crossingSign(a, b, v0, v1) >= 0) {
                 return S1ChordAngle.zero
             }
-            S2EdgeDistances.updateMinDistance(a, v0, v1, min_dist)
-            S2EdgeDistances.updateMinDistance(b, v0, v1, min_dist)
-            S2EdgeDistances.updateMinDistance(v0, a, b, min_dist)
+            S2EdgeDistances.updateMinDistance(a, v0, v1, minDist)
+            S2EdgeDistances.updateMinDistance(b, v0, v1, minDist)
+            S2EdgeDistances.updateMinDistance(v0, a, b, minDist)
         }
-        return min_dist;
+        return minDist
     }
 
     fun getMaxDistanceToEdgeBruteForce(cell: S2Cell, a: S2Point, b: S2Point): S1ChordAngle {
@@ -523,7 +523,7 @@ class S2CellTest : GeometryTestCase() {
             return S1ChordAngle.straight
         }
 
-        var max_dist = S1ChordAngle.negative.toMutable()
+        val maxDist = S1ChordAngle.negative.toMutable()
         for (i in 0..3) {
             val v0 = cell.getVertex(i)
             val v1 = cell.getVertex(i + 1)
@@ -531,35 +531,35 @@ class S2CellTest : GeometryTestCase() {
             if (S2EdgeCrossings.crossingSign(-a, -b, v0, v1) >= 0) {
                 return S1ChordAngle.straight
             }
-            S2EdgeDistances.updateMaxDistance(a, v0, v1, max_dist)
-            S2EdgeDistances.updateMaxDistance(b, v0, v1, max_dist)
-            S2EdgeDistances.updateMaxDistance(v0, a, b, max_dist)
+            S2EdgeDistances.updateMaxDistance(a, v0, v1, maxDist)
+            S2EdgeDistances.updateMaxDistance(b, v0, v1, maxDist)
+            S2EdgeDistances.updateMaxDistance(v0, a, b, maxDist)
         }
-        return max_dist;
+        return maxDist
     }
 
     fun testGetDistanceToEdge() {
         for (iter in 0 until 1000) {
             val cell = S2Cell(randomCellId)
             val (a, b) = chooseEdgeNearCell(cell)
-            val expected_min = getDistanceToEdgeBruteForce(cell, a, b).toAngle()
-            val expected_max = getMaxDistanceToEdgeBruteForce(cell, a, b).toAngle()
-            val actual_min = cell.getDistance(a, b).toAngle()
-            val actual_max = cell.getMaxDistance(a, b).toAngle()
+            val expectedMin = getDistanceToEdgeBruteForce(cell, a, b).toAngle()
+            val expectedMax = getMaxDistanceToEdgeBruteForce(cell, a, b).toAngle()
+            val actualMin = cell.getDistance(a, b).toAngle()
+            val actualMax = cell.getMaxDistance(a, b).toAngle()
             // The error has a peak near Pi/2 for edge distance, and another peak near
             // Pi for vertex distance.
-            if (expected_min.radians > M_PI / 2) {
+            if (expectedMin.radians > M_PI / 2) {
                 // Max error for S1ChordAngle as it approaches Pi is about 2e-8.
-                assertDoubleNear(expected_min.radians, actual_min.radians, 2e-8);
-            } else if (expected_min.radians <= M_PI / 3) {
-                assertDoubleNear(expected_min.radians, actual_min.radians, 1e-15);
+                assertDoubleNear(expectedMin.radians, actualMin.radians, 2e-8)
+            } else if (expectedMin.radians <= M_PI / 3) {
+                assertDoubleNear(expectedMin.radians, actualMin.radians, 1e-15)
             } else {
-                assertDoubleNear(expected_min.radians, actual_min.radians, 1e-12);
+                assertDoubleNear(expectedMin.radians, actualMin.radians, 1e-12)
             }
 
-            assertDoubleNear(expected_max.radians, actual_max.radians, 1e-12);
-            if (expected_max.radians <= M_PI / 3) {
-                assertDoubleNear(expected_max.radians, actual_max.radians, 1e-15);
+            assertDoubleNear(expectedMax.radians, actualMax.radians, 1e-12)
+            if (expectedMax.radians <= M_PI / 3) {
+                assertDoubleNear(expectedMax.radians, actualMax.radians, 1e-15)
             }
         }
     }
@@ -574,8 +574,8 @@ class S2CellTest : GeometryTestCase() {
         val actual = cell.getMaxDistance(a, b)
         val expected = getMaxDistanceToEdgeBruteForce(cell, a, b)
 
-        assertDoubleNear(expected.radians(), S1ChordAngle.straight.radians(), 1e-15);
-        assertDoubleNear(actual.radians(), S1ChordAngle.straight.radians(), 1e-15);
+        assertDoubleNear(expected.radians(), S1ChordAngle.straight.radians(), 1e-15)
+        assertDoubleNear(actual.radians(), S1ChordAngle.straight.radians(), 1e-15)
     }
 
     fun testGetMaxDistanceToCellAntipodal() {

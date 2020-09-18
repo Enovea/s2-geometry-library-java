@@ -17,10 +17,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
-import dilivia.s2.GeometryTestCase;
-import dilivia.s2.S1Angle;
-import dilivia.s2.S2Cap;
-import dilivia.s2.S2Point;
+import dilivia.s2.*;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -29,7 +26,7 @@ import java.util.logging.Logger;
  * Tests for {@link S2Loop}.
  *
  */
-public strictfp class S2PolygonBuilderTest extends GeometryTestCase {
+public strictfp class S2PolygonBuilderTest extends S2GeometryTestCase {
   private static final Logger log = Logger.getLogger(S2PolygonBuilderTest.class.getCanonicalName());
 
   // A chain represents either a polyline or a loop, depending

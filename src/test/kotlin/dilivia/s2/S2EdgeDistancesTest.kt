@@ -1,6 +1,5 @@
 package dilivia.s2
 
-import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
 import java.lang.Math.pow
 import kotlin.math.acos
@@ -11,7 +10,7 @@ import kotlin.math.sqrt
 // Author: ericv@google.com (Eric Veach)
 
 
-class S2EdgeDistancesTest : GeometryTestCase() {
+class S2EdgeDistancesTest : S2GeometryTestCase() {
 
     // Checks that the error returned by S2::GetUpdateMinDistanceMaxError() for
 // the distance "input" (measured in radians) corresponds to a distance error

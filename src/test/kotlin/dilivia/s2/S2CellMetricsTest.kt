@@ -1,6 +1,5 @@
 package dilivia.s2
 
-import java.lang.StrictMath.pow
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -16,7 +15,7 @@ import kotlin.math.pow
 // one of these.
 data class MetricBundle(val dim: Int, val min: S2CellMetric, val max: S2CellMetric, val avg: S2CellMetric)
 
-class S2CellMetricsTest : GeometryTestCase() {
+class S2CellMetricsTest : S2GeometryTestCase() {
 
     fun checkMinMaxAvg(bundle: MetricBundle) {
         assertTrue(bundle.min.deriv <= bundle.avg.deriv)

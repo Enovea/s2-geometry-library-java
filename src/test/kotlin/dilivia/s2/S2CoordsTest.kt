@@ -25,7 +25,7 @@ import dilivia.s2.S2Coords.kSwapMask
 import kotlin.math.abs
 
 @ExperimentalUnsignedTypes
-class S2CoordsTest : GeometryTestCase() {
+class S2CoordsTest : S2GeometryTestCase() {
 
     fun swapAxes(ij: Int): Int = ((ij shr 1) and 1) + ((ij and 1) shl 1)
 

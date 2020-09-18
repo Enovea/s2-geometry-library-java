@@ -9,6 +9,8 @@
     </appender>
 
     <logger name="dilivia.s2" level="DEBUG" />
+    <logger name="dilivia.s2.S2EdgeCrossings" level="TRACE" />
+    <logger name="dilivia.s2.S2EdgeDistances" level="DEBUG" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

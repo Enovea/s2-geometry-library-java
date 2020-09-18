@@ -23,7 +23,7 @@ import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
 
-class S2CentroidsTest : GeometryTestCase() {
+class S2CentroidsTest : S2GeometryTestCase() {
 
     fun testTriangleTrueCentroidSmallTriangles() {
         // Test TrueCentroid() with very small triangles.  This test assumes that

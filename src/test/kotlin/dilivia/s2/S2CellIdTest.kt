@@ -4,7 +4,7 @@
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -32,7 +32,7 @@ import kotlin.random.Random
  */
 @ExperimentalUnsignedTypes
 @Strictfp
-class S2CellIdTest : GeometryTestCase() {
+class S2CellIdTest : S2GeometryTestCase() {
 
     fun testDefaultConstructor() {
         val id = S2CellId()

@@ -30,7 +30,7 @@ import java.util.logging.Logger;
  * @author andriy@google.com (Andriy Bihun) ported from util/geometry
  * @author pilloff@google.com (Mark Pilloff) original author
  */
-public strictfp class S2EdgeIndexTest extends GeometryTestCase {
+public strictfp class S2EdgeIndexTest extends S2GeometryTestCase {
   private static final Logger log = Logger.getLogger(S2EdgeIndexTest.class.getCanonicalName());
 
   public static class EdgeVectorIndex extends S2EdgeIndex {

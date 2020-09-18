@@ -23,7 +23,7 @@ import dilivia.s2.math.R2Vector
 import kotlin.math.abs
 
 @Strictfp
-class S1IntervalTest : GeometryTestCase() {
+class S1IntervalTest : S2GeometryTestCase() {
 
     // "Quadrants" are numbered as follows:
     // quad1 == [0, Pi/2]

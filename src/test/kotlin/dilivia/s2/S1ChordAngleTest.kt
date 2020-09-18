@@ -24,7 +24,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.tan
 
-class S1ChordAngleTest : GeometryTestCase() {
+class S1ChordAngleTest : S2GeometryTestCase() {
 
     fun testDefaultConstructor() {
         // Check that the default constructor returns an angle of 0.

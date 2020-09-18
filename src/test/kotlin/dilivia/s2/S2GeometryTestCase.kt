@@ -42,7 +42,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 @Strictfp
-abstract class GeometryTestCase : TestCase() {
+abstract class S2GeometryTestCase : TestCase() {
+
     @JvmField
     var rand: Random? = null
     override fun setUp() {

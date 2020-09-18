@@ -41,6 +41,8 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
 
     constructor(x: Int, y: Int, z: Int) : this(x.toDouble(), y.toDouble(), z.toDouble())
 
+    constructor(vectorExactFloat: R3VectorExactFloat): this(vectorExactFloat.coords.map { it.toDouble() })
+
     fun x(): Double {
         return get(0)
     }

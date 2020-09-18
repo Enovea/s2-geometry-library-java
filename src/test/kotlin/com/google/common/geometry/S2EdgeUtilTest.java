@@ -18,11 +18,12 @@ package com.google.common.geometry;
 
 import com.google.common.collect.ImmutableList;
 import dilivia.s2.*;
+import kotlin.Triple;
 
 /**
  * Tests for {@link S2EdgeUtil}.
  */
-public strictfp class S2EdgeUtilTest extends GeometryTestCase {
+public strictfp class S2EdgeUtilTest extends S2GeometryTestCase {
 
     public static final int DEGENERATE = -2;
 

@@ -22,7 +22,7 @@ import com.google.common.geometry.S2.*
 import kotlin.math.abs
 
 @Strictfp
-class S2LatLngTest : GeometryTestCase() {
+class S2LatLngTest : S2GeometryTestCase() {
 
     fun testBasic() {
         val llRad = S2LatLng.fromRadians(M_PI_4, M_PI_2)

@@ -18,7 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
 import dilivia.s2.S1Angle.Companion.min
 import dilivia.s2.S1Angle.Companion.zero
@@ -28,7 +27,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 @Strictfp
-class S2LatLngRectTest : GeometryTestCase() {
+class S2LatLngRectTest : S2GeometryTestCase() {
 
     fun testEmptyAndFull() {
         // Test basic properties of empty and full rectangles.

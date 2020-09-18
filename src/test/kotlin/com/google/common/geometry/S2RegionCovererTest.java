@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-public strictfp class S2RegionCovererTest extends GeometryTestCase {
+public strictfp class S2RegionCovererTest extends S2GeometryTestCase {
   private static Logger logger = Logger.getLogger(S2RegionCovererTest.class.getName());
 
   public void testRandomCells() {

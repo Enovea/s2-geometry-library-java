@@ -19,6 +19,7 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
+import mu.KotlinLogging
 import kotlin.math.*
 
 /**
@@ -26,6 +27,8 @@ import kotlin.math.*
  * points onto edges, etc.
  */
 object S2EdgeDistances {
+
+    private val logger = KotlinLogging.logger {  }
 
     /////////////////////////////////////////////////////////////////////////////
     ///////////////            (point, edge) functions            ///////////////
@@ -47,8 +50,10 @@ object S2EdgeDistances {
      */
     @JvmStatic
     fun getDistance(x: S2Point, a: S2Point, b: S2Point): S1Angle {
+        logger.trace { "getDistance(x = $x, a = $a, b = $b)" }
         val minDist = MutableS1ChordAngle(Double.MAX_VALUE)
         alwaysUpdateMinDistance(x, a, b, minDist, true)
+        logger.trace { "getDistance(x = $x, a = $a, b = $b) = $minDist" }
         return minDist.toAngle()
     }
 

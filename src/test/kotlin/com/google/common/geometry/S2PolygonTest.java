@@ -17,7 +17,7 @@
 package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
-import dilivia.s2.GeometryTestCase;
+import dilivia.s2.S2GeometryTestCase;
 import dilivia.s2.S1Angle;
 import dilivia.s2.S2LatLng;
 import dilivia.s2.S2Point;
@@ -28,7 +28,7 @@ import java.util.List;
  * Tests for {@link S2Polygon}.
  *
  */
-public strictfp class S2PolygonTest extends GeometryTestCase {
+public strictfp class S2PolygonTest extends S2GeometryTestCase {
 
   // A set of nested loops around the point 0:0 (lat:lng).
   // Every vertex of NEAR0 is a vertex of NEAR1.
