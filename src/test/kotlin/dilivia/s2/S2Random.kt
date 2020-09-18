@@ -32,7 +32,13 @@ object S2Random {
 
     // Return a uniformly distributed integer in the range [0,n).
     @JvmStatic
-    fun randomInt(n: Int): Int = random.nextInt()
+    fun randomInt(n: Int): Int = random.nextInt(n)
+
+    @JvmStatic
+    fun randomInt(min: Int, limit: Int): Int = random.nextInt(min, limit)
+
+    @JvmStatic
+    fun randomInt(): Int = random.nextInt()
 
     // Return a uniformly distributed "double" in the range [min, limit).
     @JvmStatic

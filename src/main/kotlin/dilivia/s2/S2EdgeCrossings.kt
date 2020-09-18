@@ -41,6 +41,7 @@ import kotlin.math.sqrt
 // See also S2EdgeCrosser (which efficiently tests an edge against a sequence
 // of other edges) and S2CrossingEdgeQuery (which uses an index to speed up
 // the process).
+@Strictfp
 object S2EdgeCrossings {
 
     private val logger = KotlinLogging.logger { }
@@ -82,6 +83,7 @@ object S2EdgeCrossings {
     // Note that if you want to check an edge against a collection of other edges,
     // it is much more efficient to use an S2EdgeCrosser (see s2edge_crosser.h).
     @JvmStatic
+    @Strictfp
     fun crossingSign(a: S2Point, b: S2Point, c: S2Point, d: S2Point): Int {
         val crosser = S2EdgeCrosser(a, b, c)
         return crosser.crossingSign(d)
@@ -111,6 +113,7 @@ object S2EdgeCrossings {
     //
     // It is an error to call this method with 4 distinct vertices.
     @JvmStatic
+    @Strictfp
     fun vertexCrossing(a: S2Point, b: S2Point, c: S2Point, d: S2Point): Boolean {
         // If A == B or C == D there is no intersection.  We need to check this
         // case first in case 3 or more input points are identical.
@@ -137,6 +140,7 @@ object S2EdgeCrossings {
     // cases where two or more vertices are the same.  This defines a crossing
     // function such that point-in-polygon containment tests can be implemented
     // by simply counting edge crossings.
+    @Strictfp
     fun edgeOrVertexCrossing(a: S2Point, b: S2Point, c: S2Point, d: S2Point): Boolean {
         val crossing = crossingSign(a, b, c, d)
         if (crossing < 0) return false
@@ -167,6 +171,7 @@ object S2EdgeCrossings {
     // The returned intersection point X is guaranteed to be very close to the
     // true intersection point of AB and CD, even if the edges intersect at a
     // very small angle.  See "kIntersectionError" below for details.
+    @Strictfp
     fun getIntersection(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point {
         //assert(crossingSign(a0, a1, b0, b1) > 0)
 
@@ -254,6 +259,7 @@ object S2EdgeCrossings {
     //
     // The intersection point is not guaranteed to have the correct sign
     // (i.e., it may be either "result" or "-result").
+    @Strictfp
     private fun getIntersectionSimple(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point? {
         // The code below computes the intersection point as
         //
@@ -308,6 +314,7 @@ object S2EdgeCrossings {
         return null
     }
 
+    @Strictfp
     private fun getIntersectionSimpleLD(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point? {
         TODO()
         /*Vector3_ld result_ld;
@@ -326,6 +333,7 @@ object S2EdgeCrossings {
     //
     // The intersection point is not guaranteed to have the correct sign
     // (i.e., it may be either "result" or "-result").
+    @Strictfp
     private fun getIntersectionStable(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point? {
         // Sort the two edges so that (a0,a1) is longer, breaking ties in a
         // deterministic way that does not depend on the ordering of the endpoints.
@@ -345,6 +353,7 @@ object S2EdgeCrossings {
 
     // Returns whether (a0,a1) is less than (b0,b1) with respect to a total
     // ordering on edges that is invariant under edge reversals.
+    @Strictfp
     fun <V, T> compareEdges(a0: V, a1: V, b0: V, b1: V): Boolean where V : R3Vector<V, T>, T : Number, T : Comparable<T> {
         var pa0 = a0
         var pa1 = a1
@@ -366,6 +375,7 @@ object S2EdgeCrossings {
 
     // Helper function for GetIntersectionStable().  It expects that the edges
     // (a0,a1) and (b0,b1) have been sorted so that the first edge is longer.
+    @Strictfp
     fun getIntersectionStableSorted(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point? {
         Assertions.assert { ((a1 - a0).norm2() >= (b1 - b0).norm2()) }
 
@@ -424,6 +434,7 @@ object S2EdgeCrossings {
     // The remaining parameters allow this dot product to be computed more
     // accurately and efficiently.  They include the length of "a_norm"
     // ("a_norm_len") and the edge endpoints "a0" and "a1".
+    @Strictfp
     private fun getProjection(x: S2Point, a_norm: S2Point, a_norm_len: Double, a0: S2Point, a1: S2Point): Pair<Double, Double> {
         // The error in the dot product is proportional to the lengths of the input
         // vectors, so rather than using "x" itself (a unit-length vector) we use
@@ -461,6 +472,7 @@ object S2EdgeCrossings {
         return result to error
     }
 
+    @Strictfp
     fun getIntersectionStableLD(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point? {
         TODO()
         /*Vector3_ld result_ld;
@@ -484,6 +496,7 @@ object S2EdgeCrossings {
      * @param b1 Second point of the edge b
      * @return The intersection point
      */
+    @Strictfp
     internal fun getIntersectionExact(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): S2Point {
         logger.trace { "getIntersectionExact(a0 = $a0, a1 = $a1, b0 = $b0, b1 = $b1)" }
         // Since we are using exact arithmetic, we don't need to worry about
@@ -554,6 +567,7 @@ object S2EdgeCrossings {
     // product before normalization, which is useful for estimating the amount of
     // error in the result.  For numerical stability, "x" and "y" should both be
     // approximately unit length.
+    @Strictfp
     private fun robustNormalWithLength(x: S2Point, y: S2Point): Pair<S2Point, Double> {
         // This computes 2 * (x.CrossProd(y)), but has much better numerical
         // stability when "x" and "y" are unit length.
@@ -570,6 +584,7 @@ object S2EdgeCrossings {
     // More precisely, either "x" must be within "tolerance" of "a" or "b", or
     // when "x" is projected onto the great circle through "a" and "b" it must lie
     // along the edge (a,b) (i.e., the shortest path from "a" to "b").
+    @Strictfp
     private fun approximatelyOrdered(a: S2Point, x: S2Point, b: S2Point, tolerance: Double): Boolean {
         if ((x - a).norm2() <= tolerance * tolerance) return true
         if ((x - b).norm2() <= tolerance * tolerance) return true
@@ -577,6 +592,7 @@ object S2EdgeCrossings {
     }
 
 
+    @Strictfp
     private fun convertS2PointFromExact(xf: R3VectorExactFloat): S2Point {
         logger.trace { "Convert $xf to S2Point" }
         // If all components of "x" have absolute value less than about 1e-154,
@@ -609,17 +625,6 @@ object S2EdgeCrossings {
     }
 
 }
-
-
-// The maximum exponent supported.  If a value has an exponent larger than
-// this, it is replaced by infinity (with the appropriate sign).
-val kMaxExp = 200*1000*1000;  // About 10**(60 million)
-
-// The minimum exponent supported.  If a value has an exponent less than
-// this, it is replaced by zero (with the appropriate sign).
-val kMinExp = -kMaxExp;   // About 10**(-60 million)
-
-
 
 fun main() {
 

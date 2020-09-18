@@ -157,7 +157,7 @@ class S1AngleTest : TestCase() {
 // The current implementation guarantees exact conversions between
 // E6() and E7() when the E6() argument is an integer.
         for (iter in 0..1000) {
-            val i = Random.Default.nextInt(0, 180000000)
+            val i = S2Random.randomInt(0, 180000000)
             assertEquals(e6(i), e7(10 * i))
         }
     }

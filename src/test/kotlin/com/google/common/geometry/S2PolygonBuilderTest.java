@@ -22,6 +22,9 @@ import dilivia.s2.*;
 import java.util.List;
 import java.util.logging.Logger;
 
+import static dilivia.s2.S2Random.randomDouble;
+import static dilivia.s2.S2Random.samplePoint;
+
 /**
  * Tests for {@link S2Loop}.
  *
@@ -334,7 +337,7 @@ public strictfp class S2PolygonBuilderTest extends S2GeometryTestCase {
   }
 
   boolean evalTristate(int state) {
-    return (state > 0) ? true : (state < 0) ? false : (rand.nextDouble() > 0.5);
+    return (state > 0) ? true : (state < 0) ? false : (randomDouble() > 0.5);
   }
 
   boolean testBuilder(TestCase test) {
@@ -363,14 +366,14 @@ public strictfp class S2PolygonBuilderTest extends S2GeometryTestCase {
 
       double minMerge = S1Angle.degrees(test.minMerge).getRadians();
       double maxMerge = S1Angle.degrees(test.maxMerge).getRadians();
-      double r = Math.max(0.0, 2 * rand.nextDouble() - 1);
+      double r = Math.max(0.0, 2 * randomDouble() - 1);
       double maxPerturbation = r * 0.25 * (maxMerge - minMerge);
 
       // Now we set the merge distance chosen randomly within the limits above
       // (min + 2*p and max - 2*p). Half of the time we set the merge distance
       // to the minimum value.
 
-      r = Math.max(0.0, 2 * rand.nextDouble() - 1);
+      r = Math.max(0.0, 2 * randomDouble() - 1);
       options.setMergeDistance(S1Angle.radians(
           minMerge + 2 * maxPerturbation + r * (maxMerge - minMerge - 4 * maxPerturbation)));
 
@@ -380,8 +383,8 @@ public strictfp class S2PolygonBuilderTest extends S2GeometryTestCase {
       // On each iteration we randomly rotate the test case around the sphere.
       // This causes the S2PolygonBuilder to choose different first edges when
       // trying to build loops.
-      S2Point x = randomPoint();
-      S2Point y = S2Point.normalize(S2Point.crossProd(x, randomPoint()));
+      S2Point x = S2Random.randomPoint();
+      S2Point y = S2Point.normalize(S2Point.crossProd(x, S2Random.randomPoint()));
       S2Point z = S2Point.normalize(S2Point.crossProd(x, y));
 
       for (Chain chain : test.chainsIn) {

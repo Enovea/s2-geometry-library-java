@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import dilivia.s2.*;
 import kotlin.Triple;
 
+import static dilivia.s2.S2Random.*;
+
 /**
  * Tests for {@link S2EdgeUtil}.
  */
@@ -388,16 +390,16 @@ public strictfp class S2EdgeUtilTest extends S2GeometryTestCase {
             // This ensures that we test both long and very short segments that
             // intersect at both large and very small angles.
 
-            ImmutableList<S2Point> points = getRandomFrame();
-            S2Point p = points.get(0);
-            S2Point d1 = points.get(1);
-            S2Point d2 = points.get(2);
-            double slope = Math.pow(1e-15, rand.nextDouble());
+            Triple<S2Point, S2Point, S2Point> points = randomFrame();
+            S2Point p = points.getFirst();
+            S2Point d1 = points.getSecond();
+            S2Point d2 = points.getThird();
+            double slope = Math.pow(1e-15, randomDouble());
             d2 = S2Point.plus(d1, S2Point.times(d2, slope));
-            S2Point a = S2Point.normalize(S2Point.plus(p, S2Point.times(d1, Math.pow(1e-15 / slope, rand.nextDouble()))));
-            S2Point b = S2Point.normalize(S2Point.minus(p, S2Point.times(d1, Math.pow(1e-15 / slope, rand.nextDouble()))));
-            S2Point c = S2Point.normalize(S2Point.plus(p, S2Point.times(d2, Math.pow(1e-15 / slope, rand.nextDouble()))));
-            S2Point d = S2Point.normalize(S2Point.minus(p, S2Point.times(d2, Math.pow(1e-15 / slope, rand.nextDouble()))));
+            S2Point a = S2Point.normalize(S2Point.plus(p, S2Point.times(d1, Math.pow(1e-15 / slope, randomDouble()))));
+            S2Point b = S2Point.normalize(S2Point.minus(p, S2Point.times(d1, Math.pow(1e-15 / slope, randomDouble()))));
+            S2Point c = S2Point.normalize(S2Point.plus(p, S2Point.times(d2, Math.pow(1e-15 / slope, randomDouble()))));
+            S2Point d = S2Point.normalize(S2Point.minus(p, S2Point.times(d2, Math.pow(1e-15 / slope, randomDouble()))));
             S2Point x = S2EdgeUtil.getIntersection(a, b, c, d);
             S1Angle distAb = S2EdgeDistances.getDistance(x, a, b);
             S1Angle distCd = S2EdgeDistances.getDistance(x, c, d);

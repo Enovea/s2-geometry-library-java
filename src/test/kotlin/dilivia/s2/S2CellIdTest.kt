@@ -21,12 +21,16 @@ package dilivia.s2
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.S2Coords.kPosToOrientation
+import dilivia.s2.S2Random.oneIn
+import dilivia.s2.S2Random.randomCellId
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomInt
+import dilivia.s2.S2Random.randomPoint
 import dilivia.s2.math.R2Point
 import java.util.logging.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
 import kotlin.math.min
-import kotlin.random.Random
 
 /**
  */
@@ -194,7 +198,7 @@ class S2CellIdTest : S2GeometryTestCase() {
     fun testMaximumTile() {
         // This method is tested more thoroughly in s2cell_union_test.cc.
         for (iter in 0 until 1000) {
-            val id = getRandomCellId(10)
+            val id = randomCellId(10)
 
             // Check that "limit" is returned for tiles at or beyond "limit".
             assertEquals(id, id.maximumTile(id));
@@ -247,7 +251,7 @@ class S2CellIdTest : S2GeometryTestCase() {
     fun testInverses() {
         // Check the conversion of random leaf cells to S2LatLngs and back.
         for (i in 0 until 200000) {
-            val id = getRandomCellId(S2CellId.kMaxLevel)
+            val id = randomCellId(S2CellId.kMaxLevel)
             assertTrue(id.isLeaf())
             assertEquals(S2CellId.kMaxLevel, id.level())
             val center = id.toLatLng()
@@ -259,7 +263,7 @@ class S2CellIdTest : S2GeometryTestCase() {
 
         // Test random cell ids at all levels.
         for (i in 0 until 10000) {
-            val id = randomCellId
+            val id = randomCellId()
             val token = id.toToken();
             assertLessOrEquals(token.length, 16);
             assertEquals(id, S2CellId.fromToken(token))
@@ -394,13 +398,13 @@ class S2CellIdTest : S2GeometryTestCase() {
         // Check that AppendAllNeighbors produces results that are consistent
         // with AppendVertexNeighbors for a bunch of random cells.
         for (i in 0 until 1000) {
-            var id = randomCellId
+            var id = randomCellId()
             if (id.isLeaf()) id = id.parent()
 
             // TestAllNeighbors computes approximately 2**(2*(diff+1)) cell ids,
             // so it's not reasonable to use large values of "diff".
             val max_diff = min(5, S2CellId.kMaxLevel - id.level() - 1);
-            val level = id.level() + random(max_diff + 1)
+            val level = id.level() + randomInt(max_diff + 1)
             testAllNeighbors(id, level)
         }
     }
@@ -410,12 +414,12 @@ class S2CellIdTest : S2GeometryTestCase() {
         val expanded = S2CellId.expandedByDistanceUV(bound, distance);
         for (iter in 0 until 100) {
             // Choose a point on the boundary of the rectangle.
-            val face = random(6);
+            val face = randomInt(6);
             val center_uv = sampleBoundary(bound)
             val center = S2Coords.faceUVtoXYZ(face, center_uv.x(), center_uv.y()).normalize()
 
             // Now sample a point from a disc of radius (2 * distance).
-            val p = randomPoint(S2Cap.fromCenterAngle(center, 2 * distance.abs()))
+            val p = S2Random.samplePoint(S2Cap.fromCenterAngle(center, 2 * distance.abs()))
 
             // Find the closest point on the boundary to the sampled point.
             val uv = S2Coords.faceXYZtoUV(face, p) ?: continue
@@ -441,13 +445,13 @@ class S2CellIdTest : S2GeometryTestCase() {
     }
 
     fun testExpandedByDistanceUV() {
-        val max_dist_degrees = 10.0
+        val maxDistDegrees = 10.0
         for (iter in 0 until 100) {
-            val id = randomCellId
+            val id = randomCellId()
             val cellSize = S2Cell(id).boundUV().size
             val min = S1Angle.radians(min(cellSize[0], cellSize[1])).degrees()
-            val dist_degrees = Random.Default.nextDouble(-min, max_dist_degrees);
-            testExpandedByDistanceUV(id, S1Angle.degrees(dist_degrees))
+            val distDegrees = randomDouble(-min, maxDistDegrees);
+            testExpandedByDistanceUV(id, S1Angle.degrees(distDegrees))
         }
     }
 
@@ -549,9 +553,9 @@ class S2CellIdTest : S2GeometryTestCase() {
         // Returns a random point on the boundary of the given rectangle.
         fun sampleBoundary(rect: R2Rect): R2Point {
             val uv = doubleArrayOf(0.0, 0.0)
-            val d = Random.Default.nextInt(2)
-            uv[d] = Random.Default.nextDouble(rect[d][0], rect[d][1])
-            uv[1 - d] = if (Random.Default.nextBoolean()) rect[1 - d][0] else rect[1 - d][1]
+            val d = randomInt(2)
+            uv[d] = randomDouble(rect[d][0], rect[d][1])
+            uv[1 - d] = if (oneIn(2)) rect[1 - d][0] else rect[1 - d][1]
             return R2Point(uv);
         }
 

@@ -1,9 +1,13 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
+import dilivia.s2.S2Random.oneIn
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomPoint
 import java.lang.Math.pow
 import kotlin.math.acos
 import kotlin.math.asin
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 
@@ -41,10 +45,9 @@ class S2EdgeDistancesTest : S2GeometryTestCase() {
     fun testGetUpdateMinInteriorDistanceMaxError() {
         // Check that the error bound returned by
         // GetUpdateMinInteriorDistanceMaxError() is large enough.
-        val rnd = rand!!
         for (iter in 0 until 10000) {
             val a0 = randomPoint()
-            val len = S1Angle.radians(M_PI * pow(1e-20, rnd.nextDouble()))
+            val len = S1Angle.radians(M_PI * 1e-20.pow(randomDouble()))
             val a1 = S2EdgeDistances.interpolateAtDistance(len, a0, randomPoint())
             // TODO(ericv): If s2pred::RobustCrossProd() is implemented, then we can
             // also test nearly-antipodal points here.  In theory the error bound can
@@ -52,18 +55,18 @@ class S2EdgeDistancesTest : S2GeometryTestCase() {
             // radians, but the only examples found in testing require the endpoints
             // to be nearly-antipodal to within 1e-16 radians.
             val n = S2Point.robustCrossProd(a0, a1).normalize()
-            val f = pow(1e-20, rnd.nextDouble())
+            val f = pow(1e-20, randomDouble())
             val a = ((1 - f) * a0 + f * a1).normalize()
-            var r = S1Angle.radians(M_PI_2 * pow(1e-20, rnd.nextDouble()))
-            if (rnd.nextBoolean()) r = S1Angle.radians(M_PI_2) - r
+            var r = S1Angle.radians(M_PI_2 * pow(1e-20, randomDouble()))
+            if (oneIn(2)) r = S1Angle.radians(M_PI_2) - r
             val x = S2EdgeDistances.interpolateAtDistance(r, a, n)
-            val min_dist = S1ChordAngle.infinity.toMutable()
-            if (!S2EdgeDistances.updateMinInteriorDistance(x, a0, a1, min_dist)) {
+            val minDist = S1ChordAngle.infinity.toMutable()
+            if (!S2EdgeDistances.updateMinInteriorDistance(x, a0, a1, minDist)) {
                 continue
             }
-            val error = S2EdgeDistances.getUpdateMinDistanceMaxError(min_dist)
-            assertTrue(S2Predicates.compareEdgeDistance(x, a0, a1, min_dist.plusError(error)) <= 0)
-            assertTrue(S2Predicates.compareEdgeDistance(x, a0, a1, min_dist.plusError(-error)) >= 0)
+            val error = S2EdgeDistances.getUpdateMinDistanceMaxError(minDist)
+            assertTrue(S2Predicates.compareEdgeDistance(x, a0, a1, minDist.plusError(error)) <= 0)
+            assertTrue(S2Predicates.compareEdgeDistance(x, a0, a1, minDist.plusError(-error)) >= 0)
         }
     }
 

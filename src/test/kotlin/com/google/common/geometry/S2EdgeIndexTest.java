@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Logger;
 
+import static dilivia.s2.S2Random.samplePoint;
+
 /**
  * Tests for {@link S2EdgeIndex}.
  *
@@ -78,7 +80,7 @@ public strictfp class S2EdgeIndexTest extends S2GeometryTestCase {
   private void generateRandomEarthEdges(
       double edgeLengthMetersMax, double capSpanMeters, int numEdges, List<S2Edge> edges) {
     S2Cap cap = S2Cap.fromCenterAngle(
-        randomPoint(), S1Angle.radians(capSpanMeters / S2LatLng.EARTH_RADIUS_METERS));
+        S2Random.randomPoint(), S1Angle.radians(capSpanMeters / S2LatLng.EARTH_RADIUS_METERS));
     for (int i = 0; i < numEdges; ++i) {
       edges.add(randomEdgeCrossingCap(edgeLengthMetersMax, cap));
     }

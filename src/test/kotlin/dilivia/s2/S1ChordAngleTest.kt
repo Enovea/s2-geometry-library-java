@@ -34,10 +34,7 @@ class S1ChordAngleTest : S2GeometryTestCase() {
 
     fun testTwoPointConstructor() {
         for (iter in 0 until 100) {
-            val frame = randomFrame
-            val x = frame[0]
-            val y = frame[1]
-            val z = frame[2]
+            val (x, y, z) = S2Random.randomFrame()
             assertEquals(S1Angle.zero, S1ChordAngle.between(z, z).toAngle())
             assertEquals(M_PI, S1ChordAngle.between(S2Point.unaryMinus(z), z).radians(), 1e-7)
             assertEquals(M_PI_2, S1ChordAngle.between(x, z).radians(), 1e-15)

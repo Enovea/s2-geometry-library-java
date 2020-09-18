@@ -19,6 +19,7 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
+import dilivia.s2.S2Random.randomPoint
 import kotlin.math.abs
 
 @Strictfp

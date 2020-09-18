@@ -22,6 +22,8 @@ import dilivia.s2.S2Coords.kIJtoPos
 import dilivia.s2.S2Coords.kInvertMask
 import dilivia.s2.S2Coords.kPosToIJ
 import dilivia.s2.S2Coords.kSwapMask
+import dilivia.s2.S2Random.randomCellId
+import dilivia.s2.S2Random.randomInt
 import kotlin.math.abs
 
 @ExperimentalUnsignedTypes
@@ -114,7 +116,7 @@ class S2CoordsTest : S2GeometryTestCase() {
         // Check the conversion of random cells to center points and back.
         for (level in 0..S2CellId.kMaxLevel) {
             for (i in 0 until 1000) {
-                val id = getRandomCellId(level)
+                val id = randomCellId(level)
 
                 val (actual_level, faceSiTi) = S2Coords.xyzToFaceSiTi(id.toPoint())
                 assertEquals(level, actual_level)
@@ -129,13 +131,13 @@ class S2CoordsTest : S2GeometryTestCase() {
 
                 // Finally, test some random (si,ti) values that may be at different
                 // levels, or not at a valid level at all (for example, si == 0).
-                val face_random = rand!!.nextInt(S2CellId.kNumFaces)
+                val face_random = randomInt(S2CellId.kNumFaces)
                 var si_random = 0U
                 var ti_random = 0U
                 val mask = -1 shl (S2CellId.kMaxLevel - level)
                 do {
-                    si_random = (rand!!.nextInt() and mask).toUInt()
-                    ti_random = (rand!!.nextInt() and mask).toUInt()
+                    si_random = (randomInt() and mask).toUInt()
+                    ti_random = (randomInt() and mask).toUInt()
                 } while (si_random > S2Coords.kMaxSiTi || ti_random > S2Coords.kMaxSiTi)
                 val p_random = S2Coords.faceSiTitoXYZ(face_random, si_random, ti_random)
                 val (actual_level_random, faceSiTi_random) = S2Coords.xyzToFaceSiTi(p_random)

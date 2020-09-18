@@ -44,16 +44,10 @@ import kotlin.math.sqrt
 @Strictfp
 abstract class S2GeometryTestCase : TestCase() {
 
-    @JvmField
-    var rand: Random? = null
-    override fun setUp() {
-        rand = Random(123456)
-    }
-
     @JvmOverloads
     fun assertDoubleNear(a: Double, b: Double, error: Double = 1e-9) {
         assertTrue("a (=$a) + error (=$error) is not > b (=$b)", a + error > b)
-        assertTrue(a < b + error)
+        assertTrue("a (=$a) !< b (=$b) + error (=$error) = ${b + error}", a < b + error)
     }
 
 
@@ -72,77 +66,6 @@ abstract class S2GeometryTestCase : TestCase() {
     fun kmToAngle(km: Double): S1Angle {
         return radians(km / kEarthRadiusKm)
     }
-    // maybe these should be put in a special testing util class
-    /** Return a random unit-length vector.  */
-    fun randomPoint(): S2Point {
-        return normalize(S2Point(
-                2 * rand!!.nextDouble() - 1,
-                2 * rand!!.nextDouble() - 1,
-                2 * rand!!.nextDouble() - 1))
-    }
-
-    fun randomPoint(cap: S2Cap): S2Point {
-        // We consider the cap axis to be the "z" axis.  We choose two other axes to
-        // complete the coordinate frame.
-        val m = S2Point.getFrame(cap.center)
-
-        // The surface area of a spherical cap is directly proportional to its
-        // height.  First we choose a random height, and then we choose a random
-        // point along the circle at that height.
-        val rnd = rand!!
-        val h = rnd.nextDouble() * cap.height
-        val theta = 2 * M_PI * rnd.nextDouble()
-        val r = sqrt(h * (2 - h))  // Radius of circle.
-
-        // The result should already be very close to unit-length, but we might as
-        // well make it accurate as possible.
-        return S2Point.fromFrame(m, S2Point(cos(theta) * r, sin(theta) * r, 1 - h)).normalize()
-    }
-    /**
-     * Return a right-handed coordinate frame (three orthonormal vectors). Returns
-     * an array of three points: x,y,z
-     */
-    val randomFrame: ImmutableList<S2Point>
-        get() {
-            val p0 = randomPoint()
-            val p1 = normalize(crossProd(p0, randomPoint()))
-            val p2 = normalize(crossProd(p0, p1))
-            return ImmutableList.of(p0, p1, p2)
-        }
-
-    /**
-     * Return a random cell id at the given level or at a randomly chosen level.
-     * The distribution is uniform over the space of cell ids, but only
-     * approximately uniform over the surface of the sphere.
-     */
-    fun getRandomCellId(level: Int): S2CellId {
-        val face = random(S2CellId.kNumFaces)
-        val pos = rand!!.nextLong() and (1L shl 2 * S2CellId.kMaxLevel) - 1
-        return fromFacePosLevel(face, pos.toULong(), level)
-    }
-
-    val randomCellId: S2CellId
-        get() = getRandomCellId(random(S2CellId.kMaxLevel + 1))
-
-    protected fun random(n: Int): Int {
-        return if (n == 0) {
-            0
-        } else rand!!.nextInt(n)
-    }
-
-    // Pick "base" uniformly from range [0,maxLog] and then return
-    // "base" random bits. The effect is to pick a number in the range
-    // [0,2^maxLog-1] with bias towards smaller numbers.
-    fun skewed(maxLog: Int): Int {
-        val base = Math.abs(rand!!.nextInt()) % (maxLog + 1)
-        // if (!base) return 0; // if 0==base, we & with 0 below.
-        //
-        // this distribution differs slightly from ACMRandom's Skewed,
-        // since 0 occurs approximately 3 times more than 1 here, and
-        // ACMRandom's Skewed never outputs 0.
-        return rand!!.nextInt() and (1 shl base) - 1
-    }
-
     /**
      * Checks that "covering" completely covers the given region. If "check_tight"
      * is true, also checks that it does not contain any cells that do not
@@ -175,34 +98,6 @@ abstract class S2GeometryTestCase : TestCase() {
         }
     }
 
-    fun getRandomCap(minArea: Double, maxArea: Double): S2Cap {
-        val capArea = (maxArea
-                * Math.pow(minArea / maxArea, rand!!.nextDouble()))
-        assertTrue(capArea >= minArea && capArea <= maxArea)
-
-        // The surface area of a cap is 2*Pi times its height.
-        return fromCenterArea(randomPoint(), capArea)
-    }
-
-    fun samplePoint(cap: S2Cap): S2Point {
-        // We consider the cap axis to be the "z" axis. We choose two other axes to
-        // complete the coordinate frame.
-        val z = cap.center
-        val x = z.ortho()
-        val y = crossProd(z, x)
-
-        // The surface area of a spherical cap is directly proportional to its
-        // height. First we choose a random height, and then we choose a random
-        // point along the circle at that height.
-        val h = rand!!.nextDouble() * cap.height
-        val theta = 2 * S2.M_PI * rand!!.nextDouble()
-        val r = Math.sqrt(h * (2 - h)) // Radius of circle.
-
-        // (cos(theta)*r*x + sin(theta)*r*y + (1-h)*z).Normalize()
-        return normalize(plus(
-                plus(times(x, Math.cos(theta) * r), times(y, Math.sin(theta) * r)),
-                times(z, 1 - h)))
-    }
 
     companion object {
         const val kEarthRadiusKm = 6371.01

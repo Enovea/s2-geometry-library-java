@@ -21,6 +21,9 @@ import dilivia.s2.*;
 
 import java.util.List;
 
+import static dilivia.s2.S2Random.randomDouble;
+import static dilivia.s2.S2Random.randomPoint;
+
 /**
  * Tests for {@link S2Polyline}.
  */
@@ -45,7 +48,7 @@ public strictfp class S2PolylineTest extends S2GeometryTestCase {
             S2Point z = S2Point.normalize(S2Point.crossProd(x, y));
 
             List<S2Point> vertices = Lists.newArrayList();
-            for (double theta = 0; theta < 2 * S2.M_PI; theta += Math.pow(rand.nextDouble(), 10)) {
+            for (double theta = 0; theta < 2 * S2.M_PI; theta += Math.pow(randomDouble(), 10)) {
                 S2Point p = S2Point.plus(S2Point.times(x, Math.cos(theta)), S2Point.times(y, Math.sin(theta)));
                 if (vertices.isEmpty() || !p.equals(vertices.get(vertices.size() - 1))) {
                     vertices.add(p);

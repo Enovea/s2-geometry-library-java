@@ -25,15 +25,22 @@ import dilivia.s2.S2Cap.Companion.fromCenterHeight
 import dilivia.s2.S2Cell.Companion.averageArea
 import dilivia.s2.S2CellId.Companion.fromFacePosLevel
 import dilivia.s2.S2CellId.Companion.none
+import dilivia.s2.S2Random.oneIn
+import dilivia.s2.S2Random.randomCap
+import dilivia.s2.S2Random.randomCellId
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomInt
+import dilivia.s2.S2Random.skewed
 import mu.KotlinLogging
 import java.util.*
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
 @Strictfp
 class S2CellUnionTest : S2GeometryTestCase() {
 
-    val logger = KotlinLogging.logger {  }
+    val logger = KotlinLogging.logger { }
 
     fun testBasic() {
         logger.info("TestBasic")
@@ -64,13 +71,13 @@ class S2CellUnionTest : S2GeometryTestCase() {
         logger.info("TestContainsCellUnion")
         val randomCells: MutableSet<S2CellId> = HashSet()
         for (i in 0..99) {
-            randomCells.add(getRandomCellId(S2CellId.kMaxLevel))
+            randomCells.add(randomCellId(S2CellId.kMaxLevel))
         }
         val union = S2CellUnion()
         union.initFromCellIds(Lists.newArrayList(randomCells))
 
         // Add one more
-        while (!randomCells.add(getRandomCellId(S2CellId.kMaxLevel))) {
+        while (!randomCells.add(randomCellId(S2CellId.kMaxLevel))) {
         }
         val unionPlusOne = S2CellUnion()
         unionPlusOne.initFromCellIds(Lists.newArrayList(randomCells))
@@ -97,7 +104,7 @@ class S2CellUnionTest : S2GeometryTestCase() {
         // the test case "input", then the corresponding expected result after
         // simplification is added to "expected".
         var selected = selected
-        if (id.equals(none())) {
+        if (id == none()) {
             // Initial call: decide whether to add cell(s) from each face.
             for (face in 0..5) {
                 addCells(fromFacePosLevel(face, 0UL, 0), false, input, expected)
@@ -114,7 +121,7 @@ class S2CellUnionTest : S2GeometryTestCase() {
         // The following code ensures that the probability of selecting a cell
         // at each level is approximately the same, i.e. we test normalization
         // of cells at all levels.
-        if (!selected && random(S2CellId.kMaxLevel - id.level()) != 0) {
+        if (!selected && randomInt(S2CellId.kMaxLevel - id.level()) != 0) {
             // Once a cell has been selected, the expected output is predetermined.
             // We then make sure that cells are selected that will normalize to
             // the desired output.
@@ -130,7 +137,7 @@ class S2CellUnionTest : S2GeometryTestCase() {
 
         // If a cell is selected, we add it to "input" with probability 5/6.
         var added = false
-        if (selected && random(6) != 0) {
+        if (selected && randomInt(6) != 0) {
             input.add(id)
             added = true
         }
@@ -147,7 +154,7 @@ class S2CellUnionTest : S2GeometryTestCase() {
             // We also make sure that we do not recurse on all 4 children, since
             // then we might include all 4 children in the input case by accident
             // (in which case the expected output would not be correct).
-            if (random(if (selected) 12 else 4) == 0 && numChildren < 3) {
+            if (oneIn(if (selected) 12 else 4) && numChildren < 3) {
                 addCells(child, selected, input, expected)
                 ++numChildren
             }
@@ -221,8 +228,8 @@ class S2CellUnionTest : S2GeometryTestCase() {
             val xOrY = Lists.newArrayList<S2CellId>()
             val xAndY = Lists.newArrayList<S2CellId>()
             for (j in input.indices) {
-                val inX = random(2) == 0
-                val inY = random(2) == 0
+                val inX = oneIn(2)
+                val inY = oneIn(2)
                 if (inX) {
                     x.add(input[j])
                 }
@@ -299,7 +306,7 @@ class S2CellUnionTest : S2GeometryTestCase() {
             val cell = S2Cell(covering.cellId(i))
             val cellCap = cell.capBound
             val angle = axis.angle(cellCap.center) + cellCap.radius().radians
-            maxAngle = Math.max(maxAngle, angle)
+            maxAngle = max(maxAngle, angle)
         }
         return maxAngle
     }
@@ -313,14 +320,14 @@ class S2CellUnionTest : S2GeometryTestCase() {
         // new covering is not too much larger than expected.
         val coverer = S2RegionCoverer()
         for (i in 0..999) {
-            val cap = getRandomCap(averageArea(S2CellId.kMaxLevel), 4 * S2.M_PI)
+            val cap = randomCap(averageArea(S2CellId.kMaxLevel), 4 * S2.M_PI)
 
             // Expand the cap by a random factor whose log is uniformly distributed
             // between 0 and log(1e2).
-            val expandedCap = fromCenterHeight(cap.center, Math.min(2.0, Math.pow(1e2, rand!!.nextDouble())
+            val expandedCap = fromCenterHeight(cap.center, min(2.0, 1e2.pow(randomDouble())
                     * cap.height))
             val radius = expandedCap.radius().radians - cap.radius().radians
-            val maxLevelDiff = random(8)
+            val maxLevelDiff = randomInt(8)
             val covering = S2CellUnion()
             coverer.setMaxCells(1 + skewed(10))
             coverer.getCovering(cap, covering)
@@ -328,11 +335,11 @@ class S2CellUnionTest : S2GeometryTestCase() {
             val maxAngle = getMaxAngle(covering, cap.center)
             var minLevel = S2CellId.kMaxLevel
             for (j in 0 until covering.size()) {
-                minLevel = Math.min(minLevel, covering.cellId(j).level())
+                minLevel = min(minLevel, covering.cellId(j).level())
             }
             covering.expand(radians(radius), maxLevelDiff)
             checkCovering(expandedCap, covering, false, S2CellId())
-            val expandLevel = Math.min(minLevel + maxLevelDiff, S2CellMetrics.kMinWidth.getLevelForMinValue(radius))
+            val expandLevel = min(minLevel + maxLevelDiff, S2CellMetrics.kMinWidth.getLevelForMinValue(radius))
             val expandedMaxAngle = getMaxAngle(covering, cap.center)
 
             // If the covering includes a tiny cell along the boundary, in theory the

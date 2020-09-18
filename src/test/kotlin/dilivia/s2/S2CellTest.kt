@@ -4,6 +4,12 @@ import com.google.common.geometry.S2.*
 import com.google.common.geometry.S2Loop
 import dilivia.s2.S2Coords.kMaxCellLevel
 import dilivia.s2.S2Coords.kSwapMask
+import dilivia.s2.S2Random.oneIn
+import dilivia.s2.S2Random.randomCellId
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomInt
+import dilivia.s2.S2Random.randomPoint
+import dilivia.s2.S2Random.samplePoint
 import dilivia.s2.math.R2Point
 import mu.KotlinLogging
 import kotlin.math.*
@@ -226,7 +232,7 @@ class S2CellTest : S2GeometryTestCase() {
                 if (children[i].boundUV().contains(uv))
                     force_subdivide = true
             }
-            if (force_subdivide || cell.level() < 6 || rand!!.nextInt(5) == 0) {
+            if (force_subdivide || cell.level() < 6 || oneIn(5)) {
                 testSubdivide(children[i], level_stats)
             }
             childId = childId.next()
@@ -372,7 +378,7 @@ class S2CellTest : S2GeometryTestCase() {
         val kLoopError = S2LatLngRectBounder.maxErrorForTests()
 
         for (iter in 0 until 1000) {
-            val cell = S2Cell(randomCellId)
+            val cell = S2Cell(randomCellId())
             val loop = S2Loop(cell)
             val cell_bound = cell.rectBound
             val loop_bound = loop.rectBound
@@ -386,11 +392,11 @@ class S2CellTest : S2GeometryTestCase() {
         // whenever the cell contains a point P then its bound contains S2LatLng(P).
         var iter = 0
         while (iter < 1000 /* advanced in loop below */) {
-            val cell = S2Cell(randomCellId)
-            val i = rand!!.nextInt(4)
+            val cell = S2Cell(randomCellId())
+            val i = randomInt(4)
             val v1 = cell.getVertex(i)
-            val v2 = randomPoint(S2Cap.fromCenterAngle(cell.getVertex(i + 1), S1Angle.radians(1e-15)))
-            val p = S2EdgeDistances.interpolate(rand!!.nextDouble(), v1, v2)
+            val v2 = samplePoint(S2Cap.fromCenterAngle(cell.getVertex(i + 1), S1Angle.radians(1e-15)))
+            val p = S2EdgeDistances.interpolate(randomDouble(), v1, v2)
             if (S2Loop(cell).contains(p)) {
                 assertTrue(cell.rectBound.contains(S2LatLng.fromPoint(p)));
                 ++iter;
@@ -402,11 +408,11 @@ class S2CellTest : S2GeometryTestCase() {
         // Construct many points that are nearly on an S2Cell edge, and verify that
         // S2Cell(S2CellId(p)).contains(p) is always true.
         for (iter in 0 until 1000) {
-            val cell = S2Cell(randomCellId)
-            val i = rand!!.nextInt(4)
+            val cell = S2Cell(randomCellId())
+            val i = randomInt(4)
             val v1 = cell.getVertex(i)
-            val v2 = randomPoint(S2Cap.fromCenterAngle(cell.getVertex(i + 1), S1Angle.radians(1e-15)))
-            val p = S2EdgeDistances.interpolate(rand!!.nextDouble(), v1, v2)
+            val v2 = samplePoint(S2Cap.fromCenterAngle(cell.getVertex(i + 1), S1Angle.radians(1e-15)))
+            val p = S2EdgeDistances.interpolate(randomDouble(), v1, v2)
             assertTrue(S2Cell(S2CellId.fromPoint(p)).contains(p));
         }
     }
@@ -451,7 +457,7 @@ class S2CellTest : S2GeometryTestCase() {
 
     fun testGetDistanceToPoint() {
         for (iter in 0 until 1000) {
-            val cell = S2Cell(randomCellId)
+            val cell = S2Cell(randomCellId())
             val target = randomPoint()
             val expected_to_boundary = getDistanceToPointBruteForce(cell, target).toAngle()
             val expected_to_interior = if (cell.contains(target)) S1Angle.zero else expected_to_boundary
@@ -476,19 +482,19 @@ class S2CellTest : S2GeometryTestCase() {
 
     fun chooseEdgeNearCell(cell: S2Cell): Pair<S2Point, S2Point> {
         val cap = cell.capBound
-        var a = if (rand!!.nextInt(5) == 0) {
+        var a = if (oneIn(5)) {
             // Choose a point anywhere on the sphere.
             randomPoint()
         } else {
             // Choose a point inside or somewhere near the cell.
-            randomPoint(S2Cap.fromCenterAngle(cap.center, 1.5 * cap.radius()))
+            samplePoint(S2Cap.fromCenterAngle(cap.center, 1.5 * cap.radius()))
         }
         // Now choose a maximum edge length ranging from very short to very long
         // relative to the cell size, and choose the other endpoint.
-        val max_length = min(100 * 1e-4.pow(rand!!.nextDouble()) * cap.radius().radians, M_PI_2)
-        var b = randomPoint(S2Cap.fromCenterAngle(a, S1Angle.radians(max_length)))
+        val max_length = min(100 * 1e-4.pow(randomDouble()) * cap.radius().radians, M_PI_2)
+        var b = samplePoint(S2Cap.fromCenterAngle(a, S1Angle.radians(max_length)))
 
-        if (rand!!.nextInt(20) == 0) {
+        if (oneIn(20)) {
             // Occasionally replace edge with antipodal edge.
             a = -a
             b = -b
@@ -540,7 +546,7 @@ class S2CellTest : S2GeometryTestCase() {
 
     fun testGetDistanceToEdge() {
         for (iter in 0 until 1000) {
-            val cell = S2Cell(randomCellId)
+            val cell = S2Cell(randomCellId())
             val (a, b) = chooseEdgeNearCell(cell)
             val expectedMin = getDistanceToEdgeBruteForce(cell, a, b).toAngle()
             val expectedMax = getMaxDistanceToEdgeBruteForce(cell, a, b).toAngle()
@@ -550,16 +556,16 @@ class S2CellTest : S2GeometryTestCase() {
             // Pi for vertex distance.
             if (expectedMin.radians > M_PI / 2) {
                 // Max error for S1ChordAngle as it approaches Pi is about 2e-8.
-                assertDoubleNear(expectedMin.radians, actualMin.radians, 2e-8)
+                assertEquals("Error = ${abs(expectedMin.radians - actualMin.radians)} > 3e-8", expectedMin.radians, actualMin.radians, 3e-8)
             } else if (expectedMin.radians <= M_PI / 3) {
-                assertDoubleNear(expectedMin.radians, actualMin.radians, 1e-15)
+                assertEquals(expectedMin.radians, actualMin.radians, 1e-15)
             } else {
-                assertDoubleNear(expectedMin.radians, actualMin.radians, 1e-12)
+                assertEquals(expectedMin.radians, actualMin.radians, 1e-12)
             }
 
-            assertDoubleNear(expectedMax.radians, actualMax.radians, 1e-12)
+            assertEquals(expectedMax.radians, actualMax.radians, 1e-12)
             if (expectedMax.radians <= M_PI / 3) {
-                assertDoubleNear(expectedMax.radians, actualMax.radians, 1e-15)
+                assertEquals(expectedMax.radians, actualMax.radians, 1e-15)
             }
         }
     }
@@ -588,8 +594,8 @@ class S2CellTest : S2GeometryTestCase() {
 
     fun testGetMaxDistanceToCell() {
         for (i in 0 until 1000) {
-            val cell = S2Cell(randomCellId)
-            val test_cell = S2Cell(randomCellId);
+            val cell = S2Cell(randomCellId())
+            val test_cell = S2Cell(randomCellId());
             val antipodal_leaf_id = S2CellId.fromPoint(-test_cell.getCenter())
             val antipodal_test_cell = S2Cell(antipodal_leaf_id.parent(test_cell.level()))
 

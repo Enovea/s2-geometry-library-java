@@ -21,6 +21,7 @@ package dilivia.s2
 import com.google.common.geometry.S2.*
 import dilivia.s2.S1Angle.Companion.min
 import dilivia.s2.S1Angle.Companion.zero
+import dilivia.s2.S2Random.randomPoint
 import dilivia.s2.math.R2Vector
 import kotlin.math.abs
 import kotlin.math.sin

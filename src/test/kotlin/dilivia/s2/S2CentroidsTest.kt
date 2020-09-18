@@ -19,6 +19,8 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.M_PI
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomFrame
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -29,11 +31,8 @@ class S2CentroidsTest : S2GeometryTestCase() {
         // Test TrueCentroid() with very small triangles.  This test assumes that
         // the triangle is small enough so that it is nearly planar.
         for (iter in 0 until 100) {
-            val frame = randomFrame
-            val p = frame[0]
-            val x = frame[1]
-            val y = frame[2]
-            val d = 1e-4 * 1e-4.pow(rand!!.nextDouble());
+            val (p, x, y) = randomFrame()
+            val d = 1e-4 * 1e-4.pow(randomDouble());
             val p0 = (p - d * x).normalize()
             val p1 = (p + d * x).normalize()
             val p2 = (p + 3 * d * y).normalize()
@@ -71,10 +70,7 @@ class S2CentroidsTest : S2GeometryTestCase() {
         for (iter in 0 until 100) {
             var centroid = S2Point()
             // Choose a coordinate frame for the great circle.
-            val frame = randomFrame
-            val x = frame[0]
-            val y = frame[1]
-            val z = frame[2]
+            val (x, y, _) = randomFrame()
 
             var v0 = x
             var theta = 0.0
@@ -82,7 +78,7 @@ class S2CentroidsTest : S2GeometryTestCase() {
                 val v1 = cos(theta) * x + sin(theta) * y
                 centroid += S2Centroids.trueCentroid(v0, v1)
                 v0 = v1;
-                theta += rand!!.nextDouble().pow(10.0)
+                theta += randomDouble().pow(10.0)
             }
             // Close the circle.
             centroid += S2Centroids.trueCentroid(v0, x)

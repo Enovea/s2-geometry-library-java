@@ -69,9 +69,9 @@ public strictfp class S2Test extends S2GeometryTestCase {
 
         double maxGirard = 0;
         for (int i = 0; i < 10000; ++i) {
-            S2Point p0 = randomPoint();
-            S2Point d1 = randomPoint();
-            S2Point d2 = randomPoint();
+            S2Point p0 = S2Random.randomPoint();
+            S2Point d1 = S2Random.randomPoint();
+            S2Point d2 = S2Random.randomPoint();
             S2Point p1 = S2Point.plus(p0, S2Point.times(d1, 1e-15));
             S2Point p2 = S2Point.plus(p0, S2Point.times(d2, 1e-15));
             // The actual displacement can be as much as 1.2e-15 due to roundoff.

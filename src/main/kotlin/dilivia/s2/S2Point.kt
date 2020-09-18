@@ -62,6 +62,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
     /**
      * return a vector orthogonal to this one
      */
+    @Strictfp
     override fun ortho(): S2Point {
         val k = largestAbsComponent()
         val temp: S2Point
@@ -73,6 +74,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         return normalize(crossProd(this, temp))
     }
 
+    @Strictfp
     fun toDegreesString(): String {
         val s2LatLng = S2LatLng.fromPoint(this)
         return "(" + s2LatLng.latDegrees() + ", " + s2LatLng.lngDegrees() + ")"
@@ -82,9 +84,13 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
      * Return true if the given point is approximately unit length (this is mainly
      * useful for assertions).
      */
+    @Strictfp
     fun isUnitLength(): Boolean = kotlin.math.abs(norm2() - 1) <= 5 * S2.DBL_EPSILON
 
+    @Strictfp
     fun toLongDouble(): R3VectorLongDouble = R3VectorLongDouble(x, y, z)
+
+    @Strictfp
     fun toExactFloat(): R3VectorExactFloat = R3VectorExactFloat(x, y, z)
 
     companion object {
@@ -94,6 +100,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
          * = -Ortho(a) for all a.
          */
         @JvmStatic
+        @Strictfp
         fun ortho(a: S2Point): S2Point {
             // The current implementation in S2Point has the property we need,
             // i.e. Ortho(-a) = -Ortho(a) for all a.
@@ -107,35 +114,45 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
          * rules out the north and south poles.)
          */
         @JvmStatic
+        @Strictfp
         fun origin(): S2Point {
             return S2Point(0, 1, 0)
         }
 
         @JvmStatic
+        @Strictfp
         fun isUnitLength(p: S2Point): Boolean = p.isUnitLength()
 
         @JvmStatic
+        @Strictfp
         fun minus(p1: S2Point, p2: S2Point): S2Point = p1.minus(p2)
 
         @JvmStatic
+        @Strictfp
         fun unaryMinus(p: S2Point): S2Point = p.unaryMinus()
 
         @JvmStatic
+        @Strictfp
         fun crossProd(p1: S2Point, p2: S2Point): S2Point = p1.crossProd(p2)
 
         @JvmStatic
+        @Strictfp
         fun plus(p1: S2Point, p2: S2Point): S2Point = p1.plus(p2)
 
         @JvmStatic
+        @Strictfp
         fun times(p: S2Point, m: Double): S2Point = p.times(m)
 
         @JvmStatic
+        @Strictfp
         fun div(p: S2Point, m: Double): S2Point = p.div(m)
 
         @JvmStatic
+        @Strictfp
         fun abs(p: S2Point): S2Point = p.abs()
 
         @JvmStatic
+        @Strictfp
         fun normalize(p: S2Point): S2Point {
             var norm = p.norm()
             if (norm != 0.0) {
@@ -156,9 +173,11 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
 
         @JvmStatic
         @JvmOverloads
+        @Strictfp
         fun approxEquals(a: S2Point, b: S2Point, maxErrorAngle: S1Angle= S1Angle.radians(1e-15)): Boolean = S1Angle(a, b) <= maxErrorAngle
 
         @JvmStatic
+        @Strictfp
         fun getFrame(z: S2Point): Matrix3x3 {
             assertPointIsUnitLength(z)
             val m = Matrix3x3()
@@ -169,12 +188,14 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         }
 
         @JvmStatic
+        @Strictfp
         fun toFrame(m: Matrix3x3, p: S2Point): S2Point {
             // The inverse of an orthonormal matrix is its transpose.
             return m.transpose() * p;
         }
 
         @JvmStatic
+        @Strictfp
         fun fromFrame(m: Matrix3x3, q: S2Point): S2Point {
             return m * q;
         }
@@ -193,6 +214,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
          */
         @Deprecated("Use S2Predicates.sign instead.", replaceWith = ReplaceWith("S2Predicates.sign"))
         @JvmStatic
+        @Strictfp
         fun simpleCCW(a: S2Point, b: S2Point, c: S2Point): Boolean {
             // We compute the signed volume of the parallelepiped ABC.  The usual
             // formula for this is (AxB).C, but we compute it here using (CxA).B
@@ -220,6 +242,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         //
         // The result is not guaranteed to be unit length.
         @JvmStatic
+        @Strictfp
         fun robustCrossProd(a: S2Point, b: S2Point): S2Point {
             // The direction of a.CrossProd(b) becomes unstable as (a + b) or (a - b)
             // approaches zero.  This leads to situations where a.CrossProd(b) is not

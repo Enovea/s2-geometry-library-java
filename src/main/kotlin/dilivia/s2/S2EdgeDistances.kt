@@ -49,6 +49,7 @@ object S2EdgeDistances {
      * @return The minimum distance from X to the edge AB.
      */
     @JvmStatic
+    @Strictfp
     fun getDistance(x: S2Point, a: S2Point, b: S2Point): S1Angle {
         logger.trace { "getDistance(x = $x, a = $a, b = $b)" }
         val minDist = MutableS1ChordAngle(Double.MAX_VALUE)
@@ -69,6 +70,7 @@ object S2EdgeDistances {
      * @param limit The limit distance.
      * @see S2Predicates.compareDistances for an exact version of this predicate.
      */
+    @Strictfp
     fun isDistanceLess(x: S2Point, a: S2Point, b: S2Point, limit: S1ChordAngle): Boolean = updateMinDistance(x, a, b, limit.toMutable())
 
     /**
@@ -85,6 +87,7 @@ object S2EdgeDistances {
      * @param minDist The minimum distance to update if the distance from X to AB is less than minDist.
      * @return true if the distance has been updated and false otherwise.
      */
+    @Strictfp
     fun updateMinDistance(x: S2Point, a: S2Point, b: S2Point, minDist: MutableS1ChordAngle): Boolean = alwaysUpdateMinDistance(x, a, b, minDist, false)
 
     /**
@@ -98,6 +101,7 @@ object S2EdgeDistances {
      * @param maxDist The maximum distance to update if the distance from X to AB is greater than maxDist.
      * @return true if the distance has been updated and false otherwise.
      */
+    @Strictfp
     fun updateMaxDistance(x: S2Point, a: S2Point, b: S2Point, maxDist: MutableS1ChordAngle): Boolean {
         val dist = maxOf(S1ChordAngle.between(x, a), S1ChordAngle.between(x, b)).toMutable()
         if (dist > S1ChordAngle.right) {
@@ -128,6 +132,7 @@ object S2EdgeDistances {
      * 1e-15 radians (less than 1 micron). This could be fixed by extending S2::RobustCrossProd to use higher
      * precision when necessary.
      */
+    @Strictfp
     fun getUpdateMinDistanceMaxError(dist: S1ChordAngle): Double {
         // There are two cases for the maximum error in UpdateMinDistance(),
         // depending on whether the closest point is interior to the edge.
@@ -138,6 +143,7 @@ object S2EdgeDistances {
     // assuming that all input points are normalized to within the bounds
     // guaranteed by S2Point::Normalize().  The error can be added or subtracted
     // from an S1ChordAngle "x" using x.PlusError(error).
+    @Strictfp
     private fun getUpdateMinInteriorDistanceMaxError(dist: S1ChordAngle): Double {
         // If a point is more than 90 degrees from an edge, then the minimum
         // distance is always to one of the endpoints, not to the edge interior.
@@ -158,12 +164,14 @@ object S2EdgeDistances {
      * Indicates if the minimum distance from X to the edge AB is attained at an interior point of AB (i.e., not an
      * endpoint), and that distance is less than "limit". (Specify limit.successor() for "less than or equal to".)
      */
+    @Strictfp
     fun isInteriorDistanceLess(x: S2Point, a: S2Point, b: S2Point, limit: S1ChordAngle): Boolean = updateMinInteriorDistance(x, a, b, limit.toMutable())
 
     /**
      * If the minimum distance from X to AB is attained at an interior point of AB (i.e., not an endpoint), and that
      * distance is less than "min_dist", then this method updates "min_dist" and returns true.  Otherwise returns false.
      */
+    @Strictfp
     fun updateMinInteriorDistance(x: S2Point, a: S2Point, b: S2Point, minDist: MutableS1ChordAngle): Boolean {
         val xa2 = (x - a).norm2()
         val xb2 = (x - b).norm2()
@@ -175,6 +183,7 @@ object S2EdgeDistances {
      * the edge AB can be obtained using getDistanceFraction() above.  Requires that all vectors have
      * unit length.
      */
+    @Strictfp
     fun project(x: S2Point, a: S2Point, b: S2Point): S2Point = project(x, a, b, S2Point.robustCrossProd(a, b))
 
     /**
@@ -182,6 +191,7 @@ object S2EdgeDistances {
      * The cross product does not need to be normalized, but should be computed using S2::RobustCrossProd() for the
      * most accurate results.  Requires that x, a, and b have unit length.
      */
+    @Strictfp
     fun project(x: S2Point, a: S2Point, b: S2Point, aCrossB: S2Point): S2Point {
         Assertions.assertPointIsUnitLength(a)
         Assertions.assertPointIsUnitLength(b)
@@ -207,6 +217,7 @@ object S2EdgeDistances {
      * AB, this is the fraction "t" such that X == Interpolate(t, A, B).  Requires that A and B are distinct.
      */
     @JvmStatic
+    @Strictfp
     fun getDistanceFraction(x: S2Point, a: S2Point, b: S2Point): Double {
         assert(a <= b)
         val d0 = x.angle(a)
@@ -219,6 +230,7 @@ object S2EdgeDistances {
     // between 0 and 1.  Note that all distances are measured on the surface of
     // the sphere, so this is more complicated than just computing (1-t)*a + t*b
     // and normalizing the result.
+    @Strictfp
     fun interpolate(t: Double, a: S2Point, b: S2Point): S2Point {
         if (t == 0.0) return a
         if (t == 1.0) return b
@@ -228,6 +240,7 @@ object S2EdgeDistances {
 
     // Like Interpolate(), except that the parameter "ax" represents the desired
     // distance from A to the result X rather than a fraction between 0 and 1.
+    @Strictfp
     fun interpolateAtDistance(ax_angle: S1Angle, a: S2Point, b: S2Point): S2Point {
         val ax = ax_angle.radians
 
@@ -257,6 +270,7 @@ object S2EdgeDistances {
     // Like UpdateMinDistance(), but computes the minimum distance between the
     // given pair of edges.  (If the two edges cross, the distance is zero.)
     // The cases a0 == a1 and b0 == b1 are handled correctly.
+    @Strictfp
     fun updateEdgePairMinDistance(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point, minDist: MutableS1ChordAngle): Boolean {
         if (minDist == S1ChordAngle.zero) {
             return false
@@ -279,6 +293,7 @@ object S2EdgeDistances {
 
     // As above, but for maximum distances.  If one edge crosses the antipodal
     // reflection of the other, the distance is Pi.
+    @Strictfp
     fun updateEdgePairMaxDistance(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point, maxDist: MutableS1ChordAngle): Boolean {
         if (maxDist == S1ChordAngle.straight) {
             return false
@@ -303,6 +318,7 @@ object S2EdgeDistances {
     // between edges a0a1 and b0b1, where "a" is a point on a0a1 and "b" is a
     // point on b0b1.  If the two edges intersect, "a" and "b" are both equal to
     // the intersection point.  Handles a0 == a1 and b0 == b1 correctly.
+    @Strictfp
     fun getEdgePairClosestPoints(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point): Pair<S2Point, S2Point> {
         if (S2EdgeCrossings.crossingSign(a0, a1, b0, b1) > 0) {
             val x = S2EdgeCrossings.getIntersection(a0, a1, b0, b1)
@@ -329,6 +345,7 @@ object S2EdgeDistances {
     // from some point on edge A=a0a1.  Equivalently, returns true if the directed
     // Hausdorff distance from B to A is no more than "tolerance".
     // Requires that tolerance is less than 90 degrees.
+    @Strictfp
     fun isEdgeBNearEdgeA(a0: S2Point, a1: S2Point, b0: S2Point, b1: S2Point, tolerance: S1Angle): Boolean {
         assert(tolerance.radians <= M_PI / 2)
         assert(tolerance.radians >= 0)
@@ -419,6 +436,7 @@ object S2EdgeDistances {
     // AlwaysUpdateMinDistance<true> always updates the given distance, while
     // AlwaysUpdateMinDistance<false> does not.  This optimization increases the
     // speed of GetDistance() by about 10% without creating code duplication.
+    @Strictfp
     private fun alwaysUpdateMinDistance(x: S2Point, a: S2Point, b: S2Point, min_dist: MutableS1ChordAngle, always_update: Boolean = true): Boolean {
         Assertions.assertPointIsUnitLength(x)
         Assertions.assertPointIsUnitLength(a)
@@ -448,6 +466,7 @@ object S2EdgeDistances {
     // while AlwaysUpdateMinInteriorDistance<false> does not.  This optimization
     // increases the speed of GetDistance() by about 10% without creating code
     // duplication.
+    @Strictfp
     private fun alwaysUpdateMinInteriorDistance(x: S2Point, a: S2Point, b: S2Point, xa2: Double, xb2: Double, min_dist: MutableS1ChordAngle, always_update: Boolean = true): Boolean {
         Assertions.assertPointIsUnitLength(x)
         Assertions.assertPointIsUnitLength(a)

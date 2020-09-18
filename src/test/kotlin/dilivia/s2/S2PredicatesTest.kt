@@ -22,6 +22,11 @@ import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
 import dilivia.s2.S2Predicates.Excluded.*
 import dilivia.s2.S2PredicatesTest.PrecisionStats.Precision.*
+import dilivia.s2.S2Random.oneIn
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomInt
+import dilivia.s2.S2Random.randomPoint
+import dilivia.s2.S2Random.reset
 import dilivia.s2.math.*
 import mu.KotlinLogging
 import java.lang.Math.pow
@@ -206,22 +211,21 @@ class S2PredicatesTest : S2GeometryTestCase() {
         // Add zero or more (but usually one) point that is likely to trigger
         // S2Predicates.sign() degeneracies among the given points.
         fun addDegeneracy(points: MutableList<S2Point>) {
-            val rnd = Random.Default
-            val aIdx = rnd.nextInt(0, points.size)
+            val aIdx = randomInt(0, points.size)
             var a = points[aIdx]
-            val bIdx = rnd.nextInt(0, points.size)
+            val bIdx = randomInt(0, points.size)
             val b = points[bIdx]
-            val coord = rnd.nextInt(0, 2)
-            when (rnd.nextInt(0, 8)) {
+            val coord = randomInt(0, 2)
+            when (randomInt(0, 8)) {
                 0 -> {
                     // Add a random point (not uniformly distributed) along the great
                     // circle AB.
-                    addNormalized(rnd.nextDouble(-1.0, 1.0) * a + rnd.nextDouble(-1.0, 1.0) * b, points)
+                    addNormalized(randomDouble(-1.0, 1.0) * a + randomDouble(-1.0, 1.0) * b, points)
                 }
                 1 -> {
                     // Perturb one coordinate by the minimum amount possible.
                     val mA = a.toMutable()
-                    mA[coord] = mA[coord].nextTowards(if (rnd.nextBoolean()) 2.0 else -2.0)
+                    mA[coord] = mA[coord].nextTowards(if (oneIn(2)) 2.0 else -2.0)
                     a = S2Point(mA.coords)
                     points[aIdx] = a
                     addNormalized(a, points)
@@ -229,7 +233,7 @@ class S2PredicatesTest : S2GeometryTestCase() {
                 2 -> {
                     // Perturb one coordinate by up to 1e-15.
                     val mA = a.toMutable()
-                    mA[coord] += 1e-15 * rnd.nextDouble(-1.0, 1.0)
+                    mA[coord] += 1e-15 * randomDouble(-1.0, 1.0)
                     a = S2Point(mA.coords)
                     points[aIdx] = a
                     addNormalized(a, points)
@@ -237,13 +241,13 @@ class S2PredicatesTest : S2GeometryTestCase() {
                 3 -> {
                     // Scale a point just enough so that it is different while still being
                     // considered normalized.
-                    a *= if (rnd.nextBoolean()) (1 + 2e-16) else (1 - 1e-16)
+                    a *= if (oneIn(2)) (1 + 2e-16) else (1 - 1e-16)
                     if (a.isUnitLength()) points.add(a)
                 }
                 4 -> {
                     // Add the intersection point of AB with X=0, Y=0, or Z=0.
                     val dir = MutableS2Point(0.0, 0.0, 0.0)
-                    dir[coord] = if (rnd.nextBoolean()) 1.0 else -1.0
+                    dir[coord] = if (oneIn(2)) 1.0 else -1.0
                     val norm = S2Point.robustCrossProd(a, b).normalize()
                     val p = S2Point.robustCrossProd(dir, norm)
                     if (p.norm() != 0.0) {
@@ -321,6 +325,7 @@ class S2PredicatesTest : S2GeometryTestCase() {
         }
     }
 
+    @Strictfp
     fun testSignTestStressTest() {
         // The run time of this test is *cubic* in the parameter below.
         val kNumPointsPerCircle = 20
@@ -358,10 +363,7 @@ class S2PredicatesTest : S2GeometryTestCase() {
             var failure_count = 0
             val m = tan(kmToAngle(km).radians)
             for (iter in 0 until kIters) {
-                val frame = randomFrame
-                val a = frame[0]
-                val x = frame[1]
-                val y = frame[2]
+                val (a, x, _) = S2Random.randomFrame()
                 val b = (a - m * x).normalize()
                 val c = (a + m * x).normalize()
                 val sign = S2Predicates.stableSign(a, b, c)
@@ -499,8 +501,8 @@ class S2PredicatesTest : S2GeometryTestCase() {
     fun choosePoint(): S2Point {
         val x = randomPoint().toMutable()
         for (i in 0..2) {
-            if (Random.Default.nextInt(0, 3) == 0) {
-                x[i] *= pow(1e-50, Random.Default.nextDouble())
+            if (oneIn(3)) {
+                x[i] *= 1e-50.pow(randomDouble())
             }
         }
         return x.normalize()
@@ -788,16 +790,15 @@ class S2PredicatesTest : S2GeometryTestCase() {
         // the answer given by a method at one level of precision is consistent with
         // the answer given at the next higher level of precision.  See also the
         // comments in the CompareDistances consistency test.
-        val rnd = Random.Default
         val sin2_stats = PrecisionStats()
         val cos_stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
-            val rnd = Random(iter + 1)  // Easier to reproduce a specific case.
+            reset(iter + 1)  // Easier to reproduce a specific case.
             val x = choosePoint()
             val dir = choosePoint()
-            var r = S1Angle.radians(M_PI_2 * pow(1e-30, rnd.nextDouble()))
-            if (rnd.nextBoolean()) r = S1Angle.radians(M_PI_2) - r
-            if (rnd.nextInt(0, 5) == 0) r = S1Angle.radians(M_PI_2) + r
+            var r = S1Angle.radians(M_PI_2 * pow(1e-30, randomDouble()))
+            if (oneIn(2)) r = S1Angle.radians(M_PI_2) - r
+            if (oneIn(5)) r = S1Angle.radians(M_PI_2) + r
             val y = S2EdgeDistances.interpolateAtDistance(r, x, dir)
             var prec = testCompareDistanceConsistency(x, y, S1ChordAngle(r), CosDistance())
             if (r.degrees() >= 45) cos_stats.tally(prec)
@@ -882,22 +883,21 @@ class S2PredicatesTest : S2GeometryTestCase() {
         // checks that the answer given by a method at one level of precision is
         // consistent with the answer given at the next higher level of precision.
         // See also the comments in the CompareDistances consistency test.
-        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
-            rnd.setSeed((iter + 1).toLong());  // Easier to reproduce a specific case.
+            reset(iter + 1)  // Easier to reproduce a specific case.
             val a0 = choosePoint()
-            val len = S1Angle.radians(M_PI * pow(1e-20, rnd.nextDouble()))
+            val len = S1Angle.radians(M_PI * pow(1e-20, randomDouble()))
             var a1 = S2EdgeDistances.interpolateAtDistance(len, a0, choosePoint())
-            if (rnd.nextBoolean()) a1 = -a1
+            if (oneIn(2)) a1 = -a1
             if (a0 == -a1) continue;  // Not allowed by API.
             val n = S2Point.robustCrossProd(a0, a1).normalize()
-            val f = pow(1e-20, rnd.nextDouble())
+            val f = pow(1e-20, randomDouble())
             val a = ((1 - f) * a0 + f * a1).normalize()
-            var r = S1Angle.radians(M_PI_2 * pow(1e-20, rnd.nextDouble()))
-            if (rnd.nextBoolean()) r = S1Angle.radians(M_PI_2) - r
+            var r = S1Angle.radians(M_PI_2 * pow(1e-20, randomDouble()))
+            if (oneIn(2)) r = S1Angle.radians(M_PI_2) - r
             var x = S2EdgeDistances.interpolateAtDistance(r, a, n)
-            if (rnd.nextInt(5) == 0) {
+            if (oneIn(5)) {
                 // Replace "x" with a random point that is closest to an edge endpoint.
                 do {
                     x = choosePoint()
@@ -978,16 +978,15 @@ class S2PredicatesTest : S2GeometryTestCase() {
         // then checks that the answer given by a method at one level of precision
         // is consistent with the answer given at the next higher level of
         // precision.  See also the comments in the CompareDistances test.
-        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
-            rnd.setSeed((iter + 1).toLong());  // Easier to reproduce a specific case.
+            reset(iter + 1)  // Easier to reproduce a specific case.
             val a0 = choosePoint()
-            val a_len = S1Angle.radians(M_PI * pow(1e-20, rnd.nextDouble()))
+            val a_len = S1Angle.radians(M_PI * 1e-20.pow(randomDouble()))
             val a1 = S2EdgeDistances.interpolateAtDistance(a_len, a0, choosePoint())
             val a_norm = S2Point.robustCrossProd(a0, a1).normalize()
             val b0 = choosePoint()
-            val b_len = S1Angle.radians(M_PI * pow(1e-20, rnd.nextDouble()))
+            val b_len = S1Angle.radians(M_PI * 1e-20.pow(randomDouble()))
             val b1 = S2EdgeDistances.interpolateAtDistance(b_len, b0, a_norm)
             if (a0 == -a1 || b0 == -b1) continue;  // Not allowed by API.
             val prec = testCompareEdgeDirectionsConsistency(a0, a1, b0, b1)
@@ -1094,17 +1093,16 @@ class S2PredicatesTest : S2GeometryTestCase() {
         // that are nearly equidistant from X.  It then checks that the answer given
         // by a method at one level of precision is consistent with the answer given
         // at the next higher level of precision.
-        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
-            rnd.setSeed((iter + 1).toLong());  // Easier to reproduce a specific case.
+            reset(iter + 1)  // Easier to reproduce a specific case.
             val x0 = choosePoint()
             val x1 = choosePoint()
             if (x0 == -x1) continue;  // Not allowed by API.
-            val c0 = (if (rnd.nextBoolean()) -1 else 1) * pow(1e-20, rnd.nextDouble())
-            val c1 = (if (rnd.nextBoolean()) -1 else 1) * pow(1e-20, rnd.nextDouble())
+            val c0 = (if (oneIn(2)) -1 else 1) * pow(1e-20, randomDouble())
+            val c1 = (if (oneIn(2)) -1 else 1) * pow(1e-20, randomDouble())
             val z = (c0 * x0 + c1 * x1).normalize()
-            val r = S1Angle.radians(M_PI * pow(1e-30, rnd.nextDouble()))
+            val r = S1Angle.radians(M_PI * pow(1e-30, randomDouble()))
             val a = S2EdgeDistances.interpolateAtDistance(r, z, choosePoint())
             val b = S2EdgeDistances.interpolateAtDistance(r, z, choosePoint())
             val c = S2EdgeDistances.interpolateAtDistance(r, z, choosePoint())
@@ -1241,18 +1239,17 @@ class S2PredicatesTest : S2GeometryTestCase() {
         // coverage intervals for A and B will (almost) share a common endpoint.  It
         // then checks that the answer given by a method at one level of precision
         // is consistent with the answer given at higher levels of precision.
-        val rnd = rand!!
         val stats = PrecisionStats()
         for (iter in 0 until kConsistencyIters) {
-            rnd.setSeed((iter + 1).toLong())  // Easier to reproduce a specific case.
+            reset(iter + 1)  // Easier to reproduce a specific case.
             val x0 = choosePoint()
             val x1 = choosePoint()
             if (x0 == -x1) continue;  // Not allowed by API.
-            val f = pow(1e-20, rnd.nextDouble())
+            val f = pow(1e-20, randomDouble())
             val p = ((1 - f) * x0 + f * x1).normalize()
-            val r1 = S1Angle.radians(M_PI_2 * pow(1e-20, rnd.nextDouble()))
-            var a = S2EdgeDistances.interpolateAtDistance(r1, p, choosePoint())
-            var b = S2EdgeDistances.interpolateAtDistance(r1, p, choosePoint())
+            val r1 = S1Angle.radians(M_PI_2 * 1e-20.pow(randomDouble()))
+            val a = S2EdgeDistances.interpolateAtDistance(r1, p, choosePoint())
+            val b = S2EdgeDistances.interpolateAtDistance(r1, p, choosePoint())
             // Check that the other API requirements are met.
             val r = S1ChordAngle(r1)
             if (S2Predicates.compareEdgeDistance(a, x0, x1, r) > 0) continue
@@ -1275,12 +1272,11 @@ class S2PredicatesTest : S2GeometryTestCase() {
     fun testSign() {
         var a = S2Point(1.0, 0.0, 0.0)
         var b = S2Point(0.0, 1.0, 0.0)
-        var c = S2Point(0.0, 0.9999999999999999, 0.0)
+        val c = S2Point(0.0, 0.9999999999999999, 0.0)
         assertEquals(1, S2Predicates.sign(a, b, c))
 
         val deltaBCrossC = S2Point(7.8615562344198168526508285956e-6, 6.24999561121962149754537261329e-5, -0.000143766135723317032302845730007) -
                 S2Point(0.000007861556234467316471419675022, 0.000062499956112179674477218761648, -0.00014376613572334472465439473944)
-        println(deltaBCrossC)
         assertEquals(1, S2Predicates.exactSign(
                 a = S2Point(0.4903891754856072, 0.7891211432339005, 0.36987332678603396),
                 b = S2Point(0.4905257354088808, 0.7890477243764918, 0.3698488766480931),

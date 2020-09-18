@@ -37,7 +37,7 @@ import java.util.*
  */
 @ExperimentalUnsignedTypes
 @Strictfp
-class S2CellUnion : S2Region, Iterable<S2CellId?> {
+class S2CellUnion : S2Region, Iterable<S2CellId> {
     /** The CellIds that form the Union  */
     private var cellIds = ArrayList<S2CellId>()
     fun initFromCellIds(cellIds: ArrayList<S2CellId>) {

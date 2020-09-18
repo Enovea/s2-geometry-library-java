@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
+import static dilivia.s2.S2Random.*;
+
 public strictfp class S2RegionCovererTest extends S2GeometryTestCase {
   private static Logger logger = Logger.getLogger(S2RegionCovererTest.class.getName());
 
@@ -32,7 +34,7 @@ public strictfp class S2RegionCovererTest extends S2GeometryTestCase {
 
     // Test random cell ids at all levels.
     for (int i = 0; i < 10000; ++i) {
-      S2CellId id = getRandomCellId();
+      S2CellId id = S2Random.randomCellId();
       S2CellUnion covering = new S2CellUnion();
       coverer.getCovering(new S2Cell(id), covering.cellIds());
       assertEquals(covering.size(), 1);
@@ -83,14 +85,14 @@ public strictfp class S2RegionCovererTest extends S2GeometryTestCase {
     S2RegionCoverer coverer = new S2RegionCoverer();
     for (int i = 0; i < 1000; ++i) {
       do {
-        coverer.setMinLevel(random(kMaxLevel + 1));
-        coverer.setMaxLevel(random(kMaxLevel + 1));
+        coverer.setMinLevel(randomInt(kMaxLevel + 1));
+        coverer.setMaxLevel(randomInt(kMaxLevel + 1));
       } while (coverer.minLevel() > coverer.maxLevel());
       coverer.setMaxCells(skewed(10));
-      coverer.setLevelMod(1 + random(3));
+      coverer.setLevelMod(1 + randomInt(3));
       double maxArea = Math.min(
           4 * S2.M_PI, (3 * coverer.maxCells() + 1) * S2Cell.averageArea(coverer.minLevel()));
-      S2Cap cap = getRandomCap(0.1 * S2Cell.averageArea(kMaxLevel), maxArea);
+      S2Cap cap = randomCap(0.1 * S2Cell.averageArea(kMaxLevel), maxArea);
       ArrayList<S2CellId> covering = new ArrayList<S2CellId>();
       ArrayList<S2CellId> interior = new ArrayList<S2CellId>();
 
@@ -125,11 +127,11 @@ public strictfp class S2RegionCovererTest extends S2GeometryTestCase {
     S2RegionCoverer coverer = new S2RegionCoverer();
     coverer.setMaxCells(Integer.MAX_VALUE);
     for (int i = 0; i < 1000; ++i) {
-      int level = random(kMaxLevel + 1);
+      int level = randomInt(kMaxLevel + 1);
       coverer.setMinLevel(level);
       coverer.setMaxLevel(level);
       double maxArea = Math.min(4 * S2.M_PI, 1000 * S2Cell.averageArea(level));
-      S2Cap cap = getRandomCap(0.1 * S2Cell.averageArea(kMaxLevel), maxArea);
+      S2Cap cap = randomCap(0.1 * S2Cell.averageArea(kMaxLevel), maxArea);
       ArrayList<S2CellId> covering = new ArrayList<S2CellId>();
       S2RegionCoverer.getSimpleCovering(cap, cap.getCenter(), level, covering);
       checkCovering(coverer, cap, covering, false);

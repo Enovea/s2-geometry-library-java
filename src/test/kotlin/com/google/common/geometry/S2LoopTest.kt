@@ -33,6 +33,10 @@ import dilivia.s2.S2Point.Companion.origin
 import dilivia.s2.S2Point.Companion.ortho
 import dilivia.s2.S2Point.Companion.plus
 import dilivia.s2.S2Point.Companion.times
+import dilivia.s2.S2Random.randomDouble
+import dilivia.s2.S2Random.randomPoint
+import dilivia.s2.S2Random.randomULong
+import dilivia.s2.S2Random.skewed
 import java.util.logging.Logger
 import kotlin.math.*
 
@@ -144,19 +148,19 @@ class S2LoopTest : S2GeometryTestCase() {
             // maximum distance from the boundary of the spherical cap is kMaxDist.
             // Thus we want fabs(atan(tan(phi) / cos(dtheta/2)) - phi) <= kMaxDist.
             val kMaxDist = 1e-6
-            val height = 2 * rand!!.nextDouble()
-            val phi = Math.asin(1 - height)
-            var maxDtheta = 2 * Math.acos(Math.tan(Math.abs(phi)) / Math.tan(Math.abs(phi) + kMaxDist))
+            val height = 2 * randomDouble()
+            val phi = asin(1 - height)
+            var maxDtheta = 2 * acos(tan(abs(phi)) / tan(abs(phi) + kMaxDist))
             maxDtheta = Math.min(S2.M_PI, maxDtheta) // At least 3 vertices.
             val vertices: MutableList<S2Point> = Lists.newArrayList()
             var theta = 0.0
             while (theta < 2 * S2.M_PI) {
-                val xCosThetaCosPhi = times(x, Math.cos(theta) * Math.cos(phi))
-                val ySinThetaCosPhi = times(y, Math.sin(theta) * Math.cos(phi))
-                val zSinPhi = times(z, Math.sin(phi))
-                val sum = plus(plus(xCosThetaCosPhi, ySinThetaCosPhi), zSinPhi)
+                val xCosThetaCosPhi = cos(theta) * cos(phi) * x
+                val ySinThetaCosPhi = sin(theta) * cos(phi) * y
+                val zSinPhi = z * sin(phi)
+                val sum = xCosThetaCosPhi + ySinThetaCosPhi + zSinPhi
                 vertices.add(sum)
-                theta += rand!!.nextDouble() * maxDtheta
+                theta += randomDouble() * maxDtheta
             }
             val loop = S2Loop(vertices)
             val areaCentroid = loop.areaAndCentroid
@@ -386,12 +390,12 @@ class S2LoopTest : S2GeometryTestCase() {
         // at some fixed level. Comparing two polygons at the same level
         // ensures that there are no T-vertices.
         for (iter in 0..999) {
-            val num = rand!!.nextLong()
-            var begin = S2CellId((num or 1).toULong())
+            val num = randomULong()
+            var begin = S2CellId((num or 1UL))
             if (!begin.isValid()) {
                 continue
             }
-            begin = begin.parent(Math.round(rand!!.nextDouble() * S2CellId.kMaxLevel).toInt())
+            begin = begin.parent((randomDouble() * S2CellId.kMaxLevel).roundToInt())
             val aBegin = advance(begin, skewed(6))
             val aEnd = advance(aBegin, skewed(6) + 1)
             val bBegin = advance(begin, skewed(6))
