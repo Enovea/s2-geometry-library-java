@@ -306,7 +306,7 @@ class S2Cap(val center: S2Point, val radius: S1ChordAngle) : S2Region {
     }
 
     override fun toString(): String {
-        return "[Center = $center Radius = $radius]"
+        return "[Center = $center, Radius = ${radius()}, Chord = $radius]"
     }
 
     // -- S2Region interface --//
@@ -455,7 +455,8 @@ class S2Cap(val center: S2Point, val radius: S1ChordAngle) : S2Region {
         // of 2-epsilon is rounded off to 2).
         val vertices = Array(4) { k ->
             val vertex = cell.getVertex(k)
-            if (!contains(vertex)) return false
+            if (!contains(vertex))
+                return false
             vertex
         }
 

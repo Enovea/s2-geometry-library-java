@@ -19,27 +19,15 @@
 package dilivia.s2
 
 import com.google.common.base.Splitter
-import com.google.common.collect.ImmutableList
 import com.google.common.collect.Iterables
 import com.google.common.collect.Lists
-import com.google.common.geometry.S2
-import com.google.common.geometry.S2.M_PI
 import com.google.common.geometry.S2Loop
 import com.google.common.geometry.S2Polygon
 import com.google.common.geometry.S2Polyline
 import dilivia.s2.S1Angle.Companion.radians
-import dilivia.s2.S2Cap.Companion.fromCenterArea
 import dilivia.s2.S2CellId.Companion.fromFacePosLevel
 import dilivia.s2.S2LatLng.Companion.fromDegrees
-import dilivia.s2.S2Point.Companion.crossProd
-import dilivia.s2.S2Point.Companion.normalize
-import dilivia.s2.S2Point.Companion.plus
-import dilivia.s2.S2Point.Companion.times
 import junit.framework.TestCase
-import java.util.*
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 @Strictfp
 abstract class S2GeometryTestCase : TestCase() {
@@ -66,38 +54,33 @@ abstract class S2GeometryTestCase : TestCase() {
     fun kmToAngle(km: Double): S1Angle {
         return radians(km / kEarthRadiusKm)
     }
-    /**
-     * Checks that "covering" completely covers the given region. If "check_tight"
-     * is true, also checks that it does not contain any cells that do not
-     * intersect the given region. ("id" is only used internally.)
-     */
-    fun checkCovering(region: S2Region, covering: S2CellUnion, checkTight: Boolean, id: S2CellId) {
+
+    fun checkCovering(region: S2Region, covering: S2CellUnion, check_tight: Boolean, id: S2CellId = S2CellId()) {
         if (!id.isValid()) {
             for (face in 0..5) {
-                checkCovering(region, covering, checkTight, fromFacePosLevel(face, 0UL, 0))
+                checkCovering(region, covering, check_tight, S2CellId.fromFace(face))
             }
             return
         }
+
         if (!region.mayIntersect(S2Cell(id))) {
             // If region does not intersect id, then neither should the covering.
-            if (checkTight) {
-                assertTrue(!covering.intersects(id))
-            }
+            if (check_tight) assertTrue(!covering.intersects(id))
+
         } else if (!covering.contains(id)) {
             // The region may intersect id, but we can't assert that the covering
             // intersects id because we may discover that the region does not actually
-            // intersect upon further subdivision. (MayIntersect is not exact.)
+            // intersect upon further subdivision.  (MayIntersect is not exact.)
             assertTrue(!region.contains(S2Cell(id)))
             assertTrue(!id.isLeaf())
             val end = id.childEnd()
-            var child = id.childBegin()
-            while (!child.equals(end)) {
-                checkCovering(region, covering, checkTight, child)
+            var child = id.childBegin();
+            while (child != end) {
+                checkCovering(region, covering, check_tight, child)
                 child = child.next()
             }
         }
     }
-
 
     companion object {
         const val kEarthRadiusKm = 6371.01

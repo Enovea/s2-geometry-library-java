@@ -18,421 +18,416 @@
  */
 package dilivia.s2
 
-import com.google.common.collect.Lists
-import dilivia.s2.S2Cap.Companion.fromCenterHeight
-import dilivia.s2.S2CellId.Companion.fromPoint
-import dilivia.s2.S2CellId.Companion.lsbForLevel
-import dilivia.s2.S2Point.Companion.normalize
-import dilivia.s2.S2Point.Companion.plus
-import dilivia.s2.S2Point.Companion.times
-import java.util.*
+import dilivia.s2.*
+import dilivia.s2.Assertions.assert
+import dilivia.s2.Assertions.assertGE
+import dilivia.s2.Assertions.assertLE
+import mu.KotlinLogging
+import kotlin.math.max
+import kotlin.math.min
 
-/**
- * An S2CellUnion is a region consisting of cells of various sizes. Typically a
- * cell union is used to approximate some other shape. There is a tradeoff
- * between the accuracy of the approximation and how many cells are used. Unlike
- * polygons, cells have a fixed hierarchical structure. This makes them more
- * suitable for optimizations based on preprocessing.
- *
- */
-@ExperimentalUnsignedTypes
-@Strictfp
-class S2CellUnion : S2Region, Iterable<S2CellId> {
-    /** The CellIds that form the Union  */
-    private var cellIds = ArrayList<S2CellId>()
-    fun initFromCellIds(cellIds: ArrayList<S2CellId>) {
-        initRawCellIds(cellIds)
-        normalize()
-    }
 
-    /**
-     * Populates a cell union with the given S2CellIds or 64-bit cells ids, and
-     * then calls Normalize(). The InitSwap() version takes ownership of the
-     * vector data without copying and clears the given vector. These methods may
-     * be called multiple times.
-     */
-    fun initFromIds(cellIds: ArrayList<Long>) {
-        initRawIds(cellIds)
-        normalize()
-    }
+// An S2CellUnion is a region consisting of cells of various sizes.  Typically
+// a cell union is used to approximate some other shape.  There is a tradeoff
+// between the accuracy of the approximation and how many cells are used.
+// Unlike polygons, cells have a fixed hierarchical structure.  This makes
+// them more suitable for optimizations based on preprocessing.
+//
+// An S2CellUnion is represented as a vector of sorted, non-overlapping
+// S2CellIds.  By default the vector is also "normalized", meaning that groups
+// of 4 child cells have been replaced by their parent cell whenever possible.
+// S2CellUnions are not required to be normalized, but certain operations will
+// return different results if they are not (e.g., Contains(S2CellUnion).)
+//
+// S2CellUnion is movable and copyable.
 
-    fun initSwap(cellIds: ArrayList<S2CellId>) {
-        initRawSwap(cellIds)
-        normalize()
-    }
+class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>, verbatim: Boolean) : S2Region, Iterable<S2CellId> by cellIds {
 
-    fun initRawCellIds(cellIds: ArrayList<S2CellId>) {
-        this.cellIds = cellIds
-    }
+    private val logger = KotlinLogging.logger {  }
 
-    fun initRawIds(cellIds: ArrayList<Long>) {
-        val size = cellIds.size
-        this.cellIds = ArrayList(size)
-        for (id in cellIds) {
-            this.cellIds.add(S2CellId(id.toULong()))
+    init {
+        if (!verbatim) {
+            normalize()
         }
     }
 
-    /**
-     * Like Init(), but does not call Normalize(). The cell union *must* be
-     * normalized before doing any calculations with it, so it is the caller's
-     * responsibility to make sure that the input is normalized. This method is
-     * useful when converting cell unions to another representation and back.
-     * These methods may be called multiple times.
-     */
-    fun initRawSwap(cellIds: ArrayList<S2CellId>) {
-        this.cellIds = ArrayList(cellIds)
+    // Constructs a cell union with the given S2CellIds, then calls Normalize()
+    // to sort them, remove duplicates, and merge cells when possible.  (See
+    // FromNormalized if your vector is already normalized.)
+    //
+    // The argument is passed by value, so if you are passing a named variable
+    // and have no further use for it, consider using std::move().
+    //
+    // A cell union containing a single S2CellId may be constructed like this:
+    //
+    //     S2CellUnion example({cell_id});
+    constructor(cellIds: List<S2CellId>) : this(cellIds.toMutableList(), false)
+    constructor(vararg cellId: S2CellId): this(cellId.toMutableList(), false)
+
+    // Creates an empty cell union.
+    constructor() : this(emptyList())
+
+    // Clears the contents of the cell union and minimizes memory usage.
+    fun clear() {
         cellIds.clear()
     }
 
-    fun size(): Int {
-        return cellIds.size
-    }
+    fun numCells(): Int = cellIds.size
 
-    /** Convenience methods for accessing the individual cell ids.  */
-    fun cellId(i: Int): S2CellId {
-        return cellIds[i]
-    }
+    fun cellId(i: Int): S2CellId = cellIds[i]
 
-    /** Enable iteration over the union's cells.  */
-    override fun iterator(): MutableIterator<S2CellId> {
-        return cellIds.iterator()
-    }
-
-    /** Direct access to the underlying vector for iteration .  */
-    fun cellIds(): ArrayList<S2CellId> {
-        return cellIds
-    }
-
-    /**
-     * Replaces "output" with an expanded version of the cell union where any
-     * cells whose level is less than "min_level" or where (level - min_level) is
-     * not a multiple of "level_mod" are replaced by their children, until either
-     * both of these conditions are satisfied or the maximum level is reached.
-     *
-     * This method allows a covering generated by S2RegionCoverer using
-     * min_level() or level_mod() constraints to be stored as a normalized cell
-     * union (which allows various geometric computations to be done) and then
-     * converted back to the original list of cell ids that satisfies the desired
-     * constraints.
-     */
-    fun denormalize(minLevel: Int, levelMod: Int, output: ArrayList<S2CellId?>) {
-        // assert (minLevel >= 0 && minLevel <= S2CellId.MAX_LEVEL);
-        // assert (levelMod >= 1 && levelMod <= 3);
-        output.clear()
-        output.ensureCapacity(size())
-        for (id in this) {
-            val level = id.level()
-            var newLevel = Math.max(minLevel, level)
-            if (levelMod > 1) {
-                // Round up so that (new_level - min_level) is a multiple of level_mod.
-                // (Note that S2CellId::kMaxLevel is a multiple of 1, 2, and 3.)
-                newLevel += (S2CellId.kMaxLevel - (newLevel - minLevel)) % levelMod
-                newLevel = Math.min(S2CellId.kMaxLevel, newLevel)
-            }
-            if (newLevel == level) {
-                output.add(id)
-            } else {
-                val end = id.childEnd(newLevel)
-                var currentId = id.childBegin(newLevel)
-                while (!currentId.equals(end)) {
-                    output.add(currentId)
-                    currentId = currentId.next()
-                }
-            }
+    // Returns true if the cell union is valid, meaning that the S2CellIds are
+    // valid, non-overlapping, and sorted in increasing order.
+    fun isValid(): Boolean {
+        if (numCells() > 0 && !cellId(0).isValid()) return false
+        for (i in 1 until numCells()) {
+            if (!cellId(i).isValid()) return false;
+            if (cellId(i - 1).rangeMax() >= cellId(i).rangeMin()) return false
         }
+        return true
     }
 
-    /**
-     * If there are more than "excess" elements of the cell_ids() vector that are
-     * allocated but unused, reallocate the array to eliminate the excess space.
-     * This reduces memory usage when many cell unions need to be held in memory
-     * at once.
-     */
-    fun pack() {
-        cellIds.trimToSize()
-    }
-
-    /**
-     * Return true if the cell union contains the given cell id. Containment is
-     * defined with respect to regions, e.g. a cell contains its 4 children. This
-     * is a fast operation (logarithmic in the size of the cell union).
-     */
-    operator fun contains(id: S2CellId?): Boolean {
-        // This function requires that Normalize has been called first.
-        //
-        // This is an exact test. Each cell occupies a linear span of the S2
-        // space-filling curve, and the cell id is simply the position at the center
-        // of this span. The cell union ids are sorted in increasing order along
-        // the space-filling curve. So we simply find the pair of cell ids that
-        // surround the given cell id (using binary search). There is containment
-        // if and only if one of these two cell ids contains this cell.
-        var pos = cellIds.binarySearch(id)
-        if (pos < 0) {
-            pos = -pos - 1
-        }
-        return if (pos < cellIds.size && cellIds[pos].rangeMin().lessOrEquals(id!!)) {
-            true
-        } else pos != 0 && cellIds[pos - 1].rangeMax().greaterOrEquals(id!!)
-    }
-
-    /**
-     * Return true if the cell union intersects the given cell id. This is a fast
-     * operation (logarithmic in the size of the cell union).
-     */
-    fun intersects(id: S2CellId): Boolean {
-        // This function requires that Normalize has been called first.
-        // This is an exact test; see the comments for Contains() above.
-        var pos = Collections.binarySearch(cellIds, id)
-        if (pos < 0) {
-            pos = -pos - 1
-        }
-        return if (pos < cellIds.size && cellIds[pos].rangeMin().lessOrEquals(id.rangeMax())) {
-            true
-        } else pos != 0 && cellIds[pos - 1].rangeMax().greaterOrEquals(id.rangeMin())
-    }
-
-    operator fun contains(that: S2CellUnion): Boolean {
-        // TODO(kirilll?): A divide-and-conquer or alternating-skip-search approach
-        // may be significantly faster in both the average and worst case.
-        for (id in that) {
-            if (!this.contains(id)) {
+    // Returns true if the cell union is normalized, meaning that it is
+    // satisfies IsValid() and that no four cells have a common parent.
+    // Certain operations such as Contains(S2CellUnion) will return a different
+    // result if the cell union is not normalized.
+    fun isNormalized(): Boolean {
+        if (numCells() > 0 && !cellId(0).isValid()) return false
+        for (i in 1 until numCells()) {
+            if (!cellId(i).isValid()) return false
+            if (cellId(i - 1).rangeMax() >= cellId(i).rangeMin()) return false
+            if (i >= 3 && areSiblings(cellId(i - 3), cellId(i - 2), cellId(i - 1), cellId(i))) {
                 return false
             }
         }
         return true
     }
 
-    /** This is a fast operation (logarithmic in the size of the cell union).  */
-    override fun contains(cell: S2Cell): Boolean {
-        return contains(cell.id())
+    // Normalizes the cell union by discarding cells that are contained by other
+    // cells, replacing groups of 4 child cells by their parent cell whenever
+    // possible, and sorting all the cell ids in increasing order.
+    //
+    // Returns true if the number of cells was reduced.
+    // TODO(ericv): Change this method to return void.
+    fun normalize(): Boolean = Companion.normalize(cellIds)
+
+    // Replaces "output" with an expanded version of the cell union where any
+    // cells whose level is less than "min_level" or where (level - min_level)
+    // is not a multiple of "level_mod" are replaced by their children, until
+    // either both of these conditions are satisfied or the maximum level is
+    // reached.
+    //
+    // This method allows a covering generated by S2RegionCoverer using
+    // min_level() or level_mod() constraints to be stored as a normalized cell
+    // union (which allows various geometric computations to be done) and then
+    // converted back to the original list of cell ids that satisfies the
+    // desired constraints.
+    fun denormalize(min_level: Int, level_mod: Int): List<S2CellId> = denormalize(cellIds, min_level, level_mod)
+
+    // Returns true if the cell union contains the given cell id.  Containment
+    // is defined with respect to regions, e.g. a cell contains its 4 children.
+    // This is a fast operation (logarithmic in the size of the cell union).
+    //
+    // CAVEAT: If you have constructed a non-normalized S2CellUnion using
+    // FromVerbatim, note that groups of 4 child cells are *not* considered to
+    // contain their parent cell.  To get this behavior you must use one of the
+    // other constructors or call Normalize() explicitly.
+    fun contains(id: S2CellId): Boolean {
+        // This is an exact test.  Each cell occupies a linear span of the S2
+        // space-filling curve, and the cell id is simply the position at the center
+        // of this span.  The cell union ids are sorted in increasing order along
+        // the space-filling curve.  So we simply find the pair of cell ids that
+        // surround the given cell id (using binary search).  There is containment
+        // if and only if one of these two cell ids contains this cell.
+
+        var i = cellIds.indexOfFirst { cellId -> cellId >= id }
+        if (i == -1) i = cellIds.size
+        if (i != cellIds.size && cellIds[i].rangeMin() <= id) return true
+        return i != 0 && cellIds[i - 1].rangeMax() >= id
     }
 
-    /**
-     * Return true if this cell union contain/intersects the given other cell
-     * union.
-     */
-    fun intersects(union: S2CellUnion): Boolean {
-        // TODO(kirilll?): A divide-and-conquer or alternating-skip-search approach
-        // may be significantly faster in both the average and worst case.
-        for (id in union) {
-            if (intersects(id)) {
-                return true
-            }
+    // Returns true if the cell union intersects the given cell id.
+    // This is a fast operation (logarithmic in the size of the cell union).
+    fun intersects(id: S2CellId): Boolean {
+        // This is an exact test; see the comments for Contains() above.
+        val i = cellIds.lowerBound(0, cellIds.size, id)
+        if (i != cellIds.size && cellIds[i].rangeMin() <= id.rangeMax()) return true
+        return i != 0 && cellIds[i - 1].rangeMax() >= id.rangeMin()
+    }
+
+    // Returns true if this cell union contains the given other cell union.
+    //
+    // CAVEAT: If you have constructed a non-normalized S2CellUnion using
+    // FromVerbatim, note that groups of 4 child cells are *not* considered to
+    // contain their parent cell.  To get this behavior you must use one of the
+    // other constructors or call Normalize() explicitly.
+    fun contains(y: S2CellUnion): Boolean {
+        // TODO(ericv): A divide-and-conquer or alternating-skip-search
+        // approach may be sigificantly faster in both the average and worst case.
+        for (y_id in y) {
+            if (!contains(y_id)) return false;
+        }
+        return true;
+    }
+
+    // Returns true if this cell union intersects the given other cell union.
+    fun intersects(y: S2CellUnion): Boolean {
+        // TODO(ericv): A divide-and-conquer or alternating-skip-search
+        // approach may be sigificantly faster in both the average and worst case.
+
+        for (y_id in y) {
+            if (intersects(y_id)) return true
         }
         return false
     }
 
-    fun getUnion(x: S2CellUnion, y: S2CellUnion) {
-        // assert (x != this && y != this);
-        cellIds.clear()
-        cellIds.ensureCapacity(x.size() + y.size())
-        cellIds.addAll(x.cellIds)
-        cellIds.addAll(y.cellIds)
-        normalize()
+    // Returns the union of the two given cell unions.
+    fun union(y: S2CellUnion): S2CellUnion {
+        return S2CellUnion(cellIds + y.cellIds);
     }
 
-    /**
-     * Specialized version of GetIntersection() that gets the intersection of a
-     * cell union with the given cell id. This can be useful for "splitting" a
-     * cell union into chunks.
-     */
-    fun getIntersection(x: S2CellUnion, id: S2CellId) {
-        // assert (x != this);
-        cellIds.clear()
-        if (x.contains(id)) {
-            cellIds.add(id)
-        } else {
-            var pos = Collections.binarySearch(x.cellIds, id.rangeMin())
-            if (pos < 0) {
-                pos = -pos - 1
-            }
-            val idmax = id.rangeMax()
-            val size = x.cellIds.size
-            while (pos < size && x.cellIds[pos].lessOrEquals(idmax)) {
-                cellIds.add(x.cellIds[pos++])
-            }
-        }
-    }
-
-    /**
-     * Initialize this cell union to the union or intersection of the two given
-     * cell unions. Requires: x != this and y != this.
-     */
-    fun getIntersection(x: S2CellUnion, y: S2CellUnion) {
-        // assert (x != this && y != this);
+    // Returns the intersection of the two given cell unions.
+    fun intersection(y: S2CellUnion): S2CellUnion {
+        assert { cellIds.isSorted() }
+        assert { y.cellIds.isSorted() }
 
         // This is a fairly efficient calculation that uses binary search to skip
-        // over sections of both input vectors. It takes constant time if all the
+        // over sections of both input vectors.  It takes logarithmic time if all the
         // cells of "x" come before or after all the cells of "y" in S2CellId order.
-        cellIds.clear()
+        val out = mutableListOf<S2CellId>()
         var i = 0
         var j = 0
-        while (i < x.cellIds.size && j < y.cellIds.size) {
-            val imin = x.cellId(i).rangeMin()
-            val jmin = y.cellId(j).rangeMin()
-            if (imin.greaterThan(jmin)) {
+        while (i != cellIds.size && j != y.cellIds.size) {
+            val cellI = cellIds[i]
+            val cellJ = y.cellIds[j]
+            val imin = cellI.rangeMin()
+            val jmin = cellJ.rangeMin()
+            if (imin > jmin) {
                 // Either j->contains(*i) or the two cells are disjoint.
-                if (x.cellId(i).lessOrEquals(y.cellId(j).rangeMax())) {
-                    cellIds.add(x.cellId(i++))
+                if ( cellI <= cellJ.rangeMax()) {
+                    out.add(cellI)
+                    i++
                 } else {
                     // Advance "j" to the first cell possibly contained by *i.
-                    j = indexedBinarySearch(y.cellIds, imin, j + 1)
+                    j = y.cellIds.lowerBound(j + 1, y.cellIds.size, imin)
+                    // y.cellIds.subList(j + 1, y.cellIds.size).indexOfFirst { cellId -> cellId >= imin }
+                    // std::lower_bound(j + 1, y.end(), imin);
+                    if (j == -1) j = y.cellIds.size
                     // The previous cell *(j-1) may now contain *i.
-                    if (x.cellId(i).lessOrEquals(y.cellId(j - 1).rangeMax())) {
-                        --j
-                    }
+                    if ( cellI <= y.cellIds[j - 1].rangeMax()) --j
                 }
-            } else if (jmin.greaterThan(imin)) {
+            } else if (jmin > imin) {
                 // Identical to the code above with "i" and "j" reversed.
-                if (y.cellId(j).lessOrEquals(x.cellId(i).rangeMax())) {
-                    cellIds.add(y.cellId(j++))
-                } else {
-                    i = indexedBinarySearch(x.cellIds, jmin, i + 1)
-                    if (y.cellId(j).lessOrEquals(x.cellId(i - 1).rangeMax())) {
-                        --i
-                    }
+                if ( cellJ <= cellIds[i].rangeMax()) {
+                    out.add(cellJ)
+                    j++
+                }
+                else {
+                    i = cellIds.lowerBound(i + 1, cellIds.size, jmin)
+                    // cellIds.subList(i + 1, cellIds.size).indexOfFirst { cellId -> cellId >= jmin }
+                    // std::lower_bound(i + 1, x.end(), jmin);
+                    //if (i == -1) i = cellIds.size
+                    if ( cellJ <= cellIds[i - 1].rangeMax()) --i
                 }
             } else {
                 // "i" and "j" have the same range_min(), so one contains the other.
-                if (x.cellId(i).lessThan(y.cellId(j))) {
-                    cellIds.add(x.cellId(i++))
-                } else {
-                    cellIds.add(y.cellId(j++))
+                if ( cellI < cellJ) {
+                    out.add(cellI)
+                    i++
+                }
+                else{
+                    out.add(cellJ)
+                    j++
                 }
             }
         }
-        // The output is generated in sorted order, and there should not be any
-        // cells that can be merged (provided that both inputs were normalized).
-        // assert (!normalize());
+
+        val intersection = S2CellUnion(out, true)
+        // The output is generated in sorted order.
+        assert { out.isSorted() }
+        // The output is normalized as long as at least one input is normalized.
+        assert { intersection.isNormalized() || (!isNormalized() && !intersection.isNormalized()) }
+
+        return intersection
     }
 
-    /**
-     * Just as normal binary search, except that it allows specifying the starting
-     * value for the lower bound.
-     *
-     * @return The position of the searched element in the list (if found), or the
-     * position where the element could be inserted without violating the
-     * order.
-     */
-    private fun indexedBinarySearch(l: List<S2CellId>, key: S2CellId, low: Int): Int {
-        var low = low
-        var high = l.size - 1
-        while (low <= high) {
-            val mid = low + high shr 1
-            val midVal = l[mid]
-            val cmp = midVal.compareTo(key)
-            if (cmp < 0) {
-                low = mid + 1
-            } else if (cmp > 0) {
-                high = mid - 1
-            } else {
-                return mid // key found
-            }
+    // Specialized version of GetIntersection() that returns the intersection of
+    // a cell union with an S2CellId.  This can be useful for splitting a cell
+    // union into pieces.
+    fun intersection(id: S2CellId): S2CellUnion {
+        val result = mutableListOf<S2CellId>()
+        if (contains(id)) {
+            result.add(id);
+        } else {
+            var i = cellIds.lowerBound(0, cellIds.size, id.rangeMin())
+            val idMax = id.rangeMax()
+            while (i != cellIds.size && cellIds[i] <= idMax) result.add(cellIds[i++])
         }
-        return low // key not found
+        val intersection = S2CellUnion(result, true)
+        assert { intersection.isNormalized() || !isNormalized() }
+        return intersection
     }
 
-    /**
-     * Expands the cell union such that it contains all cells of the given level
-     * that are adjacent to any cell of the original union. Two cells are defined
-     * as adjacent if their boundaries have any points in common, i.e. most cells
-     * have 8 adjacent cells (not counting the cell itself).
-     *
-     * Note that the size of the output is exponential in "level". For example,
-     * if level == 20 and the input has a cell at level 10, there will be on the
-     * order of 4000 adjacent cells in the output. For most applications the
-     * Expand(min_fraction, min_distance) method below is easier to use.
-     */
-    fun expand(level: Int) {
-        val output = ArrayList<S2CellId>()
-        val levelLsb = lsbForLevel(level).toLong()
-        var i = size() - 1
-        do {
+    // Returns the difference of the two given cell unions.
+    fun difference(y: S2CellUnion): S2CellUnion {
+        // TODO(ericv): this is approximately O(N*log(N)), but could probably
+        // use similar techniques as GetIntersection() to be more efficient.
+
+        val result = mutableListOf<S2CellId>()
+        for (id in this) {
+            result.addAll(getDifferenceInternal(id, y))
+        }
+        // The output is normalized as long as the first argument is normalized.
+        val difference = S2CellUnion(result, true)
+        assert { difference.isNormalized() || !isNormalized() }
+        return difference;
+    }
+
+    // Expands the cell union by adding a buffer of cells at "expand_level"
+    // around the union boundary.
+    //
+    // For each cell "c" in the union, we add all neighboring cells at level
+    // "expand_level" that are adjacent to "c".  Note that there can be many
+    // such cells if "c" is large compared to "expand_level".  If "c" is smaller
+    // than "expand_level", we first add the parent of "c" at "expand_level" and
+    // then add all the neighbors of that cell.
+    //
+    // Note that the size of the output is exponential in "expand_level".  For
+    // example, if expand_level == 20 and the input has a cell at level 10,
+    // there will be on the order of 4000 adjacent cells in the output.  For
+    // most applications the Expand(min_radius, max_level_diff) method below is
+    // easier to use.
+    fun expand(expand_level: Int) {
+        val output = mutableListOf<S2CellId>()
+        val level_lsb = S2CellId.lsbForLevel(expand_level)
+        var i = numCells()
+        while (--i >= 0) {
             var id = cellId(i)
-            if (id.lsb() < levelLsb.toUInt()) {
-                id = id.parent(level)
-                // Optimization: skip over any cells contained by this one. This is
+            if (id.lsb() < level_lsb) {
+                id = id.parent(expand_level);
+                // Optimization: skip over any cells contained by this one.  This is
                 // especially important when very small regions are being expanded.
-                while (i > 0 && id.contains(cellId(i - 1))) {
-                    --i
-                }
+                while (i > 0 && id.contains(cellId(i - 1))) --i
             }
             output.add(id)
-            id.appendAllNeighbors(level, output)
-        } while (--i >= 0)
-        initSwap(output)
+            id.appendAllNeighbors(expand_level, output)
+        }
+        cellIds.clear()
+        cellIds.addAll(output)
+        normalize()
     }
 
-    /**
-     * Expand the cell union such that it contains all points whose distance to
-     * the cell union is at most minRadius, but do not use cells that are more
-     * than maxLevelDiff levels higher than the largest cell in the input. The
-     * second parameter controls the tradeoff between accuracy and output size
-     * when a large region is being expanded by a small amount (e.g. expanding
-     * Canada by 1km).
-     *
-     * For example, if maxLevelDiff == 4, the region will always be expanded by
-     * approximately 1/16 the width of its largest cell. Note that in the worst
-     * case, the number of cells in the output can be up to 4 * (1 + 2 **
-     * maxLevelDiff) times larger than the number of cells in the input.
-     */
-    fun expand(minRadius: S1Angle, maxLevelDiff: Int) {
-        var minLevel = S2CellId.kMaxLevel
+    // Expands the cell union such that it contains all points whose distance to
+    // the cell union is at most "min_radius", but do not use cells that are
+    // more than "max_level_diff" levels higher than the largest cell in the
+    // input.  The second parameter controls the tradeoff between accuracy and
+    // output size when a large region is being expanded by a small amount
+    // (e.g. expanding Canada by 1km).  For example, if max_level_diff == 4 the
+    // region will always be expanded by approximately 1/16 the width of its
+    // largest cell.  Note that in the worst case, the number of cells in the
+    // output can be up to 4 * (1 + 2 ** max_level_diff) times larger than the
+    // number of cells in the input.
+    fun expand(min_radius: S1Angle, max_level_diff: Int) {
+        var min_level = S2CellId.kMaxLevel
         for (id in this) {
-            minLevel = Math.min(minLevel, id.level())
+            min_level = min(min_level, id.level())
         }
-        // Find the maximum level such that all cells are at least "min_radius"
-        // wide.
-        val radiusLevel = S2CellMetrics.kMinWidth.getLevelForMinValue(minRadius.radians)
-        if (radiusLevel == 0 && minRadius.radians > S2CellMetrics.kMinWidth.getValue(0)) {
+        // Find the maximum level such that all cells are at least "min_radius" wide.
+        val radius_level = S2CellMetrics.kMinWidth.getLevelForMinValue(min_radius.radians)
+        if (radius_level == 0 && min_radius.radians > S2CellMetrics.kMinWidth.getValue(0)) {
             // The requested expansion is greater than the width of a face cell.
             // The easiest way to handle this is to expand twice.
-            expand(0)
+            expand(0);
         }
-        expand(Math.min(minLevel + maxLevelDiff, radiusLevel))
+        expand(min(min_level + max_level_diff, radius_level));
     }
 
-    public override fun clone(): S2Region {
-        val copy = S2CellUnion()
-        copy.initRawCellIds(Lists.newArrayList(cellIds))
-        return copy
+    // The number of leaf cells covered by the union.
+    // This will be no more than 6*2^60 for the whole sphere.
+    fun leafCellsCovered(): ULong {
+        var num_leaves = 0UL
+        for (id in this) {
+            val invertedLevel = S2CellId.kMaxLevel - id.level()
+            num_leaves += (1UL shl (invertedLevel shl 1))
+        }
+        return num_leaves
     }
-    // Compute the approximate centroid of the region. This won't produce the
-    // bounding cap of minimal area, but it should be close enough.
 
-    // Use the centroid as the cap axis, and expand the cap angle so that it
-    // contains the bounding caps of all the individual cells. Note that it is
-    // *not* sufficient to just bound all the cell vertices because the bounding
-    // cap may be concave (i.e. cover more than one hemisphere).
+    // Approximates this cell union's area in steradians by summing the average
+    // area of each contained cell's average area, using the AverageArea method
+    // from the S2Cell class.  This is equivalent to the number of leaves covered,
+    // multiplied by the average area of a leaf.  Note that AverageArea does not
+    // take into account distortion of cell, and thus may be off by up to a
+    // factor of up to 1.7.
+    //
+    // NOTE: Since this is proportional to LeafCellsCovered(), it is
+    // always better to use that function if all you care about is
+    // the relative average area between objects.
+    fun averageBasedArea(): Double = S2Cell.averageArea(S2CellId.kMaxLevel) * leafCellsCovered().toDouble()
+
+    // Calculates this cell union's area in steradians by summing the approximate
+    // area for each contained cell, using the ApproxArea method from the S2Cell
+    // class.
+    fun approxArea(): Double {
+        var area = 0.0
+        for (id in this) {
+            area += S2Cell(id).approxArea()
+        }
+        return area;
+    }
+
+    // Calculates this cell union's area in steradians by summing the exact area
+    // for each contained cell, using the Exact method from the S2Cell class.
+    fun exactArea(): Double {
+        var area = 0.0;
+        for (id in this) {
+            area += S2Cell(id).exactArea()
+        }
+        return area
+    }
+
+
+    fun cellIds(): List<S2CellId> = cellIds.toList()
+
+    fun begin(): S2CellId = cellIds.first()
+
+    fun end(): S2CellId = cellIds.last()
+
+    ////////////////////////////////////////////////////////////////////////
+    // S2Region interface (see s2region.h for details):
+
+    override fun clone(): S2CellUnion = S2CellUnion(MutableList(cellIds.size) { i -> cellIds[i] }, true)
     override val capBound: S2Cap
         get() {
-            // Compute the approximate centroid of the region. This won't produce the
+            // Compute the approximate centroid of the region.  This won't produce the
             // bounding cap of minimal area, but it should be close enough.
-            if (cellIds.isEmpty()) {
-                return S2Cap.empty
-            }
+            if (cellIds.isEmpty()) return S2Cap.empty
             var centroid = S2Point(0, 0, 0)
             for (id in this) {
                 val area = S2Cell.averageArea(id.level())
-                centroid = plus(centroid, times(id.toPoint(), area))
+                centroid += area * id.toPoint()
             }
-            centroid = if (centroid.equals(S2Point(0, 0, 0))) {
-                S2Point(1, 0, 0)
+            if (centroid == S2Point(0, 0, 0)) {
+                centroid = S2Point(1, 0, 0)
             } else {
-                normalize(centroid)
+                centroid = centroid.normalize()
             }
 
             // Use the centroid as the cap axis, and expand the cap angle so that it
-            // contains the bounding caps of all the individual cells. Note that it is
+            // contains the bounding caps of all the individual cells.  Note that it is
             // *not* sufficient to just bound all the cell vertices because the bounding
             // cap may be concave (i.e. cover more than one hemisphere).
-            var cap = fromCenterHeight(centroid, 0.0)
+            var cap = S2Cap.fromPoint(centroid)
             for (id in this) {
-                cap = cap.addCap(S2Cell(id).capBound)
+                val cellCapBound = S2Cell(id).capBound
+                logger.trace { "Add cell cap bound $id: $cellCapBound" }
+                cap = cap.addCap(cellCapBound)
+                logger.trace { "Cap = $cap" }
             }
+            logger.debug { "getCapBound = $cap" }
             return cap
         }
+
     override val rectBound: S2LatLngRect
         get() {
             var bound = S2LatLngRect.empty
@@ -442,162 +437,241 @@ class S2CellUnion : S2Region, Iterable<S2CellId> {
             return bound
         }
 
-    /** This is a fast operation (logarithmic in the size of the cell union).  */
-    override fun mayIntersect(cell: S2Cell): Boolean {
-        return intersects(cell.id())
-    }
+    override fun contains(cell: S2Cell): Boolean = contains(cell.id())
 
-    /**
-     * The point 'p' does not need to be normalized. This is a fast operation
-     * (logarithmic in the size of the cell union).
-     */
-    override operator fun contains(p: S2Point): Boolean {
-        return contains(fromPoint(p))
-    }
+    override fun mayIntersect(cell: S2Cell): Boolean = intersects(cell.id())
 
-    /**
-     * The number of leaf cells covered by the union.
-     * This will be no more than 6*2^60 for the whole sphere.
-     *
-     * @return the number of leaf cells covered by the union
-     */
-    fun leafCellsCovered(): Long {
-        var numLeaves: Long = 0
-        for (cellId in cellIds) {
-            val invertedLevel = S2CellId.kMaxLevel - cellId.level()
-            numLeaves += 1L shl (invertedLevel shl 1)
-        }
-        return numLeaves
-    }
+    override fun contains(p: S2Point): Boolean = contains(S2CellId.fromPoint(p))
 
-    /**
-     * Approximate this cell union's area by summing the average area of
-     * each contained cell's average area, using [S2Cell.averageArea].
-     * This is equivalent to the number of leaves covered, multiplied by
-     * the average area of a leaf.
-     * Note that [S2Cell.averageArea] does not take into account
-     * distortion of cell, and thus may be off by up to a factor of 1.7.
-     * NOTE: Since this is proportional to LeafCellsCovered(), it is
-     * always better to use the other function if all you care about is
-     * the relative average area between objects.
-     *
-     * @return the sum of the average area of each contained cell's average area
-     */
-    fun averageBasedArea(): Double {
-        return S2Cell.averageArea(S2CellId.kMaxLevel) * leafCellsCovered()
-    }
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is S2CellUnion) return false
 
-    /**
-     * Calculates this cell union's area by summing the approximate area for each
-     * contained cell, using [S2Cell.approxArea].
-     *
-     * @return approximate area of the cell union
-     */
-    fun approxArea(): Double {
-        var area = 0.0
-        for (cellId in cellIds) {
-            area += S2Cell(cellId).approxArea()
-        }
-        return area
-    }
+        if (cellIds != other.cellIds) return false
 
-    /**
-     * Calculates this cell union's area by summing the exact area for each
-     * contained cell, using the [S2Cell.exactArea].
-     *
-     * @return the exact area of the cell union
-     */
-    fun exactArea(): Double {
-        var area = 0.0
-        for (cellId in cellIds) {
-            area += S2Cell(cellId).exactArea()
-        }
-        return area
-    }
-
-    /** Return true if two cell unions are identical.  */
-    override fun equals(that: Any?): Boolean {
-        if (that !is S2CellUnion) {
-            return false
-        }
-        return cellIds == that.cellIds
+        return true
     }
 
     override fun hashCode(): Int {
-        var value = 17
-        for (id in this) {
-            value = 37 * value + id.hashCode()
-        }
-        return value
+        return cellIds.hashCode()
     }
 
-    /**
-     * Normalizes the cell union by discarding cells that are contained by other
-     * cells, replacing groups of 4 child cells by their parent cell whenever
-     * possible, and sorting all the cell ids in increasing order. Returns true if
-     * the number of cells was reduced.
-     *
-     * This method *must* be called before doing any calculations on the cell
-     * union, such as Intersects() or Contains().
-     *
-     * @return true if the normalize operation had any effect on the cell union,
-     * false if the union was already normalized
-     */
-    fun normalize(): Boolean {
-        // Optimize the representation by looking for cases where all subcells
-        // of a parent cell are present.
-        val output = ArrayList<S2CellId>(cellIds.size)
-        output.ensureCapacity(cellIds.size)
-        cellIds.sort()
-        for (id in this) {
-            var currentId = id
-            var size = output.size
-            // Check whether this cell is contained by the previous cell.
-            if (!output.isEmpty() && output[size - 1].contains(currentId)) {
-                continue
-            }
+    fun isEmpty(): Boolean = cellIds.isEmpty()
 
-            // Discard any previous cells contained by this cell.
-            while (!output.isEmpty() && currentId.contains(output[output.size - 1])) {
-                output.removeAt(output.size - 1)
-            }
+    operator fun get(i: Int): S2CellId = cellId(i)
+    override fun toString(): String {
+        return "S2CellUnion(cellIds=$cellIds)"
+    }
 
-            // Check whether the last 3 elements of "output" plus "id" can be
-            // collapsed into a single parent cell.
-            while (output.size >= 3) {
-                size = output.size
-                // A necessary (but not sufficient) condition is that the XOR of the
-                // four cells must be zero. This is also very fast to test.
-                if (output[size - 3].id xor output[size - 2].id xor output[size - 1].id != currentId.id) {
-                    break
-                }
 
-                // Now we do a slightly more expensive but exact test. First, compute a
-                // mask that blocks out the two bits that encode the child position of
-                // "id" with respect to its parent, then check that the other three
-                // children all agree with "mask.
-                var mask = (currentId.lsb() shl 1).toLong()
-                mask = (mask + (mask shl 1)).inv()
-                val idMasked = (currentId.id and mask.toULong())
-                if (output[size - 3].id and mask.toULong() != idMasked
-                        || output[size - 2].id and mask.toULong() != idMasked
-                        || output[size - 1].id and mask.toULong() != idMasked
-                        || currentId.isFace()) {
-                    break
-                }
+    companion object {
 
-                // Replace four children by their parent cell.
-                output.removeAt(size - 1)
-                output.removeAt(size - 2)
-                output.removeAt(size - 3)
-                currentId = currentId.parent()
-            }
-            output.add(currentId)
+        // Converts a vector of uint64 to a vector of S2CellIds.
+        private fun toS2CellIds(ids: List<ULong>): List<S2CellId> = ids.map { S2CellId(it) }
+
+        // Returns true if the given four cells have a common parent.
+        // REQUIRES: The four cells are distinct.
+        private fun areSiblings(a: S2CellId, b: S2CellId, c: S2CellId, d: S2CellId): Boolean {
+            // A necessary (but not sufficient) condition is that the XOR of the
+            // four cells must be zero.  This is also very fast to test.
+            if ((a.id xor b.id xor c.id) != d.id) return false
+
+            // Now we do a slightly more expensive but exact test.  First, compute a
+            // mask that blocks out the two bits that encode the child position of
+            // "id" with respect to its parent, then check that the other three
+            // children all agree with "mask".
+            var mask = d.lsb() shl 1
+            mask = (mask + (mask shl 1)).inv()
+            val idMasked = (d.id and mask)
+            return ((a.id and mask) == idMasked &&
+                    (b.id and mask) == idMasked &&
+                    (c.id and mask) == idMasked &&
+                    !d.isFace())
         }
-        if (output.size < size()) {
-            initRawSwap(output)
+
+        // Convenience constructor that accepts a vector of uint64.  Note that
+        // unlike the constructor above, this one makes a copy of "cell_ids".
+        fun fromIds(ids: List<ULong>): S2CellUnion = S2CellUnion(toS2CellIds(ids))
+
+        // Constructs a cell union for the whole sphere.
+        fun wholeSphere(): S2CellUnion = S2CellUnion((0..5).map { S2CellId.fromFace(it) });
+
+        // Constructs a cell union from S2CellIds that have already been normalized
+        // (typically because they were extracted from another S2CellUnion).
+        //
+        // The argument is passed by value, so if you are passing a named variable
+        // and have no further use for it, consider using std::move().
+        //
+        // REQUIRES: "cell_ids" satisfies the requirements of IsNormalized().
+        fun fromNormalized(cellIds: List<S2CellId>): S2CellUnion {
+            val result = S2CellUnion(cellIds)
+            assert(result.isNormalized())
+            return result;
+        }
+
+        // Constructs a cell union from a vector of sorted, non-overlapping
+        // S2CellIds.  Unlike the other constructors, FromVerbatim does not require
+        // that groups of 4 child cells have been replaced by their parent cell.  In
+        // other words, "cell_ids" must satisfy the requirements of IsValid() but
+        // not necessarily IsNormalized().
+        //
+        // Note that if the cell union is not normalized, certain operations may
+        // return different results (e.g., Contains(S2CellUnion)).
+        //
+        // REQUIRES: "cell_ids" satisfies the requirements of IsValid().
+        fun fromVerbatim(cellIds: List<S2CellId>): S2CellUnion {
+            val result = S2CellUnion(cellIds.toMutableList(), true);
+            assert { result.isValid() }
+            return result;
+        }
+
+        // Constructs a cell union that corresponds to a continuous range of cell
+        // ids.  The output is a normalized collection of cell ids that covers the
+        // leaf cells between "min_id" and "max_id" inclusive.
+        //
+        // REQUIRES: min_id.is_leaf(), max_id.is_leaf(), min_id <= max_id.
+        fun fromMinMax(minId: S2CellId, maxId: S2CellId): S2CellUnion {
+            assert { maxId.isValid() }
+            return fromBeginEnd(minId, maxId.next())
+        }
+
+        // Like FromMinMax() except that the union covers the range of leaf cells
+        // from "begin" (inclusive) to "end" (exclusive), as with Python ranges or
+        // STL iterator ranges.  If (begin == end) the result is empty.
+        //
+        // REQUIRES: begin.is_leaf(), end.is_leaf(), begin <= end.
+        fun fromBeginEnd(begin: S2CellId, end: S2CellId): S2CellUnion {
+            assert { begin.isLeaf() }
+            assert { end.isLeaf() }
+            assertLE(begin, end)
+
+            // We repeatedly add the largest cell we can.
+            var id = begin.maximumTile(end)
+            val cellIds = mutableListOf<S2CellId>()
+            while (id != end) {
+                cellIds.add(id)
+                id = id.next().maximumTile(end)
+            }
+            // The output is already normalized.
+            val output = S2CellUnion(cellIds, true)
+            assert { output.isNormalized() }
+            return output
+        }
+
+        fun normalize(cellIds: MutableList<S2CellId>): Boolean {
+            // Optimize the representation by discarding cells contained by other cells,
+            // and looking for cases where all subcells of a parent cell are present.
+            cellIds.sort()
+            var out = 0
+            var currentId: S2CellId
+            for (id in cellIds) {
+                currentId = id
+                // Check whether this cell is contained by the previous cell.
+                if (out > 0 && cellIds[out - 1].contains(currentId)) continue;
+
+                // Discard any previous cells contained by this cell.
+                while (out > 0 && currentId.contains(cellIds[out - 1])) --out
+
+                // Check whether the last 3 elements plus "id" can be collapsed into a
+                // single parent cell.
+                while (out >= 3 && areSiblings(cellIds[out - 3], cellIds[out - 2], cellIds[out - 1], currentId)) {
+                    // Replace four children by their parent cell.
+                    currentId = currentId.parent();
+                    out -= 3;
+                }
+                cellIds[out++] = currentId;
+            }
+            if (cellIds.size == out) return false
+            while (cellIds.size > out) cellIds.removeLast()
             return true
         }
-        return false
+
+        fun denormalize(cellIds: List<S2CellId>, min_level: Int, level_mod: Int): List<S2CellId> {
+            val out = mutableListOf<S2CellId>()
+            denormalize(cellIds, min_level, level_mod, out)
+            return out
+        }
+
+        fun denormalize(cellIds: List<S2CellId>, min_level: Int, level_mod: Int, out: MutableList<S2CellId>) {
+            assertGE(min_level, 0)
+            assertLE(min_level, S2CellId.kMaxLevel)
+            assertGE(level_mod, 1)
+            assertLE(level_mod, 3)
+
+            out.clear()
+            for (id in cellIds) {
+                val level = id.level()
+                var new_level = max(min_level, level)
+                if (level_mod > 1) {
+                    // Round up so that (new_level - min_level) is a multiple of level_mod.
+                    // (Note that S2CellId::kMaxLevel is a multiple of 1, 2, and 3.)
+                    new_level += (S2CellId.kMaxLevel - (new_level - min_level)) % level_mod
+                    new_level = min(S2CellId.kMaxLevel, new_level)
+                }
+                if (new_level == level) {
+                    out.add(id)
+                } else {
+                    val end = id.childEnd(new_level)
+                    var cellId = id.childBegin(new_level)
+                    while (cellId != end) {
+                        out.add(cellId)
+                        cellId = cellId.next()
+                    }
+                }
+            }
+        }
+
+        private fun getDifferenceInternal(cell: S2CellId, y: S2CellUnion): List<S2CellId> {
+            // Add the difference between cell and y to cell_ids.
+            // If they intersect but the difference is non-empty, divide and conquer.
+            val cell_ids = mutableListOf<S2CellId>()
+            if (!y.intersects(cell)) {
+                cell_ids.add(cell)
+            } else if (!y.contains(cell)) {
+                var child = cell.childBegin()
+                for (i in 0..3) {
+                    cell_ids.addAll(getDifferenceInternal(child, y))
+                    if (i == 3) break;  // Avoid unnecessary next() computation.
+                    child = child.next();
+                }
+            }
+            return cell_ids
+        }
     }
+
+    object S2CellUnionTestPeer {
+        fun fromVerbatimNoChecks(cellIds: List<S2CellId>): S2CellUnion = S2CellUnion(cellIds.toMutableList(), true)
+    }
+
+}
+
+fun <T> List<T>.isSorted(): Boolean where T:Comparable<T>{
+    if (this.size <= 1) return true
+
+    val iter = this.iterator()
+    var current: T
+    var previous = iter.next()
+    while (iter.hasNext()) {
+        current = iter.next();
+        if (previous > current) return false
+        previous = current;
+    }
+    return true
+}
+
+fun <T: Comparable<T>> List<T>.lowerBound(beginIdx: Int, endIdx: Int, value: T): Int {
+    var i = endIdx
+    val listIterator = this.listIterator(beginIdx).withIndex()
+    while (listIterator.hasNext()) {
+        val element = listIterator.next()
+        val index = element.index + beginIdx
+        if (index >= endIdx) {
+            break
+        }
+        if (element.value >= value) {
+            i = index
+            break
+        }
+    }
+    return i
 }
