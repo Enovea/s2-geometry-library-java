@@ -693,10 +693,8 @@ class S2RegionCoverer(
     // Replaces all descendants of "id" in "covering" with "id".
     // REQUIRES: "covering" contains at least one descendant of "id".
     private fun replaceCellsWithAncestor(covering: MutableList<S2CellId>, id: S2CellId) {
-        var begin = covering.indexOfFirst { cellId -> cellId >= id.rangeMin() }
-        if (begin == -1) begin = covering.size
-        var end = covering.indexOfFirst { cellId -> cellId > id.rangeMax() }
-        if (end == -1) end = covering.size
+        val begin = covering.lowerBound(0, covering.size, id.rangeMin())
+        val end = covering.upperBound(0, covering.size, id.rangeMax())
         assertNE(begin, end)
         logger.trace { """
             | ReplaceCellsWithAncestor(id = $id, covering = $covering)

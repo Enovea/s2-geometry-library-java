@@ -238,7 +238,7 @@ class S2Cell : S2Region, Comparable<S2Cell> {
         val v1 = getVertex(1)
         val v2 = getVertex(2)
         val v3 = getVertex(3)
-        return S2.area(v0, v1, v2) + S2.area(v0, v2, v3)
+        return S2Measures.area(v0, v1, v2) + S2Measures.area(v0, v2, v3)
     }
 
     // Returns the distance from the cell to the given point.  Returns zero if

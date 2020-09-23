@@ -12,6 +12,7 @@
     <logger name="dilivia.s2.S2CellUnion" level="INFO" />
     <logger name="dilivia.s2.S2EdgeCrossings" level="INFO" />
     <logger name="dilivia.s2.S2EdgeDistances" level="INFO" />
+    <logger name="dilivia.s2.S2Polyline" level="TRACE" />
     <logger name="dilivia.s2.S2RegionCoverer" level="INFO" />
 
     <logger name="dilivia.s2.S2CellUnionTest" level="INFO" />

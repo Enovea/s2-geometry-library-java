@@ -39,43 +39,6 @@ public strictfp class S2EdgeUtilTest extends S2GeometryTestCase {
         }
     }
 
-    private S2LatLngRect getEdgeBound(double x1,
-                                      double y1,
-                                      double z1,
-                                      double x2,
-                                      double y2,
-                                      double z2) {
-        S2EdgeUtil.RectBounder bounder = new S2EdgeUtil.RectBounder();
-        S2Point p1 = S2Point.normalize(new S2Point(x1, y1, z1));
-        S2Point p2 = S2Point.normalize(new S2Point(x2, y2, z2));
-        bounder.addPoint(p1);
-        bounder.addPoint(p2);
-        return bounder.getBound();
-    }
-
-    public void testRectBounder() {
-        // Check cases where min/max latitude is not at a vertex.
-        // Max, CW
-        assertDoubleNear(getEdgeBound(1, 1, 1, 1, -1, 1).getLat().getHi(), S2.M_PI_4);
-        // Max, CCW
-        assertDoubleNear(getEdgeBound(1, -1, 1, 1, 1, 1).getLat().getHi(), S2.M_PI_4);
-        // Min, CW
-        assertDoubleNear(getEdgeBound(1, -1, -1, -1, -1, -1).getLat().getLo(), -S2.M_PI_4);
-        // Min, CCW
-        assertDoubleNear(getEdgeBound(-1, 1, -1, -1, -1, -1).getLat().getLo(), -S2.M_PI_4);
-
-        // Check cases where the edge passes through one of the poles.
-        assertDoubleNear(getEdgeBound(.3, .4, 1, -.3, -.4, 1).getLat().getHi(), S2.M_PI_2);
-        assertDoubleNear(getEdgeBound(.3, .4, -1, -.3, -.4, -1).getLat().getLo(), -S2.M_PI_2);
-
-        // Check cases where the min/max latitude is attained at a vertex.
-        double kCubeLat = Math.asin(Math.sqrt(1. / 3)); // 35.26 degrees
-        assertTrue(
-                getEdgeBound(1, 1, 1, 1, -1, -1).getLat().approxEquals(new R1Interval(-kCubeLat, kCubeLat)));
-        assertTrue(
-                getEdgeBound(1, -1, 1, 1, 1, -1).getLat().approxEquals(new R1Interval(-kCubeLat, kCubeLat)));
-    }
-
     // Produce a normalized S2Point for testing.
     private S2Point S2NP(double x, double y, double z) {
         return S2Point.normalize(new S2Point(x, y, z));

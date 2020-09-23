@@ -22,7 +22,7 @@ import com.google.common.geometry.S2
 import kotlin.math.IEEErem
 
 @Strictfp
-class MutableS1Angle(override var radians: Double) : S1Angle(radians) {
+class MutableS1Angle(override var radians: Double = 0.0) : S1Angle(radians) {
 
     /**
      * Normalize this angle to the range (-180, 180] degrees.

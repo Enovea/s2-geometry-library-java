@@ -23,7 +23,6 @@ import com.google.common.collect.Iterables
 import com.google.common.collect.Lists
 import com.google.common.geometry.S2Loop
 import com.google.common.geometry.S2Polygon
-import com.google.common.geometry.S2Polyline
 import dilivia.s2.S1Angle.Companion.radians
 import dilivia.s2.S2CellId.Companion.fromFacePosLevel
 import dilivia.s2.S2LatLng.Companion.fromDegrees
@@ -84,34 +83,33 @@ abstract class S2GeometryTestCase : TestCase() {
 
     companion object {
         const val kEarthRadiusKm = 6371.01
-        fun parseVertices(str: String?, vertices: MutableList<S2Point?>) {
-            if (str == null) {
-                return
-            }
-            for (token in Splitter.on(',').split(str)) {
-                val colon = token.indexOf(':')
-                require(colon != -1) { "Illegal string:$token. Should look like '35:20'" }
-                val lat = token.substring(0, colon).toDouble()
-                val lng = token.substring(colon + 1).toDouble()
-                vertices.add(fromDegrees(lat, lng).toPoint())
+        fun parseVertices(str: String, vertices: MutableList<S2Point>) {
+            if (str != "") {
+                for (token in Splitter.on(',').split(str)) {
+                    val colon = token.indexOf(':')
+                    require(colon != -1) { "Illegal string:$token. Should look like '35:20'" }
+                    val lat = token.substring(0, colon).toDouble()
+                    val lng = token.substring(colon + 1).toDouble()
+                    vertices.add(fromDegrees(lat, lng).toPoint())
+                }
             }
         }
 
         @JvmStatic
-        fun makePoint(str: String?): S2Point? {
-            val vertices: MutableList<S2Point?> = Lists.newArrayList()
+        fun makePoint(str: String): S2Point? {
+            val vertices: MutableList<S2Point> = Lists.newArrayList()
             parseVertices(str, vertices)
             return Iterables.getOnlyElement(vertices)
         }
 
-        fun makeLoop(str: String?): S2Loop {
-            val vertices: MutableList<S2Point?> = Lists.newArrayList()
+        fun makeLoop(str: String): S2Loop {
+            val vertices: MutableList<S2Point> = Lists.newArrayList()
             parseVertices(str, vertices)
             return S2Loop(vertices)
         }
 
         @JvmStatic
-        fun makePolygon(str: String?): S2Polygon {
+        fun makePolygon(str: String): S2Polygon {
             val loops: MutableList<S2Loop> = Lists.newArrayList()
             for (token in Splitter.on(';').omitEmptyStrings().split(str)) {
                 val loop = makeLoop(token)
@@ -122,8 +120,8 @@ abstract class S2GeometryTestCase : TestCase() {
         }
 
         @JvmStatic
-        fun makePolyline(str: String?): S2Polyline {
-            val vertices: MutableList<S2Point?> = Lists.newArrayList()
+        fun makePolyline(str: String): S2Polyline {
+            val vertices: MutableList<S2Point> = Lists.newArrayList()
             parseVertices(str, vertices)
             return S2Polyline(vertices)
         }

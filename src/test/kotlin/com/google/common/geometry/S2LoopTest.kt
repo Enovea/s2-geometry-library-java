@@ -113,8 +113,7 @@ class S2LoopTest : S2GeometryTestCase() {
         assertTrue(candyCane.rectBound.latLo().degrees() < -20)
         assertTrue(candyCane.rectBound.latHi().degrees() > 10)
         assertTrue(smallNeCw.rectBound.isFull)
-        assertEquals(arctic80.rectBound,
-                S2LatLngRect(fromDegrees(80, -180), fromDegrees(90, 180)))
+        assertEquals(arctic80.rectBound, S2LatLngRect(fromDegrees(80, -180), fromDegrees(90, 180)))
         assertEquals(antarctic80.rectBound,
                 S2LatLngRect(fromDegrees(-90, -180), fromDegrees(-80, 180)))
         arctic80.invert()

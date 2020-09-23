@@ -441,7 +441,7 @@ class S2LatLngRectTest : S2GeometryTestCase() {
         assertTrue(S2LatLngRect.full.centroid.norm() <= 1e-15)
 
         // Rectangles that cover the full longitude range.
-        for (i in 0 until 100) {
+        repeat (100) {
             val lat1 = Random.nextDouble(-M_PI_2, M_PI_2)
             val lat2 = Random.nextDouble(-M_PI_2, M_PI_2)
             val r = S2LatLngRect(R1Interval.fromPointPair(lat1, lat2), S1Interval.full)
@@ -451,7 +451,7 @@ class S2LatLngRectTest : S2GeometryTestCase() {
         }
 
         // Rectangles that cover the full latitude range.
-        for (i in 0..99) {
+        repeat(100) {
             val lng1 = Random.nextDouble(-M_PI, M_PI)
             val lng2 = Random.nextDouble(-M_PI, M_PI)
             val r = S2LatLngRect(S2LatLngRect.fullLat(), S1Interval.fromPointPair(lng1, lng2))
@@ -729,7 +729,7 @@ class S2LatLngRectTest : S2GeometryTestCase() {
                 child0 = S2LatLngRect(r.lat, S1Interval(r.lng.lo, lng))
                 child1 = S2LatLngRect(r.lat, S1Interval(lng, r.lng.hi))
             }
-            assertTrue((r.centroid - child0.centroid - child1.centroid).norm() <= 1e-15)
+            assertEquals(0.0, (r.centroid - child0.centroid - child1.centroid).norm(), 1e-15)
             if (splits_left > 0) {
                 testCentroidSplitting(child0, splits_left - 1)
                 testCentroidSplitting(child1, splits_left - 1)

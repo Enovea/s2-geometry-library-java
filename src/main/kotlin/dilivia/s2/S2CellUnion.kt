@@ -389,6 +389,8 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     fun cellIds(): List<S2CellId> = cellIds.toList()
 
+    fun listIterator(): ListIterator<S2CellId> = cellIds.listIterator()
+
     fun begin(): S2CellId = cellIds.first()
 
     fun end(): S2CellId = cellIds.last()
@@ -643,35 +645,4 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         fun fromVerbatimNoChecks(cellIds: List<S2CellId>): S2CellUnion = S2CellUnion(cellIds.toMutableList(), true)
     }
 
-}
-
-fun <T> List<T>.isSorted(): Boolean where T:Comparable<T>{
-    if (this.size <= 1) return true
-
-    val iter = this.iterator()
-    var current: T
-    var previous = iter.next()
-    while (iter.hasNext()) {
-        current = iter.next();
-        if (previous > current) return false
-        previous = current;
-    }
-    return true
-}
-
-fun <T: Comparable<T>> List<T>.lowerBound(beginIdx: Int, endIdx: Int, value: T): Int {
-    var i = endIdx
-    val listIterator = this.listIterator(beginIdx).withIndex()
-    while (listIterator.hasNext()) {
-        val element = listIterator.next()
-        val index = element.index + beginIdx
-        if (index >= endIdx) {
-            break
-        }
-        if (element.value >= value) {
-            i = index
-            break
-        }
-    }
-    return i
 }

@@ -67,6 +67,7 @@ object S2Centroids {
     //
     // Note that the result of this function is defined to be S2Point(0, 0, 0) if
     // the triangle is degenerate (and that this is intended behavior).
+    @JvmStatic
     fun trueCentroid(a: S2Point, b: S2Point, c: S2Point): S2Point {
         Assertions.assertPointIsUnitLength(a)
         Assertions.assertPointIsUnitLength(b)

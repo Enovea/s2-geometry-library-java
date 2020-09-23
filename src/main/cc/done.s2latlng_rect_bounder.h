@@ -52,27 +52,6 @@ class S2LatLngRectBounder {
   // the S2LatLng coordinates of all S2Points contained by the loop.
   S2LatLngRect GetBound() const;
 
-  // Expands a bound returned by GetBound() so that it is guaranteed to
-  // contain the bounds of any subregion whose bounds are computed using
-  // this class.  For example, consider a loop L that defines a square.
-  // GetBound() ensures that if a point P is contained by this square, then
-  // S2LatLng(P) is contained by the bound.  But now consider a diamond
-  // shaped loop S contained by L.  It is possible that GetBound() returns a
-  // *larger* bound for S than it does for L, due to rounding errors.  This
-  // method expands the bound for L so that it is guaranteed to contain the
-  // bounds of any subregion S.
-  //
-  // More precisely, if L is a loop that does not contain either pole, and S
-  // is a loop such that L.Contains(S), then
-  //
-  //   ExpandForSubregions(RectBound(L)).Contains(RectBound(S)).
-  static S2LatLngRect ExpandForSubregions(const S2LatLngRect& bound);
-
-  // Returns the maximum error in GetBound() provided that the result does
-  // not include either pole.  It is only to be used for testing purposes
-  // (e.g., by passing it to S2LatLngRect::ApproxEquals).
-  static S2LatLng MaxErrorForTests();
-
  private:
   // Common back end for AddPoint() and AddLatLng().  b and b_latlng
   // must refer to the same vertex.

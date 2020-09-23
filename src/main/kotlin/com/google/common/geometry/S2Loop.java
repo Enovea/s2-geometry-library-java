@@ -19,7 +19,6 @@ package com.google.common.geometry;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import dilivia.s2.S2EdgeIndex.DataEdgeIterator;
-import com.google.common.geometry.S2EdgeUtil.EdgeCrosser;
 import dilivia.s2.*;
 
 import java.util.HashMap;
@@ -313,10 +312,10 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     double areaSum = 0;
     S2Point centroidSum = new S2Point(0, 0, 0);
     for (int i = 1; i <= numVertices(); ++i) {
-      areaSum += S2.signedArea(origin, vertex(i - 1), vertex(i));
+      areaSum += S2Measures.signedArea(origin, vertex(i - 1), vertex(i));
       if (doCentroid) {
         // The true centroid is already premultiplied by the triangle area.
-        S2Point trueCentroid = S2.trueCentroid(origin, vertex(i - 1), vertex(i));
+        S2Point trueCentroid = S2Centroids.trueCentroid(origin, vertex(i - 1), vertex(i));
         centroidSum = S2Point.plus(centroidSum, trueCentroid);
       }
     }
@@ -629,8 +628,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
 
     boolean inside = originInside;
     S2Point origin = S2Point.origin();
-    S2EdgeUtil.EdgeCrosser crosser = new S2EdgeUtil.EdgeCrosser(origin, p,
-        vertices[numVertices - 1]);
+    S2EdgeCrosser crosser = new S2EdgeCrosser(origin, p, vertices[numVertices - 1]);
 
     // The s2edgeindex library is not optimized yet for long edges,
     // so the tradeoff to using it comes with larger loops.
@@ -732,7 +730,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     DataEdgeIterator it = getEdgeIterator(numVertices);
     for (int a1 = 0; a1 < numVertices; a1++) {
       int a2 = (a1 + 1) % numVertices;
-      EdgeCrosser crosser = new EdgeCrosser(vertex(a1), vertex(a2), vertex(0));
+      S2EdgeCrosser crosser = new S2EdgeCrosser(vertex(a1), vertex(a2), vertex(0));
       int previousIndex = -2;
       for (it.getCandidates(vertex(a1), vertex(a2)); it.hasNext(); it.next()) {
         int b1 = it.index();
@@ -752,10 +750,10 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
           // to determine edge intersections. The workaround is to ignore
           // intersections between edge pairs where all four points are
           // nearly colinear.
-          double abc = S2.angle(vertex(a1), vertex(a2), vertex(b1));
+          double abc = S2Measures.angle(vertex(a1), vertex(a2), vertex(b1));
           boolean abcNearlyLinear = S2.approxEquals(abc, 0D, MAX_INTERSECTION_ERROR) ||
               S2.approxEquals(abc, S2.M_PI, MAX_INTERSECTION_ERROR);
-          double abd = S2.angle(vertex(a1), vertex(a2), vertex(b2));
+          double abd = S2Measures.angle(vertex(a1), vertex(a2), vertex(b2));
           boolean abdNearlyLinear = S2.approxEquals(abd, 0D, MAX_INTERSECTION_ERROR) ||
               S2.approxEquals(abd, S2.M_PI, MAX_INTERSECTION_ERROR);
           if (abcNearlyLinear && abdNearlyLinear) {
@@ -769,7 +767,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
           // Beware, this may return the loop is valid if there is a
           // "vertex crossing".
           // TODO(user): Fix that.
-          crosses = crosser.robustCrossing(vertex(b2)) > 0;
+          crosses = crosser.crossingSign(vertex(b2)) > 0;
           previousIndex = b2;
           if (crosses ) {
             log.info("Edges " + a1 + " and " + b1 + " cross");
@@ -844,7 +842,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     // candy-cane stripe). Second, the loop may include one or both poles.
     // Note that a small clockwise loop near the equator contains both poles.
 
-    S2EdgeUtil.RectBounder bounder = new S2EdgeUtil.RectBounder();
+    S2LatLngRectBounder bounder = new S2LatLngRectBounder();
     for (int i = 0; i <= numVertices(); ++i) {
       bounder.addPoint(vertex(i));
     }
@@ -902,8 +900,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
     // since 'this' usually has many more vertices than 'b', use the index on
     // 'this' and loop over 'b'
     for (int j = 0; j < b.numVertices(); ++j) {
-      S2EdgeUtil.EdgeCrosser crosser =
-        new S2EdgeUtil.EdgeCrosser(b.vertex(j), b.vertex(j + 1), vertex(0));
+      S2EdgeCrosser crosser = new S2EdgeCrosser(b.vertex(j), b.vertex(j + 1), vertex(0));
       int previousIndex = -2;
       for (it.getCandidates(b.vertex(j), b.vertex(j + 1)); it.hasNext(); it.next()) {
         int i = it.index();
@@ -911,7 +908,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
           crosser.restartAt(vertex(i));
         }
         previousIndex = i;
-        int crossing = crosser.robustCrossing(vertex(i + 1));
+        int crossing = crosser.crossingSign(vertex(i + 1));
         if (crossing < 0) {
           continue;
         }

@@ -592,7 +592,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
       boolean addSharedEdges, List<ParametrizedS2Point> intersections) {
     S2LoopSequenceIndex.DataEdgeIterator it = new S2LoopSequenceIndex.DataEdgeIterator(bIndex);
     it.getCandidates(a0, a1);
-    S2EdgeUtil.EdgeCrosser crosser = new S2EdgeUtil.EdgeCrosser(a0, a1, a0);
+    S2EdgeCrosser crosser = new S2EdgeCrosser(a0, a1, a0);
     S2Point from = null;
     S2Point to = null;
     for (; it.hasNext(); it.next()) {
@@ -603,7 +603,7 @@ public final strictfp class S2Polygon implements S2Region, Comparable<S2Polygon>
       if (previousTo != from) {
         crosser.restartAt(from);
       }
-      int crossing = crosser.robustCrossing(to);
+      int crossing = crosser.crossingSign(to);
       if (crossing < 0) {
         continue;
       }

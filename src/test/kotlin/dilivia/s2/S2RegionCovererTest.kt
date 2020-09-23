@@ -19,7 +19,6 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.M_PI
-import com.google.common.geometry.S2Polyline
 import mu.KotlinLogging
 import java.util.*
 import kotlin.math.max
