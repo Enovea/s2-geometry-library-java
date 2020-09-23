@@ -222,9 +222,9 @@ class S2PolylineTest : S2GeometryTestCase() {
         assertTrue(horizontalRightToLeft.intersects(verticalTopToBottom))
     }
 
-    fun checkSubsample(polyline_str: String, tolerance_degrees: Double, expected_str: String) {
+    fun checkSubsample(polyline_str: String, tolerance_degrees: Double, expected_str: String, check:Boolean = true) {
         logger.info { """"$polyline_str, tolerance $tolerance_degrees""" }
-        val polyline = makePolyline(polyline_str)
+        val polyline = makePolyline(polyline_str, check)
         val indices = polyline.subsampleVertices(S1Angle.degrees(tolerance_degrees))
         assertEquals(expected_str, indices.joinToString(","))
     }
@@ -249,7 +249,7 @@ class S2PolylineTest : S2GeometryTestCase() {
 
         // And finally, verify that we still do something reasonable if the client
         // passes in an invalid polyline with two or more adjacent vertices.
-        checkSubsample("0:1, 0:1, 0:1, 0:2", 0.0, "0,3")
+        checkSubsample("0:1, 0:1, 0:1, 0:2", 0.0, "0,3", check = false)
     }
 
     fun testSubsampleVerticesSimpleExample() {
@@ -331,11 +331,10 @@ class S2PolylineTest : S2GeometryTestCase() {
         assertFalse(shape.getReferencePoint().contained)
     }
 
-    fun testNearlyCovers(a_str: String, b_str: String, max_error_degrees: Double, expect_b_covers_a: Boolean, expect_a_covers_b: Boolean) {
-        fail("infinite loop")
+    fun testNearlyCovers(a_str: String, b_str: String, max_error_degrees: Double, expect_b_covers_a: Boolean, expect_a_covers_b: Boolean, check: Boolean = true) {
         logger.info { "a=\"$a_str\", b=\"$b_str\", max error=$max_error_degrees" }
-        val a = makePolyline(a_str)
-        val b = makePolyline(b_str)
+        val a = makePolyline(a_str, check)
+        val b = makePolyline(b_str, check)
         val maxError = S1Angle.degrees(max_error_degrees)
         assertEquals(expect_b_covers_a, b.nearlyCovers(a, maxError))
         assertEquals(expect_a_covers_b, a.nearlyCovers(b, maxError))
@@ -389,7 +388,7 @@ class S2PolylineTest : S2GeometryTestCase() {
         // S2Polyines are not generally supposed to contain adjacent, identical
         // points, but it happens in practice.  We also set S2Debug::DISABLE so
         // debug binaries won't abort on such polylines.
-        testNearlyCovers("0:1, 0:2, 0:2, 0:3", "0:1, 0:1, 0:1, 0:3", 1e-10, true, true)
+        testNearlyCovers("0:1, 0:2, 0:2, 0:3", "0:1, 0:1, 0:1, 0:3", 1e-10, true, true, false)
     }
 
     fun testS2PolylineCoveringTestCanChooseBetweenTwoPotentialStartingPoints() {
@@ -416,7 +415,7 @@ class S2PolylineTest : S2GeometryTestCase() {
 
     fun testS2PolylineCoveringTestMatchStartsAtDuplicatedLastVertex() {
         testNearlyCovers(
-                "0:0, 0:2, 0:2, 0:2", "0:2, 0:3", 1.5, false, true)
+                "0:0, 0:2, 0:2, 0:2", "0:2, 0:3", 1.5, false, true, false)
     }
 
     fun testS2PolylineCoveringTestEmptyPolylines() {

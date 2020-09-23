@@ -11,14 +11,18 @@ import kotlin.math.*
 // An S2Polyline represents a sequence of zero or more vertices connected by
 // straight edges (geodesics).  Edges of length 0 and 180 degrees are not
 // allowed, i.e. adjacent vertices should not be identical or antipodal.
-class S2Polyline(val vertices: List<S2Point>) : S2Region {
+class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolean) : S2Region {
 
     // Creates an empty S2Polyline that should be initialized by calling Init()
     // or Decode().
-    constructor() : this(emptyList())
+    constructor() : this(emptyList(), true)
+
+    constructor(vertices: List<S2Point>) : this(vertices, true)
 
     init {
-        assert { isValid() }
+        if (check) {
+            assert { isValid() }
+        }
     }
 
     // Return true if the given vertices form a valid polyline.
@@ -277,11 +281,14 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
     // coordinates or S2CellId centers), and can split polylines at intersection
     // points.
     fun subsampleVertices(tolerance: S1Angle): List<Int> {
-        logger.trace { """
+        logger.trace {
+            """
+            |
             | subsampleVertices(tolerance = $tolerance)
             | --------------------------------------------------------------
             | vertices: $vertices
-        """.trimMargin() }
+        """.trimMargin()
+        }
         val indices = mutableListOf<Int>()
         if (numVertices() == 0) return indices
 
@@ -290,11 +297,12 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
         var index = 0
         logger.trace { "Clamped tolerance = $clampedTolerance" }
         while (index + 1 < numVertices()) {
-            logger.trace { "Process index $index" }
+            logger.trace { "Process index $index => ${vertex(index)}" }
             val nextIndex = findEndVertex(this, clampedTolerance, index)
-            logger.trace { "next index = $nextIndex" }
+            logger.trace { "next index = $nextIndex => ${vertex(nextIndex)}" }
             // Don't create duplicate adjacent vertices.
             if (vertex(nextIndex) != vertex(index)) {
+                logger.trace { "add next index $nextIndex" }
                 indices.add(nextIndex)
             }
             index = nextIndex;
@@ -344,7 +352,14 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
     // This function is well-defined for empty polylines:
     //    anything.covers(empty) = true
     //    empty.covers(nonempty) = false
-    fun nearlyCovers(covered: S2Polyline, max_error: S1Angle): Boolean {
+    fun nearlyCovers(covered: S2Polyline, maxError: S1Angle): Boolean {
+        logger.trace {
+            """
+            |
+            | nearlyCovers(maxError = $maxError, covered = $covered)
+            | -------------------------------------------------------
+        """.trimMargin()
+        }
         // NOTE: This algorithm is described assuming that adjacent vertices in a
         // polyline are never at the same point.  That is, the ith and i+1th vertices
         // of a polyline are never at the same point in space.  The implementation
@@ -389,59 +404,84 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
         //
         // TODO(user): Benchmark this, and see if the set is worth it.
 
-        if (covered.numVertices() == 0) return true;
-        if (numVertices() == 0) return false;
+        if (covered.numVertices() == 0) {
+            logger.trace { "Covered polyline is empty => true" }
+            return true
+        }
+        if (numVertices() == 0) {
+            logger.trace { "This polyline is empty => false" }
+            return false
+        }
 
         val pending = mutableListOf<SearchState>()
         val done = mutableSetOf<SearchState>()
 
         // Find all possible starting states.
         var i = 0
-        var next_i = nextDistinctVertex(this, 0)
-        var next_next_i = 0
-        while (next_i < numVertices()) {
-            next_next_i = nextDistinctVertex(this, next_i)
-            val closest_point = S2EdgeDistances.project(covered.vertex(0), this.vertex(i), vertex(next_i))
+        var nextI = nextDistinctVertex(this, 0)
+        var nextNextI: Int
+        logger.trace { "Initialize iteration: i = $i, nextI = $nextI" }
+        while (nextI < numVertices()) {
+            nextNextI = nextDistinctVertex(this, nextI)
+
+            logger.trace { "Iteration: i = $i, nextI = $nextI, nextNextI = $nextNextI" }
+
+            val closestPoint = S2EdgeDistances.project(covered.vertex(0), this.vertex(i), vertex(nextI))
+            logger.trace { "Closest point of covered[0] = ${covered.vertex(0)} on [vertexI = ${vertex(i)} ; vertextNextI = ${vertex(nextI)}]" }
 
             // In order to avoid duplicate starting states, we exclude the end vertex
             // of each edge *except* for the last non-degenerate edge.
-            if ((next_next_i == this.numVertices() || closest_point != this.vertex(next_i)) &&
-                    S1Angle(closest_point, covered.vertex(0)) <= max_error) {
-            pending.add(SearchState(i, 0, true))
-        }
-            i = next_i
-            next_i = next_next_i
+            if ((nextNextI == this.numVertices() || closestPoint != this.vertex(nextI)) &&
+                    S1Angle(closestPoint, covered.vertex(0)) <= maxError) {
+                logger.trace { "Closest point is closed to covered[0]: add to pending list" }
+                pending.add(SearchState(i, 0, true))
+            }
+            i = nextI
+            nextI = nextNextI
         }
 
         while (pending.isNotEmpty()) {
+            logger.trace { "Iteration on pending points: ${pending.size} remaining" }
             val state = pending.removeLast()
-            if (!done.add(state)) continue
+            logger.trace { "Last state: $state" }
+            if (!done.add(state)) {
+                logger.trace { "State is already done. Continue" }
+                continue
+            }
 
-            val next_i = nextDistinctVertex(this, state.i)
-            val next_j = nextDistinctVertex(covered, state.j)
-            if (next_j == covered.numVertices()) {
+            nextI = nextDistinctVertex(this, state.i)
+            val nextJ = nextDistinctVertex(covered, state.j)
+            logger.trace { "nextI = $nextI, nextJ = $nextJ" }
+            if (nextJ == covered.numVertices()) {
+                logger.trace { "NextJ == covered.size => true" }
                 return true;
-            } else if (next_i == this.numVertices()) {
+            } else if (nextI == this.numVertices()) {
+                logger.trace { "NextI == this.size. Continue" }
                 continue;
             }
 
-            val i_begin: S2Point
-            val j_begin: S2Point
+            val iBegin: S2Point
+            val jBegin: S2Point
             if (state.i_in_progress) {
-                j_begin = covered.vertex(state.j);
-                i_begin = S2EdgeDistances.project(j_begin, this.vertex(state.i), this.vertex(next_i))
+                jBegin = covered.vertex(state.j);
+                iBegin = S2EdgeDistances.project(jBegin, this.vertex(state.i), this.vertex(nextI))
+                logger.trace { "State is in progress: iBegin = $iBegin, jBegin = $jBegin" }
             } else {
-                i_begin = this.vertex(state.i)
-                j_begin = S2EdgeDistances.project(i_begin, covered.vertex(state.j), covered.vertex(next_j))
+                iBegin = this.vertex(state.i)
+                jBegin = S2EdgeDistances.project(iBegin, covered.vertex(state.j), covered.vertex(nextJ))
+                logger.trace { "State is not in progress: iBegin = $iBegin, jBegin = $jBegin" }
             }
 
-            if (S2EdgeDistances.isEdgeBNearEdgeA(j_begin, covered.vertex(next_j), i_begin, this.vertex(next_i), max_error)) {
-                pending.add(SearchState(next_i, state.j, false))
+            if (S2EdgeDistances.isEdgeBNearEdgeA(jBegin, covered.vertex(nextJ), iBegin, this.vertex(nextI), maxError)) {
+                logger.trace { "jBegin - covered[nextJ] is near to iBegin - this[nextI] => add next i - j to pending" }
+                pending.add(SearchState(nextI, state.j, false))
             }
-            if (S2EdgeDistances.isEdgeBNearEdgeA(i_begin, this.vertex(next_i), j_begin, covered.vertex(next_j), max_error)) {
-                pending.add(SearchState(state.i, next_j, true))
+            if (S2EdgeDistances.isEdgeBNearEdgeA(iBegin, this.vertex(nextI), jBegin, covered.vertex(nextJ), maxError)) {
+                logger.trace { "iBegin - this[nextI] is near to jBegin - covered[nextI] => add i - next j to pending" }
+                pending.add(SearchState(state.i, nextJ, true))
             }
         }
+
         return false
     }
 
@@ -494,6 +534,10 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
     // Always return false, because "containment" is not numerically
     // well-defined except at the polyline vertices.
     override fun contains(p: S2Point): Boolean = false
+
+    override fun toString(): String {
+        return "S2Polyline(vertices=$vertices)"
+    }
 
     // Wrapper class for indexing a polyline (see S2ShapeIndex).  Once this
     // object is inserted into an S2ShapeIndex it is owned by that index, and
@@ -603,13 +647,14 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
 
             var targetIdx = index + 1
             while (targetIdx < polyline.numVertices()) {
-                val candidate = polyline.vertex(index)
+                logger.trace { "current target: $targetIdx" }
+                val candidate = polyline.vertex(targetIdx)
                 val distance = origin.angle(candidate)
 
                 // We don't allow simplification to create edges longer than 90 degrees,
                 // to avoid numeric instability as lengths approach 180 degrees.  (We do
                 // need to allow for original edges longer than 90 degrees, though.)
-                if (distance > M_PI/2 && last_distance > 0) break
+                if (distance > M_PI / 2 && last_distance > 0) break
 
                 // Vertices must be in increasing order along the ray, except for the
                 // initial disc around the origin.
@@ -656,12 +701,13 @@ class S2Polyline(val vertices: List<S2Point>) : S2Region {
         // the same point as the "index"th vertex.  Returns pline.num_vertices() if
         // there is no such value of i.
         private fun nextDistinctVertex(pline: S2Polyline, index: Int): Int {
+            logger.trace { "nextDistinctVertex(index = $index, pline = $pline)" }
             var result = index
             val initial = pline.vertex(result)
             do {
                 ++result
-            } while (index < pline.numVertices() && pline.vertex(index) == initial)
-            return index;
+            } while (result < pline.numVertices() && pline.vertex(result) == initial)
+            return result;
         }
 
         // This struct represents a search state in the NearlyCovers algorithm
