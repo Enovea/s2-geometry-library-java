@@ -488,16 +488,21 @@ object S2Coords {
     // Given a *valid* face for the given point p (meaning that dot product
     // of p with the face normal is positive), return the corresponding
     // u and v values (which may lie outside the range [-1,1]).
-    fun validFaceXYZtoUV(face: Int, p: S2Point): R2Point {
+    fun validFaceXYZtoUV(face: Int, p: S2Point, uv: MutableR2Point) {
         Assertions.assert { p.dotProd(getNorm(face)) > 0 }
-        return when (face) {
-            0 -> R2Point(x = p[1] / p[0], y = p[2] / p[0])
-            1 -> R2Point(x = -p[0] / p[1], y = p[2] / p[1])
-            2 -> R2Point(x = -p[0] / p[2], y = -p[1] / p[2])
-            3 -> R2Point(x = p[2] / p[0], y = p[1] / p[0])
-            4 -> R2Point(x = p[2] / p[1], y = -p[0] / p[1])
-            else -> R2Point(x = -p[1] / p[2], y = -p[0] / p[2])
+        when (face) {
+            0 -> { uv[0] = p[1] / p[0]; uv[1] = p[2] / p[0]; }
+            1 -> { uv[0] = -p[0] / p[1]; uv[1] = p[2] / p[1]; }
+            2 -> { uv[0] = -p[0] / p[2]; uv[1] = -p[1] / p[2]; }
+            3 -> { uv[0] = p[2] / p[0]; uv[1] = p[1] / p[0]; }
+            4 -> { uv[0] = p[2] / p[1]; uv[1] = -p[0] / p[1]; }
+            else -> { uv[0] = -p[1] / p[2]; uv[1] = -p[0] / p[2]; }
         }
+    }
+    fun validFaceXYZtoUV(face: Int, p: S2Point): R2Point {
+        val uv = MutableR2Point()
+        validFaceXYZtoUV(face, p, uv)
+        return uv
     }
 
     // Transform the given point P to the (u,v,w) coordinate frame of the given

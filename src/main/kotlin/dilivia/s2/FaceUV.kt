@@ -18,4 +18,10 @@
  */
 package dilivia.s2
 
-data class FaceUV(val face: Int, val u: Double, val v: Double)
+import dilivia.s2.math.R2Point
+
+data class FaceUV(val face: Int, val u: Double, val v: Double) {
+
+    fun getUV(): R2Point = R2Point(u, v)
+
+}

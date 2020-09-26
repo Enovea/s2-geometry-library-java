@@ -69,7 +69,7 @@ open class R2Rect(open val x: R1Interval, open val y: R1Interval): Cloneable {
      * @param idx The interval index.
      * @return x for idx = 0 and y for idx = 1
      */
-    operator fun get(idx: Int): R1Interval {
+    open operator fun get(idx: Int): R1Interval {
         require(idx in 0..1)
         return if (idx == 0) x else y
     }
@@ -206,6 +206,8 @@ open class R2Rect(open val x: R1Interval, open val y: R1Interval): Cloneable {
     fun approxEquals(other: R2Rect, maxError: Double = 1e-15): Boolean = (x.approxEquals(other.x, maxError) && y.approxEquals(other.y, maxError))
 
     override fun toString(): String = "[Lo $lo, Hi $hi]"
+
+    fun toMutable(): MutableR2Rect = MutableR2Rect(x.toMutable(), y.toMutable())
 
     companion object {
 

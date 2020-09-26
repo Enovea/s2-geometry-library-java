@@ -1,4 +1,6 @@
-package dilivia.s2
+package dilivia.s2.shape
+
+import dilivia.s2.S2Point
 
 // A 32-bit tag that can be used to identify the type of an encoded S2Shape.
 // All encodable types have a non-zero type tag.  The tag associated with a
@@ -38,7 +40,7 @@ typealias TypeTag = UInt
 // numbering (edge id) or within a particular chain.  The global numbering is
 // sufficient for most purposes, but the chain representation is useful for
 // certain algorithms such as intersection (see S2BooleanOperation).
-abstract class S2Shape(val id: Int = -1) {
+abstract class S2Shape(var id: Int = -1) {
 
     // An edge, consisting of two vertices "v0" and "v1".  Zero-length edges are
     // allowed, and can be used to represent points.
@@ -65,7 +67,7 @@ abstract class S2Shape(val id: Int = -1) {
 
     // A ReferencePoint consists of a point P and a boolean indicating whether P
     // is contained by a particular shape.
-    data class ReferencePoint(val point: S2Point= S2Point.origin(), val contained: Boolean)
+    data class ReferencePoint(val point: S2Point = S2Point.origin(), val contained: Boolean)
 
     companion object {
 

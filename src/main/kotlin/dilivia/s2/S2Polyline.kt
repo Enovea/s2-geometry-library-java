@@ -5,6 +5,8 @@ import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLE
 import dilivia.s2.Assertions.assertLT
+import dilivia.s2.shape.S2Shape
+import dilivia.s2.shape.TypeTag
 import mu.KotlinLogging
 import kotlin.math.*
 

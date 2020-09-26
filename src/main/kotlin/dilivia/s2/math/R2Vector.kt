@@ -18,6 +18,7 @@
  */
 package dilivia.s2.math
 
+import dilivia.s2.MutableR2Point
 import kotlin.math.atan2
 
 /**
@@ -31,7 +32,7 @@ import kotlin.math.atan2
  * @since 1.0
  */
 @Strictfp
-class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVector<R2Vector, Double>(listOf(x, y), DoubleType()) {
+open class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVector<R2Vector, Double>(listOf(x, y), DoubleType()) {
 
     /**
      * Create a R2Vector instance from Int values.
@@ -66,6 +67,8 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
     // with the same norm and counterclockwise to it
     override fun ortho(): R2Vector = R2Vector(-y(), x())
 
+    fun toMutable(): MutableR2Point = MutableR2Point(x(), y())
+
     companion object {
         @JvmStatic
         fun plus(p1: R2Vector, p2: R2Vector): R2Vector {
@@ -85,3 +88,5 @@ class R2Vector @JvmOverloads constructor(x: Double = 0.0, y: Double = 0.0) : RVe
 }
 
 typealias R2Point = R2Vector
+
+operator fun Double.times(p: R2Vector): R2Vector = p * this

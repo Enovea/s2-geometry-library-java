@@ -83,7 +83,8 @@ abstract class S2GeometryTestCase : TestCase() {
 
     companion object {
         const val kEarthRadiusKm = 6371.01
-        fun parseVertices(str: String, vertices: MutableList<S2Point>) {
+        fun parseVertices(str: String): List<S2Point> {
+            val vertices: MutableList<S2Point> = mutableListOf()
             if (str != "") {
                 for (token in Splitter.on(',').split(str)) {
                     val colon = token.indexOf(':')
@@ -93,18 +94,17 @@ abstract class S2GeometryTestCase : TestCase() {
                     vertices.add(fromDegrees(lat, lng).toPoint())
                 }
             }
+            return vertices
         }
 
         @JvmStatic
-        fun makePoint(str: String): S2Point? {
-            val vertices: MutableList<S2Point> = Lists.newArrayList()
-            parseVertices(str, vertices)
+        fun makePoint(str: String): S2Point {
+            val vertices = parseVertices(str)
             return Iterables.getOnlyElement(vertices)
         }
-
+        @JvmStatic
         fun makeLoop(str: String): S2Loop {
-            val vertices: MutableList<S2Point> = Lists.newArrayList()
-            parseVertices(str, vertices)
+            val vertices = parseVertices(str)
             return S2Loop(vertices)
         }
 
@@ -122,8 +122,7 @@ abstract class S2GeometryTestCase : TestCase() {
         @JvmStatic
         @JvmOverloads
         fun makePolyline(str: String, check: Boolean = true): S2Polyline {
-            val vertices: MutableList<S2Point> = Lists.newArrayList()
-            parseVertices(str, vertices)
+            val vertices = parseVertices(str)
             return S2Polyline(vertices, check)
         }
     }

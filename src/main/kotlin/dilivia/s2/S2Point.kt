@@ -270,3 +270,4 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
 }
 
 operator fun Double.times(point: S2Point): S2Point = point * this
+operator fun Int.times(point: S2Point): S2Point = point * this.toDouble()

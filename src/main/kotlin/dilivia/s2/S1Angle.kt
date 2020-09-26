@@ -209,6 +209,8 @@ open class S1Angle protected constructor(open val radians: Double) : Comparable<
         return "%.7fd".format(Locale.ENGLISH, degrees())
     }
 
+    fun toMutable(): MutableS1Angle = MutableS1Angle(radians = radians)
+
 
     companion object {
 

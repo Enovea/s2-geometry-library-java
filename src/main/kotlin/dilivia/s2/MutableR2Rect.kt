@@ -21,11 +21,22 @@ package dilivia.s2
 import dilivia.s2.math.R2Point
 
 @Strictfp
-class MutableR2Rect(override var x: MutableR1Interval, override var y: MutableR1Interval) : R2Rect(x, y) {
+class MutableR2Rect(x: MutableR1Interval, y: MutableR1Interval) : R2Rect(x, y) {
 
-    operator fun set(idx: Int, v: MutableR1Interval) {
+    override operator fun get(idx: Int): MutableR1Interval {
         require(idx in 0..1)
-        if (idx == 0) x = v else y = v
+        return if (idx == 0) x as MutableR1Interval else y as MutableR1Interval
+    }
+
+    operator fun set(idx: Int, v: R1Interval) {
+        require(idx in 0..1)
+        if (idx == 0) {
+            (x as MutableR1Interval)[0] = v[0]
+            x[1] = v[1]
+        } else {
+            (y as MutableR1Interval)[0] = v[0]
+            y[1] = v[1]
+        }
     }
 
     override fun addPoint(p: R2Point): MutableR2Rect {
@@ -44,8 +55,8 @@ class MutableR2Rect(override var x: MutableR1Interval, override var y: MutableR1
     }
 
     fun expands(margin: R2Point): MutableR2Rect {
-        x.expands(margin.x())
-        y.expands(margin.y())
+        (x as MutableR1Interval).expands(margin.x())
+        (y as MutableR1Interval).expands(margin.y())
         if (x.isEmpty || y.isEmpty) {
             x.setEmpty()
             y.setEmpty()
@@ -56,14 +67,14 @@ class MutableR2Rect(override var x: MutableR1Interval, override var y: MutableR1
     fun expands(margin: Double): MutableR2Rect = expands(R2Point(margin, margin))
 
     fun setUnion(other: R2Rect): MutableR2Rect {
-        x.setUnion(other.x)
-        y.setUnion(other.y)
+        (x as MutableR1Interval).setUnion(other.x)
+        (y as MutableR1Interval).setUnion(other.y)
         return this
     }
 
     fun setIntersection(other: R2Rect): MutableR2Rect {
-        x.setIntersection(other.x)
-        y.setIntersection(other.y)
+        (x as MutableR1Interval).setIntersection(other.x)
+        (y as MutableR1Interval).setIntersection(other.y)
         if (x.isEmpty || y.isEmpty) {
             x.setEmpty()
             y.setEmpty()

@@ -147,6 +147,7 @@ double GetApproxArea(S2PointLoopSpan loop) {
 
 S2PointLoopSpan PruneDegeneracies(S2PointLoopSpan loop,
                                   vector<S2Point>* new_vertices) {
+
   vector<S2Point>& vertices = *new_vertices;
   vertices.clear();
   vertices.reserve(loop.size());

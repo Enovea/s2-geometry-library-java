@@ -18,9 +18,11 @@
  */
 package dilivia.s2
 
-class MutableS2Point(override val coords: MutableList<Double>): S2Point(coords) {
+import dilivia.s2.math.R2Point
 
-    constructor(x: Double, y: Double, z: Double): this(mutableListOf(x, y, z))
+class MutableR2Point(override val coords: MutableList<Double>): R2Point(coords) {
+
+    constructor(x: Double = 0.0, y: Double = 0.0): this(mutableListOf(x, y))
 
     operator fun set(idx: Int, value: Double) {
         coords[idx] = value
@@ -34,11 +36,7 @@ class MutableS2Point(override val coords: MutableList<Double>): S2Point(coords) 
         set(1, y)
     }
 
-    fun z(z: Double) {
-        set(2, z)
-    }
-
-    override fun newInstance(coords: List<Double>): S2Point = S2Point(if (coords is MutableList) coords else coords.toMutableList())
+    override fun newInstance(coords: List<Double>): R2Point = R2Point(if (coords is MutableList) coords else coords.toMutableList())
 
 
 }

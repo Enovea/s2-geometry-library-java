@@ -18,4 +18,7 @@
  */
 package dilivia.s2.math
 
-fun ilob(value: Double): Double =  TODO()
+import kotlin.math.pow
+
+
+fun ldexp(x: Double, exp: Int) = x * 2.0.pow(exp)
