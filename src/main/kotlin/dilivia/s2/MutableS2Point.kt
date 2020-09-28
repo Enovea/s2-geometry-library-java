@@ -20,7 +20,7 @@ package dilivia.s2
 
 class MutableS2Point(override val coords: MutableList<Double>): S2Point(coords) {
 
-    constructor(x: Double, y: Double, z: Double): this(mutableListOf(x, y, z))
+    constructor(x: Double = 0.0, y: Double = 0.0, z: Double = 0.0): this(mutableListOf(x, y, z))
 
     operator fun set(idx: Int, value: Double) {
         coords[idx] = value
