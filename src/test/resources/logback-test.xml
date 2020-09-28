@@ -14,11 +14,13 @@
     <logger name="dilivia.s2.S2EdgeCrossings" level="INFO" />
     <logger name="dilivia.s2.S2EdgeDistances" level="INFO" />
     <logger name="dilivia.s2.S2LoopMeasures" level="INFO" />
+    <logger name="dilivia.s2.S2PaddedCell" level="INFO" />
     <logger name="dilivia.s2.S2Polyline" level="INFO" />
     <logger name="dilivia.s2.S2RegionCoverer" level="INFO" />
 
     <logger name="dilivia.s2.S2CellUnionTest" level="INFO" />
     <logger name="dilivia.s2.S2EdgeClippingTest" level="INFO" />
+    <logger name="dilivia.s2.S2PaddedCellTest" level="INFO" />
     <logger name="dilivia.s2.S2RegionCovererTest" level="INFO" />
 
     <root level="INFO">

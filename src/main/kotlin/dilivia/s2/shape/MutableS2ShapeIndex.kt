@@ -51,14 +51,14 @@ typealias CellMap = TreeMap<S2CellId, S2ShapeIndexCell>
 //
 //   void TestContainment(const vector<S2Point>& points,
 //                        const vector<S2Polygon*>& polygons) {
-//     MutableS2ShapeIndex index;
+//     MutableS2ShapeIndex index
 //     for (auto polygon : polygons) {
-//       index.Add(absl::make_unique<S2Polygon::Shape>(polygon));
+//       index.Add(absl::make_unique<S2Polygon::Shape>(polygon))
 //     }
-//     auto query = MakeS2ContainsPointQuery(&index);
+//     auto query = MakeS2ContainsPointQuery(&index)
 //     for (const auto& point : points) {
 //       for (S2Shape* shape : query.GetContainingShapes(point)) {
-//         S2Polygon* polygon = polygons[shape->id()];
+//         S2Polygon* polygon = polygons[shape->id()]
 //         ... do something with (point, polygon) ...
 //       }
 //     }
@@ -144,18 +144,18 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     //    ClippedEdge and this data is cached more successfully.
 
     data class FaceEdge(
-            val shapeId: Int,                       // The shape that this edge belongs to
-            val edgeId: Int = 0,                    // Edge id within that shape
-            val maxLevel: Int = 0,                  // Not desirable to subdivide this edge beyond this level
+            val shapeId: Int = -1,                  // The shape that this edge belongs to
+            var edgeId: Int = 0,                    // Edge id within that shape
+            var maxLevel: Int = 0,                  // Not desirable to subdivide this edge beyond this level
             val hasInterior: Boolean = false,       // Belongs to a shape of dimension 2.
             var a: R2Point = R2Point(),
             var b: R2Point = R2Point(),             // The edge endpoints, clipped to a given face
-            val edge: S2Shape.Edge = S2Shape.Edge() // The edge endpoints
+            var edge: S2Shape.Edge = S2Shape.Edge() // The edge endpoints
     )
 
     data class ClippedEdge(
-        val faceEdge: FaceEdge,     // The original unclipped edge
-        val bound: R2Rect           // Bounding box for the clipped portion
+            val faceEdge: FaceEdge = FaceEdge(),     // The original unclipped edge
+            val bound: R2Rect = R2Rect()           // Bounding box for the clipped portion
     )
 
     // A BatchDescriptor represents a set of pending updates that will be applied
@@ -165,29 +165,29 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     // implicitly includes all shapes being removed.  "num_edges" is the total
     // number of edges that will be added or removed in this batch.
     data class BatchDescriptor(
-        var additionsEnd: Int,
-        val numEdges: Int
+            var additionsEnd: Int,
+            val numEdges: Int
     )
-
 
     // UpdateState holds temporary data related to thread synchronization.  It
     // is only allocated while updates are being applied.
     class UpdateState(
-        // This mutex is used as a condition variable.  It is locked by the
-        // updating thread for the entire duration of the update; other threads
-        // lock it in order to wait until the update is finished.
+            // This mutex is used as a condition variable.  It is locked by the
+            // updating thread for the entire duration of the update; other threads
+            // lock it in order to wait until the update is finished.
             val waitMutex: ReentrantLock = ReentrantLock(),
 
-        // The number of threads currently waiting on "wait_mutex_".  The
-        // UpdateState can only be freed when this number reaches zero.
-        //
-        // Reads and writes to this field are guarded by "lock_".
+            // The number of threads currently waiting on "wait_mutex_".  The
+            // UpdateState can only be freed when this number reaches zero.
+            //
+            // Reads and writes to this field are guarded by "lock_".
             var numWaiting: Int = 0) {
 
         fun destroy() {
             Assertions.assertEQ(0, numWaiting)
         }
     }
+
     private var updateState = UpdateState()
 
     // The shapes in the index, accessed by their shape id.  Removed shapes are
@@ -203,7 +203,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
     // The id of the first shape that has been queued for addition but not
     // processed yet.
-    private var pendingAdditionsBegin = 0;
+    private var pendingAdditionsBegin = 0
 
     // The set of shapes that have been queued for removal but not processed
     // yet.  Note that we need to copy the edge data since the caller is free to
@@ -255,7 +255,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     // If you want to position the iterator at the beginning, e.g. in order to
     // loop through the entire index, do this instead:
     //
-    //   for (MutableS2ShapeIndex::Iterator it(&index, S2ShapeIndex::BEGIN);
+    //   for (MutableS2ShapeIndex::Iterator it(&index, S2ShapeIndex::BEGIN)
     //        !it.done(); it.Next()) { ... }
     inner class Iterator(pos: InitialPosition = InitialPosition.UNPOSITIONED) : S2ShapeIndexIteratorBase() {
 
@@ -280,13 +280,13 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // Initialize an iterator for the given MutableS2ShapeIndex without
         // applying any pending updates.  This can be used to observe the actual
         // current state of the index without modifying it in any way.
-        fun initStale(pos: InitialPosition) {
+        fun initStale(pos: InitialPosition = InitialPosition.UNPOSITIONED) {
             end = cellMap.lastKey()
             cellMap.navigableKeySet()
             if (pos == InitialPosition.BEGIN) {
                 currentCellId = keySet.first()
             } else {
-                currentCellId = keySet.last();
+                currentCellId = keySet.last()
             }
             refresh()
         }
@@ -295,7 +295,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             // Make sure that the index has not been modified since Init() was called.
             Assertions.assert { isFresh() }
             currentCellId = keySet.first()
-            refresh();
+            refresh()
         }
 
         override fun finish() {
@@ -306,7 +306,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         override fun next() {
             Assertions.assert { !done() }
             currentCellId = keySet.higher(currentCellId) ?: keySet.last()
-            refresh();
+            refresh()
         }
 
         override fun prev(): Boolean {
@@ -318,12 +318,12 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
         override fun seek(target: S2CellId) {
             currentCellId = keySet.ceiling(target) ?: keySet.first()
-            refresh();
+            refresh()
         }
 
         private fun refresh() {
             if (currentCellId == end) {
-                setFinished();
+                setFinished()
             } else {
                 setState(currentCellId, cellMap.getValue(currentCellId))
             }
@@ -340,23 +340,61 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     fun add(shape: S2Shape): Int {
         // Additions are processed lazily by ApplyUpdates().
         shape.id = shapes.size
-        shapes.add(shape);
+        shapes.add(shape)
         indexStatus.set(IndexStatus.STALE)
         return shape.id
     }
 
     // Removes the given shape from the index and return ownership to the caller.
     // Invalidates all iterators and their associated data.
-    fun release(shapeId: Int): S2Shape = TODO()
+    fun release(shapeId: Int): S2Shape {
+        // This class updates itself lazily, because it is much more efficient to
+        // process additions and removals in batches.  However this means that when
+        // a shape is removed, we need to make a copy of all its edges, since the
+        // client is free to delete "shape" once this call is finished.
+        Assertions.assert { shapes[shapeId] != null }
+        val shape = shapes.removeAt(shapeId)!!
+        if (shapeId >= pendingAdditionsBegin) {
+            // We are removing a shape that has not yet been added to the index,
+            // so there is nothing else to do.
+        } else {
+            // We build the new RemovedShape in place, since it includes a potentially
+            // large vector of edges that might be expensive to copy.
+            val num_edges = shape.numEdges
+            val removedEdges = mutableListOf<S2Shape.Edge>()
+            for (e in 0 until num_edges) {
+                removedEdges.add(shape.edge(e))
+            }
+            pendingRemovals.add(RemovedShape(
+                    shapeId=shape.id,
+                    hasInterior = shape.dimension == 2,
+                    contains_tracker_origin = S2ShapeUtil.containsBruteForce(shape, kInteriorTrackerOrigin()),
+                    edges = removedEdges
+            ))
+        }
+        indexStatus.set(IndexStatus.STALE)
+        return shape
+    }
 
     // Resets the index to its original state and returns ownership of all
     // shapes to the caller.  This method is much more efficient than removing
     // all shapes one at a time.
-    fun releaseAll(): List<S2Shape> = TODO()
+    fun releaseAll(): List<S2Shape> {
+        cellMap.clear()
+        pendingAdditionsBegin = 0
+        pendingRemovals.clear()
+        //Assertions.assert { updateState == null }
+        indexStatus.set(IndexStatus.FRESH)
+        val removeShapes = shapes.toList().filterNotNull()
+        shapes.clear()
+        return removeShapes
+    }
 
     // Resets the index to its original state and deletes all shapes.  Any
     // options specified via Init() are preserved.
-    fun clear(): Unit = TODO()
+    fun clear(): Unit {
+        releaseAll()
+    }
 
     // Calls to Add() and Release() are normally queued and processed on the
     // first subsequent query (in a thread-safe way).  This has many advantages,
@@ -405,7 +443,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     private fun is_first_update(): Boolean {
         // Note that it is not sufficient to check whether cell_map_ is empty, since
         // entries are added during the update process.
-        return pendingAdditionsBegin == 0;
+        return pendingAdditionsBegin == 0
     }
 
     // Given that the given shape is being updated, return true if it is being
@@ -435,7 +473,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             indexStatus.set(IndexStatus.UPDATING)
             // Allocate the extra state needed for thread synchronization.  We keep
             // the spinlock held while doing this, because (1) memory allocation is
-            // fast, so the chance of a context switch while holding the lock is low;
+            // fast, so the chance of a context switch while holding the lock is low
             // (2) by far the most common situation is that there is no contention,
             // and this saves an extra lock and unlock step; (3) even in the rare case
             // where there is contention, the main side effect is that some other
@@ -445,9 +483,9 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             // threads will block on it.
             updateState.waitMutex.lock()
             // Release the spinlock before doing any real work.
-            lock.unlock();
-            applyUpdatesInternal();
-            lock.lock();
+            lock.unlock()
+            applyUpdatesInternal()
+            lock.lock()
             // index_status_ can be updated to FRESH only while locked *and* using
             // an atomic store operation, so that MaybeApplyUpdates() can check
             // whether the index is FRESH without acquiring the spinlock.
@@ -484,7 +522,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             for (face in 0..5) {
                 updateFaceEdges(face, all_edges[face], tracker)
                 // Save memory by clearing vectors after we are done with them.
-                //vector<FaceEdge>().swap(all_edges[face]);
+                //vector<FaceEdge>().swap(all_edges[face])
             }
             pendingAdditionsBegin = batch.additionsEnd
         }
@@ -508,7 +546,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             val shape = shape(id) ?: continue
             numEdgesAdded += shape.numEdges
         }
-        var numEdges = numEdgesRemoved + numEdgesAdded;
+        var numEdges = numEdgesRemoved + numEdgesAdded
 
         if (numEdges * kTmpBytesPerEdge <= kTmpMemoryBudgetBytes) {
             // We can update all edges at once without exceeding kTmpMemoryBudgetBytes.
@@ -533,9 +571,9 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // being removed, so in order to split the removals into batches we would
         // need a different approach (e.g., temporarily add fake entries to shapes_
         // and restore them back to nullptr as shapes are actually removed).
-        numEdges = 0;
+        numEdges = 0
         if (pendingRemovals.isNotEmpty()) {
-            numEdges += numEdgesRemoved;
+            numEdges += numEdgesRemoved
             if (numEdges >= batchSizes[0]) {
                 batches.add(BatchDescriptor(pendingAdditionsBegin, numEdges))
                 numEdges = 0
@@ -547,9 +585,9 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             val shape = shape(id) ?: continue
             numEdges += shape.numEdges
             if (numEdges >= batchSizes[batches.size]) {
-            batches.add(BatchDescriptor(id + 1, numEdges))
-            numEdges = 0;
-        }
+                batches.add(BatchDescriptor(id + 1, numEdges))
+                numEdges = 0
+            }
         }
         // Some shapes have no edges.  If a shape with no edges is the last shape to
         // be added or removed, then the final batch may not include it, so we fix
@@ -568,7 +606,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     // "max_batches") such that the total memory usage does not exceed the
     // combined final size of all the items plus "tmp_memory_budget_bytes".
     /* static */
-    fun getBatchSizes(numItems: Int, maxBatches: Int, finalBytesPerItem: Double, tmpBytesPerItem: Double, tmpMemoryBudgetBytes: Double) : List<Int> {
+    private fun getBatchSizes(numItems: Int, maxBatches: Int, finalBytesPerItem: Double, tmpBytesPerItem: Double, tmpMemoryBudgetBytes: Double): List<Int> {
         val batchSizes = mutableListOf<Int>()
         var remainingItems = numItems
         // This code tries to fit all the data into the same memory space
@@ -580,12 +618,12 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // as the items are converted into their final form.
         val finalBytes = remainingItems * finalBytesPerItem
         val finalBytesRatio = finalBytesPerItem / tmpBytesPerItem
-        val freeSpaceMultiplier = 1 - finalBytesRatio;
+        val freeSpaceMultiplier = 1 - finalBytesRatio
 
         // The total memory budget is the greater of the final size plus the allowed
         // temporary memory, or the minimum amount of memory required to limit the
         // number of batches to "max_batches".
-        val totalBudgetBytes = max(finalBytes + tmpMemoryBudgetBytes, finalBytes / (1 - freeSpaceMultiplier.pow(maxBatches.toDouble())));
+        val totalBudgetBytes = max(finalBytes + tmpMemoryBudgetBytes, finalBytes / (1 - freeSpaceMultiplier.pow(maxBatches.toDouble())))
 
         // "max_batch_items" is the number of items in the current batch.
         var maxBatchItems = totalBudgetBytes / tmpBytesPerItem
@@ -593,8 +631,8 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         while (i + 1 < maxBatches && remainingItems > 0) {
             val batchItems = min(remainingItems, (maxBatchItems + 1).toInt())
             batchSizes.add(batchItems)
-            remainingItems -= batchItems;
-            maxBatchItems *= freeSpaceMultiplier;
+            remainingItems -= batchItems
+            maxBatchItems *= freeSpaceMultiplier
             ++i
         }
         Assertions.assertLE(batchSizes.size, maxBatches)
@@ -605,7 +643,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
     // Clip all edges of the given shape to the six cube faces, add the clipped
     // edges to "all_edges", and start tracking its interior if necessary.
-    fun addShape(id: Int, all_edges: Array<MutableList<FaceEdge>>, tracker:InteriorTracker) {
+    private fun addShape(id: Int, all_edges: Array<MutableList<FaceEdge>>, tracker: InteriorTracker) {
         val shape = shape(id) ?: return  // This shape has already been removed.
         // Construct a template for the edges to be added.
         val edge = FaceEdge(
@@ -621,33 +659,32 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         }
     }
 
-
-    fun removeShape(removed: RemovedShape, allEdges: Array<MutableList<FaceEdge>>, tracker: InteriorTracker) {
+    private fun removeShape(removed: RemovedShape, allEdges: Array<MutableList<FaceEdge>>, tracker: InteriorTracker) {
         val edge = FaceEdge(
                 shapeId = removed.shapeId,
-                edgeId =  -1,  // Not used or needed for removed edges.
+                edgeId = -1,  // Not used or needed for removed edges.
                 hasInterior = removed.hasInterior,
         )
         if (edge.hasInterior) {
-            tracker.addShape(edge.shapeId, removed.contains_tracker_origin);
+            tracker.addShape(edge.shapeId, removed.contains_tracker_origin)
         }
         for (removed_edge in removed.edges) {
             addFaceEdge(edge.copy(edge = removed_edge, maxLevel = getEdgeMaxLevel(edge.edge)), allEdges)
         }
     }
 
-    fun addFaceEdge(edge: FaceEdge, allEdges: Array<MutableList<FaceEdge>>) {
+    private fun addFaceEdge(edge: FaceEdge, allEdges: Array<MutableList<FaceEdge>>) {
         // Fast path: both endpoints are on the same face, and are far enough from
         // the edge of the face that don't intersect any (padded) adjacent face.
         val a_face = S2Coords.getFace(edge.edge.v0)
         if (a_face == S2Coords.getFace(edge.edge.v1)) {
             edge.a = S2Coords.validFaceXYZtoUV(a_face, edge.edge.v0)
             edge.b = S2Coords.validFaceXYZtoUV(a_face, edge.edge.v1)
-            val kMaxUV = 1 - kCellPadding;
+            val kMaxUV = 1 - kCellPadding
             if (abs(edge.a[0]) <= kMaxUV && abs(edge.a[1]) <= kMaxUV && abs(edge.b[0]) <= kMaxUV && abs(edge.b[1]) <= kMaxUV) {
-            allEdges[a_face].add(edge);
-            return
-        }
+                allEdges[a_face].add(edge)
+                return
+            }
         }
         // Otherwise we simply clip the edge to all six faces.
         for (face in 0..5) {
@@ -662,75 +699,643 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
     // Return the first level at which the edge will *not* contribute towards
     // the decision to subdivide.
-    fun getEdgeMaxLevel(edge: S2Shape.Edge): Int {
+    private fun getEdgeMaxLevel(edge: S2Shape.Edge): Int {
         // Compute the maximum cell size for which this edge is considered "long".
         // The calculation does not need to be perfectly accurate, so we use Norm()
         // rather than Angle() for speed.
         val cell_size = ((edge.v0 - edge.v1).norm() * s2shape_index_cell_size_to_long_edge_ratio)
         // Now return the first level encountered during subdivision where the
         // average cell size is at most "cell_size".
-        return S2CellMetrics.kAvgEdge.getLevelForMaxValue(cell_size);
+        return S2CellMetrics.kAvgEdge.getLevelForMaxValue(cell_size)
     }
 
-    fun updateFaceEdges(face: Int, face_edges: List<FaceEdge>, tracker: InteriorTracker): Unit = TODO()
+    // Given a face and a vector of edges that intersect that face, add or remove
+    // all the edges from the index.  (An edge is added if shapes_[id] is not
+    // nullptr, and removed otherwise.)
+    private fun updateFaceEdges(face: Int, face_edges: List<FaceEdge>, tracker: InteriorTracker) {
+        val num_edges = face_edges.size
+        if (num_edges == 0 && tracker.shapeIds().isEmpty()) return
+
+        // Create the initial ClippedEdge for each FaceEdge.  Additional clipped
+        // edges are created when edges are split between child cells.  We create
+        // two arrays, one containing the edge data and another containing pointers
+        // to those edges, so that during the recursion we only need to copy
+        // pointers in order to propagate an edge to the correct child.
+        val clipped_edge_storage = mutableListOf<ClippedEdge>()
+        val clipped_edges = mutableListOf<ClippedEdge>()
+        val bound = MutableR2Rect()
+        for (e in 0 until num_edges) {
+            val clipped = ClippedEdge(
+                    faceEdge = face_edges[e],
+                    bound = R2Rect.fromPointPair(face_edges[e].a, face_edges[e].b)
+            )
+            //clipped.face_edge = &face_edges[e]
+            //clipped.bound = R2Rect::FromPointPair(face_edges[e].a, face_edges[e].b)
+            clipped_edge_storage.add(clipped)
+            clipped_edges.add(clipped_edge_storage.last())
+            bound.addRect(clipped.bound)
+        }
+        // Construct the initial face cell containing all the edges, and then update
+        // all the edges in the index recursively.
+        //EdgeAllocator alloc
+        val face_id = S2CellId.fromFace(face)
+        var pcell = S2PaddedCell(face_id, kCellPadding)
+
+        // "disjoint_from_index" means that the current cell being processed (and
+        // all its descendants) are not already present in the index.
+        val disjoint_from_index = is_first_update()
+
+        if (num_edges > 0) {
+            val shrunk_id = shrinkToFit(pcell, bound)
+            if (shrunk_id != pcell.id) {
+                // All the edges are contained by some descendant of the face cell.  We
+                // can save a lot of work by starting directly with that cell, but if we
+                // are in the interior of at least one shape then we need to create
+                // index entries for the cells we are skipping over.
+                skipCellRange(face_id.rangeMin(), shrunk_id.rangeMin(), tracker, disjoint_from_index)
+                pcell = S2PaddedCell(shrunk_id, kCellPadding)
+                updateEdges(pcell, clipped_edges, tracker, disjoint_from_index)
+                skipCellRange(shrunk_id.rangeMax().next(), face_id.rangeMax().next(), tracker, disjoint_from_index)
+                return
+            }
+        }
+        // Otherwise (no edges, or no shrinking is possible), subdivide normally.
+        updateEdges(pcell, clipped_edges, tracker, disjoint_from_index)
+    }
+
+
+    private fun shrinkToFit(pcell: S2PaddedCell, bound: R2Rect): S2CellId {
+        var shrunk_id = pcell.shrinkToFit(bound)
+        if (!is_first_update() && shrunk_id != pcell.id) {
+            // Don't shrink any smaller than the existing index cells, since we need
+            // to combine the new edges with those cells.
+            // Use InitStale() to avoid applying updated recursively.
+            val iter = iterator()
+            iter.initStale()
+            val r = iter.locate(shrunk_id)
+            if (r == CellRelation.INDEXED) {
+                shrunk_id = iter.id()
+            }
+        }
+        return shrunk_id
+    }
+
+    // Skip over the cells in the given range, creating index cells if we are
+    // currently in the interior of at least one shape.
+    private fun skipCellRange(begin: S2CellId, end: S2CellId, tracker: InteriorTracker/*, EdgeAllocator* alloc*/, disjoint_from_index: Boolean) {
+        // If we aren't in the interior of a shape, then skipping over cells is easy.
+        if (tracker.shapeIds().isEmpty()) return
+
+        // Otherwise generate the list of cell ids that we need to visit, and create
+        // an index entry for each one.
+        for (skipped_id in S2CellUnion.fromBeginEnd(begin, end)) {
+            updateEdges(S2PaddedCell(skipped_id, kCellPadding), mutableListOf(), tracker, disjoint_from_index)
+        }
+    }
+
+    // Given a cell and a set of ClippedEdges whose bounding boxes intersect that
+    // cell, add or remove all the edges from the index.  Temporary space for
+    // edges that need to be subdivided is allocated from the given EdgeAllocator.
+    // "disjoint_from_index" is an optimization hint indicating that cell_map_
+    // does not contain any entries that overlap the given cell.
+    fun updateEdges(pcell: S2PaddedCell, edges: MutableList<ClippedEdge>, tracker: InteriorTracker, disjoint_from_index: Boolean) {
+        var disjoint_from_index = disjoint_from_index
+        // Cases where an index cell is not needed should be detected before this.
+        Assertions.assert { (!edges.isEmpty() || !tracker.shapeIds().isEmpty()) }
+
+        // This function is recursive with a maximum recursion depth of 30
+        // (S2CellId::kMaxLevel).  Note that using an explicit stack does not seem
+        // to be any faster based on profiling.
+
+        // Incremental updates are handled as follows.  All edges being added or
+        // removed are combined together in "edges", and all shapes with interiors
+        // are tracked using "tracker".  We subdivide recursively as usual until we
+        // encounter an existing index cell.  At this point we "absorb" the index
+        // cell as follows:
+        //
+        //   - Edges and shapes that are being removed are deleted from "edges" and
+        //     "tracker".
+        //   - All remaining edges and shapes from the index cell are added to
+        //     "edges" and "tracker".
+        //   - Continue subdividing recursively, creating new index cells as needed.
+        //   - When the recursion gets back to the cell that was absorbed, we
+        //     restore "edges" and "tracker" to their previous state.
+        //
+        // Note that the only reason that we include removed shapes in the recursive
+        // subdivision process is so that we can find all of the index cells that
+        // contain those shapes efficiently, without maintaining an explicit list of
+        // index cells for each shape (which would be expensive in terms of memory).
+        var index_cell_absorbed = false
+        if (!disjoint_from_index) {
+            // There may be existing index cells contained inside "pcell".  If we
+            // encounter such a cell, we need to combine the edges being updated with
+            // the existing cell contents by "absorbing" the cell.
+            // Use InitStale() to avoid applying updated recursively.
+            val iter = iterator()
+            iter.initStale()
+            val r = iter.locate(pcell.id)
+            if (r == CellRelation.DISJOINT) {
+                disjoint_from_index = true
+            } else if (r == CellRelation.INDEXED) {
+                // Absorb the index cell by transferring its contents to "edges" and
+                // deleting it.  We also start tracking the interior of any new shapes.
+                absorbIndexCell(pcell, iter, edges, tracker)
+                index_cell_absorbed = true
+                disjoint_from_index = true
+            } else {
+                Assertions.assertEQ(CellRelation.SUBDIVIDED, r)
+            }
+        }
+
+        // If there are existing index cells below us, then we need to keep
+        // subdividing so that we can merge with those cells.  Otherwise,
+        // MakeIndexCell checks if the number of edges is small enough, and creates
+        // an index cell if possible (returning true when it does so).
+        if (!disjoint_from_index || !makeIndexCell(pcell, edges, tracker)) {
+            // Reserve space for the edges that will be passed to each child.  This is
+            // important since otherwise the running time is dominated by the time
+            // required to grow the vectors.  The amount of memory involved is
+            // relatively small, so we simply reserve the maximum space for every child.
+            val child_edges = Array(2) { Array(2) { mutableListOf<ClippedEdge>() } }  // [i][j]
+            val num_edges = edges.size
+            //for (i in 0..1) {
+            //    for (j in 0..1) {
+            //    child_edges[i][j].reserve(num_edges)
+            //}
+            //}
+
+            // Remember the current size of the EdgeAllocator so that we can free any
+            // edges that are allocated during edge splitting.
+            //size_t alloc_size = alloc->size()
+
+            // Compute the middle of the padded cell, defined as the rectangle in
+            // (u,v)-space that belongs to all four (padded) children.  By comparing
+            // against the four boundaries of "middle" we can determine which children
+            // each edge needs to be propagated to.
+            val middle = pcell.middle()
+
+            // Build up a vector edges to be passed to each child cell.  The (i,j)
+            // directions are left (i=0), right (i=1), lower (j=0), and upper (j=1).
+            // Note that the vast majority of edges are propagated to a single child.
+            // This case is very fast, consisting of between 2 and 4 floating-point
+            // comparisons and copying one pointer.  (ClipVAxis is inline.)
+            for (e in 0 until num_edges) {
+                val edge = edges[e]
+                when {
+                    edge.bound[0].hi <= middle[0].lo -> {
+                        // Edge is entirely contained in the two left children.
+                        clipVAxis(edge, middle[1], child_edges[0])
+                    }
+                    edge.bound[0].lo >= middle[0].hi -> {
+                        // Edge is entirely contained in the two right children.
+                        clipVAxis(edge, middle[1], child_edges[1])
+                    }
+                    edge.bound[1].hi <= middle[1].lo -> {
+                        // Edge is entirely contained in the two lower children.
+                        child_edges[0][0].add(clipUBound(edge, 1, middle[0].hi))
+                        child_edges[1][0].add(clipUBound(edge, 0, middle[0].lo))
+                    }
+                    edge.bound[1].lo >= middle[1].hi -> {
+                        // Edge is entirely contained in the two upper children.
+                        child_edges[0][1].add(clipUBound(edge, 1, middle[0].hi))
+                        child_edges[1][1].add(clipUBound(edge, 0, middle[0].lo))
+                    }
+                    else -> {
+                        // The edge bound spans all four children.  The edge itself intersects
+                        // either three or four (padded) children.
+                        val left = clipUBound(edge, 1, middle[0].hi)
+                        clipVAxis(left, middle[1], child_edges[0])
+                        val right = clipUBound(edge, 0, middle[0].lo)
+                        clipVAxis(right, middle[1], child_edges[1])
+                    }
+                }
+            }
+            // Free any memory reserved for children that turned out to be empty.  This
+            // step is cheap and reduces peak memory usage by about 10% when building
+            // large indexes (> 10M edges).
+            //for (int i = 0; i < 2; ++i) {
+            //    for (int j = 0; j < 2; ++j) {
+            //    if (child_edges[i][j].empty()) {
+            //        vector<const ClippedEdge*>().swap(child_edges[i][j])
+            //    }
+            //}
+            //}
+
+            // Now recursively update the edges in each child.  We call the children in
+            // increasing order of S2CellId so that when the index is first constructed,
+            // all insertions into cell_map_ are at the end (which is much faster).
+            for (pos in 0..3) {
+                val (i, j) = pcell.getChildIJ(pos)
+                if (!child_edges[i][j].isEmpty() || !tracker.shapeIds().isEmpty()) {
+                    updateEdges(S2PaddedCell(pcell, i, j), child_edges[i][j], tracker, disjoint_from_index)
+                }
+            }
+            // Free any temporary edges that were allocated during clipping.
+            //alloc->Reset(alloc_size)
+        }
+        if (index_cell_absorbed) {
+            // Restore the state for any edges being removed that we are tracking.
+            tracker.restoreStateBefore(pendingAdditionsBegin)
+        }
+    }
+
+    // Given an edge and an interval "middle" along the v-axis, clip the edge
+    // against the boundaries of "middle" and add the edge to the corresponding
+    // children.
+    /* static */
+    private fun clipVAxis(edge: ClippedEdge, middle: R1Interval, child_edges: Array<MutableList<ClippedEdge>>) {
+        if (edge.bound[1].hi <= middle.lo) {
+            // Edge is entirely contained in the lower child.
+            child_edges[0].add(edge)
+        } else if (edge.bound[1].lo >= middle.hi) {
+            // Edge is entirely contained in the upper child.
+            child_edges[1].add(edge)
+        } else {
+            // The edge bound spans both children.
+            child_edges[0].add(clipVBound(edge, 1, middle.hi))
+            child_edges[1].add(clipVBound(edge, 0, middle.lo))
+        }
+    }
+
+    // Given an edge, clip the given endpoint (lo=0, hi=1) of the u-axis so that
+    // it does not extend past the given value.
+    /* static */
+    private fun clipUBound(edge: ClippedEdge, u_end: Int, u: Double): ClippedEdge {
+        // First check whether the edge actually requires any clipping.  (Sometimes
+        // this method is called when clipping is not necessary, e.g. when one edge
+        // endpoint is in the overlap area between two padded child cells.)
+        if (u_end == 0) {
+            if (edge.bound[0].lo >= u) return edge
+        } else {
+            if (edge.bound[0].hi <= u) return edge
+        }
+        // We interpolate the new v-value from the endpoints of the original edge.
+        // This has two advantages: (1) we don't need to store the clipped endpoints
+        // at all, just their bounding box; and (2) it avoids the accumulation of
+        // roundoff errors due to repeated interpolations.  The result needs to be
+        // clamped to ensure that it is in the appropriate range.
+        val e = edge.faceEdge
+        val v = edge.bound[1].project(S2EdgeClipping.interpolateDouble(u, e.a[0], e.b[0], e.a[1], e.b[1]))
+
+        // Determine which endpoint of the v-axis bound to update.  If the edge
+        // slope is positive we update the same endpoint, otherwise we update the
+        // opposite endpoint.
+        val v_end = u_end xor (if ((e.a[0] > e.b[0]) != (e.a[1] > e.b[1])) 1 else 0)
+        return updateBound(edge, u_end, u, v_end, v)
+    }
+
+    // Given an edge, clip the given endpoint (lo=0, hi=1) of the v-axis so that
+    // it does not extend past the given value.
+    /* static */
+    private fun clipVBound(edge: ClippedEdge, v_end: Int, v: Double): ClippedEdge {
+        // See comments in ClipUBound.
+        if (v_end == 0) {
+            if (edge.bound[1].lo >= v) return edge
+        } else {
+            if (edge.bound[1].hi <= v) return edge
+        }
+        val e = edge.faceEdge
+        val u = edge.bound[0].project(S2EdgeClipping.interpolateDouble(v, e.a[1], e.b[1], e.a[0], e.b[0]))
+        val u_end = v_end xor (if ((e.a[0] > e.b[0]) != (e.a[1] > e.b[1])) 1 else 0)
+        return updateBound(edge, u_end, u, v_end, v)
+    }
+
+    // Given an edge and two bound endpoints that need to be updated, allocate and
+    // return a new edge with the updated bound.
+    /* static */
+    private fun updateBound(edge: ClippedEdge, u_end: Int, u: Double, v_end: Int, v: Double): ClippedEdge {
+        val bound = MutableR2Rect()
+        bound[0][u_end] = u
+        bound[1][v_end] = v
+        bound[0][1 - u_end] = bound[0][1 - u_end]
+        bound[1][1 - v_end] = bound[1][1 - v_end]
+        val clipped = ClippedEdge(faceEdge = edge.faceEdge, bound = bound)
+        Assertions.assert { !clipped.bound.isEmpty }
+        Assertions.assert { edge.bound.contains(clipped.bound) }
+        return clipped
+    }
+
+    // Absorb an index cell by transferring its contents to "edges" and/or
+    // "tracker", and then delete this cell from the index.  If "edges" includes
+    // any edges that are being removed, this method also updates their
+    // InteriorTracker state to correspond to the exit vertex of this cell, and
+    // saves the InteriorTracker state by calling SaveAndClearStateBefore().  It
+    // is the caller's responsibility to restore this state by calling
+    // RestoreStateBefore() when processing of this cell is finished.
+    fun absorbIndexCell(pcell: S2PaddedCell, iter: Iterator, edges: MutableList<ClippedEdge>, tracker: InteriorTracker) {
+        Assertions.assertEQ(pcell.id, iter.id())
+
+        // When we absorb a cell, we erase all the edges that are being removed.
+        // However when we are finished with this cell, we want to restore the state
+        // of those edges (since that is how we find all the index cells that need
+        // to be updated).  The edges themselves are restored automatically when
+        // UpdateEdges returns from its recursive call, but the InteriorTracker
+        // state needs to be restored explicitly.
+        //
+        // Here we first update the InteriorTracker state for removed edges to
+        // correspond to the exit vertex of this cell, and then save the
+        // InteriorTracker state.  This state will be restored by UpdateEdges when
+        // it is finished processing the contents of this cell.
+        if (tracker.isActive() && !edges.isEmpty() && is_shape_being_removed(edges[0].faceEdge.shapeId)) {
+            // We probably need to update the InteriorTracker.  ("Probably" because
+            // it's possible that all shapes being removed do not have interiors.)
+            if (!tracker.atCellId(pcell.id)) {
+                tracker.moveTo(pcell.getEntryVertex())
+            }
+            tracker.drawTo(pcell.getExitVertex())
+            tracker.setNextCellId(pcell.id.next())
+            for (edge in edges) {
+                val face_edge = edge.faceEdge
+                if (!is_shape_being_removed(face_edge.shapeId)) {
+                    break;  // All shapes being removed come first.
+                }
+                if (face_edge.hasInterior) {
+                    tracker.testEdge(face_edge.shapeId, face_edge.edge)
+                }
+            }
+        }
+        // Save the state of the edges being removed, so that it can be restored
+        // when we are finished processing this cell and its children.  We don't
+        // need to save the state of the edges being added because they aren't being
+        // removed from "edges" and will therefore be updated normally as we visit
+        // this cell and its children.
+        tracker.saveAndClearStateBefore(pendingAdditionsBegin)
+
+        // Create a FaceEdge for each edge in this cell that isn't being removed.
+        val face_edges = mutableListOf<FaceEdge>()
+        var tracker_moved = false
+        val cell = iter.cell() ?: S2ShapeIndexCell()
+        for (s in 0 until cell.numClipped()) {
+            val clipped = cell.clipped(s)
+            val shape_id = clipped.shapeId
+            val shape = shape(shape_id) ?: continue // This shape is being removed.
+            val num_edges = clipped.numEdges()
+
+            // If this shape has an interior, start tracking whether we are inside the
+            // shape.  UpdateEdges() wants to know whether the entry vertex of this
+            // cell is inside the shape, but we only know whether the center of the
+            // cell is inside the shape, so we need to test all the edges against the
+            // line segment from the cell center to the entry vertex.
+            val edge = FaceEdge(
+                    shapeId = shape.id,
+                    hasInterior = (shape.dimension == 2)
+            )
+            if (edge.hasInterior) {
+                tracker.addShape(shape_id, clipped.containsCenter)
+                // There might not be any edges in this entire cell (i.e., it might be
+                // in the interior of all shapes), so we delay updating the tracker
+                // until we see the first edge.
+                if (!tracker_moved && num_edges > 0) {
+                    tracker.moveTo(pcell.getCenter())
+                    tracker.drawTo(pcell.getEntryVertex())
+                    tracker.setNextCellId(pcell.id)
+                    tracker_moved = true
+                }
+            }
+            for (i in 0 until num_edges) {
+                val e = clipped.edge(i)
+                edge.edgeId = e
+                edge.edge = shape.edge(e)
+                edge.maxLevel = getEdgeMaxLevel(edge.edge)
+                if (edge.hasInterior) tracker.testEdge(shape_id, edge.edge)
+                val clippedToFace = S2EdgeClipping.clipToPaddedFace(edge.edge.v0, edge.edge.v1, pcell.id.face(), kCellPadding)
+                if (clippedToFace == null) {
+                    logger.error { "Invariant failure in MutableS2ShapeIndex" }
+                }
+                face_edges.add(edge)
+            }
+        }
+        // Now create a ClippedEdge for each FaceEdge, and put them in "new_edges".
+        val new_edges = mutableListOf<ClippedEdge>()
+        for (face_edge in face_edges) {
+            val clipped = ClippedEdge(
+                    faceEdge = face_edge,
+                    bound = S2EdgeClipping.getClippedEdgeBound(face_edge.a, face_edge.b, pcell.bound)
+            )
+            new_edges.add(clipped)
+        }
+        // Discard any edges from "edges" that are being removed, and append the
+        // remainder to "new_edges".  (This keeps the edges sorted by shape id.)
+        for (i in edges.indices) {
+            val clipped = edges[i]
+            if (!is_shape_being_removed(clipped.faceEdge.shapeId)) {
+                new_edges.addAll(edges.subList(i, edges.size))
+                break
+            }
+        }
+        // Update the edge list and delete this cell from the index.
+        edges.clear()
+        edges.addAll(new_edges)
+        cellMap.remove(pcell.id)
+        //delete &cell
+    }
+
+    // Attempt to build an index cell containing the given edges, and return true
+    // if successful.  (Otherwise the edges should be subdivided further.)
+    fun makeIndexCell(pcell: S2PaddedCell, edges: List<ClippedEdge>, tracker: InteriorTracker): Boolean {
+        if (edges.isEmpty() && tracker.shapeIds().isEmpty()) {
+            // No index cell is needed.  (In most cases this situation is detected
+            // before we get to this point, but this can happen when all shapes in a
+            // cell are removed.)
+            return true
+        }
+
+        // Count the number of edges that have not reached their maximum level yet.
+        // Return false if there are too many such edges.
+        var count = 0
+        for (edge in edges) {
+            count += if (pcell.level < edge.faceEdge.maxLevel) 1 else 0
+            if (count > options.maxEdgesPerCell)
+                return false
+        }
+
+        // Possible optimization: Continue subdividing as long as exactly one child
+        // of "pcell" intersects the given edges.  This can be done by finding the
+        // bounding box of all the edges and calling ShrinkToFit():
+        //
+        // S2CellId cellid = pcell.ShrinkToFit(GetRectBound(edges))
+        //
+        // Currently this is not beneficial; it slows down construction by 4-25%
+        // (mainly computing the union of the bounding rectangles) and also slows
+        // down queries (since more recursive clipping is required to get down to
+        // the level of a spatial index cell).  But it may be worth trying again
+        // once "contains_center" is computed and all algorithms are modified to
+        // take advantage of it.
+
+        // We update the InteriorTracker as follows.  For every S2Cell in the index
+        // we construct two edges: one edge from entry vertex of the cell to its
+        // center, and one from the cell center to its exit vertex.  Here "entry"
+        // and "exit" refer the S2CellId ordering, i.e. the order in which points
+        // are encountered along the S2 space-filling curve.  The exit vertex then
+        // becomes the entry vertex for the next cell in the index, unless there are
+        // one or more empty intervening cells, in which case the InteriorTracker
+        // state is unchanged because the intervening cells have no edges.
+
+        // Shift the InteriorTracker focus point to the center of the current cell.
+        if (tracker.isActive() && !edges.isEmpty()) {
+            if (!tracker.atCellId(pcell.id)) {
+                tracker.moveTo(pcell.getEntryVertex())
+            }
+            tracker.drawTo(pcell.getCenter())
+            testAllEdges(edges, tracker)
+        }
+        // Allocate and fill a new index cell.  To get the total number of shapes we
+        // need to merge the shapes associated with the intersecting edges together
+        // with the shapes that happen to contain the cell center.
+        val cshape_ids = tracker.shapeIds()
+        val num_shapes = countShapes(edges, cshape_ids)
+        val cell = S2ShapeIndexCell()
+        //val base = cell.add_shapes(num_shapes)
+
+        // To fill the index cell we merge the two sources of shapes: "edge shapes"
+        // (those that have at least one edge that intersects this cell), and
+        // "containing shapes" (those that contain the cell center).  We keep track
+        // of the index of the next intersecting edge and the next containing shape
+        // as we go along.  Both sets of shape ids are already sorted.
+        var enext = 0
+        val cIterator = cshape_ids.iterator()
+        var cnext = if (cIterator.hasNext()) cIterator.next() else cshape_ids.size + 1
+        for (i in 0 until num_shapes) {
+            //S2ClippedShape* clipped = base + i
+            var eshape_id = numShapeIds()
+            var cshape_id = eshape_id;  // Sentinels
+            if (enext != edges.size) {
+                eshape_id = edges[enext].faceEdge.shapeId
+            }
+            if (cnext <= eshape_id) {
+                cshape_id = cnext
+            }
+            val ebegin = enext
+            if (cshape_id < eshape_id) {
+                // The entire cell is in the shape interior.
+                cell.addClipped(S2ClippedShape(cshape_id, emptyList(), true))
+                cnext = if (cIterator.hasNext()) cIterator.next() else cshape_ids.size + 1
+                ++cnext
+            } else {
+                // Count the number of edges for this shape and allocate space for them.
+                while (enext < edges.size && edges[enext].faceEdge.shapeId == eshape_id) {
+                    ++enext
+                }
+                val clippedShapeEdges = mutableListOf<Int>()
+                for (e in ebegin until enext) {
+                    clippedShapeEdges.add(edges[e].faceEdge.edgeId)
+                }
+                var containsCenter = false
+                if (cshape_id == eshape_id) {
+                    containsCenter = true
+                    cnext = if (cIterator.hasNext()) cIterator.next() else cshape_ids.size + 1
+                }
+                cell.addClipped(S2ClippedShape(cshape_id, clippedShapeEdges, containsCenter))
+            }
+        }
+        // UpdateEdges() visits cells in increasing order of S2CellId, so during
+        // initial construction of the index all insertions happen at the end.  It
+        // is much faster to give an insertion hint in this case.  Otherwise the
+        // hint doesn't do much harm.  With more effort we could provide a hint even
+        // during incremental updates, but this is probably not worth the effort.
+        cellMap[pcell.id] = cell
+
+        // Shift the InteriorTracker focus point to the exit vertex of this cell.
+        if (tracker.isActive() && !edges.isEmpty()) {
+            tracker.drawTo(pcell.getExitVertex())
+            testAllEdges(edges, tracker)
+            tracker.setNextCellId(pcell.id.next())
+        }
+        return true
+    }
+
+    // Call tracker->TestEdge() on all edges from shapes that have interiors.
+/* static */
+    fun testAllEdges(edges: List<ClippedEdge>, tracker: InteriorTracker) {
+        for (edge in edges) {
+            val face_edge = edge.faceEdge
+            if (face_edge.hasInterior) {
+                tracker.testEdge(face_edge.shapeId, face_edge.edge)
+            }
+        }
+    }
+
+    // Return the number of distinct shapes that are either associated with the
+// given edges, or that are currently stored in the InteriorTracker.
+/* static */
+    fun countShapes(edges: List<ClippedEdge>, cshape_ids: List<Int>): Int {
+        var count = 0
+        var last_shape_id = -1
+        val cIterator = cshape_ids.iterator()
+        var cnext = if (cIterator.hasNext()) cIterator.next() else cshape_ids.size + 1
+        //ShapeIdSet::const_iterator cnext = cshape_ids.begin();  // Next shape
+        for (edge in edges) {
+            if (edge.faceEdge.shapeId != last_shape_id) {
+                ++count
+                last_shape_id = edge.faceEdge.shapeId
+                // Skip over any containing shapes up to and including this one,
+                // updating "count" appropriately.
+
+                while (cnext <= cshape_ids.size) {
+                    if (cnext > last_shape_id) break
+                    if (cnext < last_shape_id) ++count
+                    cnext = if (cIterator.hasNext()) cIterator.next() else cshape_ids.size + 1
+                }
+            }
+        }
+        // Count any remaining containing shapes.
+        count += (cshape_ids.size + 1 - cnext)
+        return count
+    }
+
 
 /*
     protected:
-    std::unique_ptr<IteratorBase> NewIterator(InitialPosition pos) const override;
-
-    private:
-    friend class EncodedS2ShapeIndex;
-    friend class Iterator;
-    friend class MutableS2ShapeIndexTest;
-    friend class S2Stats;
-
-    struct BatchDescriptor;
-    struct ClippedEdge;
-    class EdgeAllocator;
-    struct FaceEdge;
-    class InteriorTracker;
-    struct RemovedShape;
-
+    std::unique_ptr<IteratorBase> NewIterator(InitialPosition pos) const override
 
     // Internal methods are documented with their definitions.
-    void RemoveShape(const RemovedShape& removed,std::vector<FaceEdge> all_edges[6],InteriorTracker* tracker) const;
-    void AddFaceEdge(FaceEdge* edge, std::vector<FaceEdge> all_edges[6]) const;
-    void UpdateFaceEdges(int face, const std::vector<FaceEdge>& face_edges,InteriorTracker* tracker);
-    S2CellId ShrinkToFit(const S2PaddedCell& pcell, const R2Rect& bound) const;
-    void SkipCellRange(S2CellId begin, S2CellId end, InteriorTracker* tracker,EdgeAllocator* alloc, bool disjoint_from_index);
-    void UpdateEdges(const S2PaddedCell& pcell,std::vector<const ClippedEdge*>* edges,InteriorTracker* tracker, EdgeAllocator* alloc,bool disjoint_from_index);
-    void AbsorbIndexCell(const S2PaddedCell& pcell,const Iterator& iter,std::vector<const ClippedEdge*>* edges,InteriorTracker* tracker,EdgeAllocator* alloc);
-    int GetEdgeMaxLevel(const S2Shape::Edge& edge) const;
-    static int CountShapes(const std::vector<const ClippedEdge*>& edges,const ShapeIdSet& cshape_ids);
-    bool MakeIndexCell(const S2PaddedCell& pcell,const std::vector<const ClippedEdge*>& edges,InteriorTracker* tracker);
-    static void TestAllEdges(const std::vector<const ClippedEdge*>& edges,InteriorTracker* tracker);
-    inline static const ClippedEdge* UpdateBound(const ClippedEdge* edge,int u_end, double u,int v_end, double v,EdgeAllocator* alloc);
-    static const ClippedEdge* ClipUBound(const ClippedEdge* edge,int u_end, double u,EdgeAllocator* alloc);
-    static const ClippedEdge* ClipVBound(const ClippedEdge* edge,int v_end, double v,EdgeAllocator* alloc);
-    static void ClipVAxis(const ClippedEdge* edge, const R1Interval& middle, std::vector<const ClippedEdge*> child_edges[2], EdgeAllocator* alloc);
+    static int CountShapes(const std::vector<const ClippedEdge*>& edges,const ShapeIdSet& cshape_ids)
+    bool MakeIndexCell(const S2PaddedCell& pcell,const std::vector<const ClippedEdge*>& edges,InteriorTracker* tracker)
+    static void TestAllEdges(const std::vector<const ClippedEdge*>& edges,InteriorTracker* tracker)
 */
-    // Documented in the .cc file.
-    fun unlockAndSignal(): Unit = TODO()
-/*
-    UNLOCK_FUNCTION(lock_)
-    UNLOCK_FUNCTION(update_state_->wait_mutex);
-*/
+
+
+    // Releases lock_ and wakes up any waiting threads by releasing wait_mutex.
+// If this was the last waiting thread, also deletes update_state_.
+// REQUIRES: lock_ is held.
+// REQUIRES: wait_mutex is held.
+    fun unlockAndSignal() {
+        Assertions.assertEQ(IndexStatus.FRESH, indexStatus)
+        //val num_waiting = updateState.numWaiting
+        lock.unlock()
+        // Allow another waiting thread to proceed.  Note that no new threads can
+        // start waiting because the index_status_ is now FRESH, and the caller is
+        // required to prevent any new mutations from occurring while these const
+        // methods are running.
+        //
+        // We need to unlock wait_mutex before destroying it even if there are no
+        // waiting threads.
+        updateState.waitMutex.unlock()
+        //if (num_waiting == 0) {
+        //updateState.reset()
+        //}
+    }
+
+    /*
+        UNLOCK_FUNCTION(lock_)
+        UNLOCK_FUNCTION(update_state_->wait_mutex)
+    */
     companion object {
 
         private val logger = KotlinLogging.logger(MutableS2ShapeIndex::class.java.name)
 
-    // FLAGS_s2shape_index_cell_size_to_long_edge_ratio
-    //
-    // The cell size relative to the length of an edge at which it is first
-    // considered to be "long".  Long edges do not contribute toward the decision
-    // to subdivide a cell further.  For example, a value of 2.0 means that the
-    // cell must be at least twice the size of the edge in order for that edge to
-    // be counted.  There are two reasons for not counting long edges: (1) such
-    // edges typically need to be propagated to several children, which increases
-    // time and memory costs without much benefit, and (2) in pathological cases,
-    // many long edges close together could force subdivision to continue all the
-    // way to the leaf cell level.
-    var s2shape_index_cell_size_to_long_edge_ratio = 1.0
+        // FLAGS_s2shape_index_cell_size_to_long_edge_ratio
+        //
+        // The cell size relative to the length of an edge at which it is first
+        // considered to be "long".  Long edges do not contribute toward the decision
+        // to subdivide a cell further.  For example, a value of 2.0 means that the
+        // cell must be at least twice the size of the edge in order for that edge to
+        // be counted.  There are two reasons for not counting long edges: (1) such
+        // edges typically need to be propagated to several children, which increases
+        // time and memory costs without much benefit, and (2) in pathological cases,
+        // many long edges close together could force subdivision to continue all the
+        // way to the leaf cell level.
+        var s2shape_index_cell_size_to_long_edge_ratio = 1.0
 
         // The amount by which cells are "padded" to compensate for numerical errors
         // when clipping line segments to cell boundaries.
@@ -748,7 +1353,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // (the start of the S2CellId space-filling curve).
         //
         // TODO(ericv): Move InteriorTracker here to avoid the need for this method.
-        fun kInteriorTrackerOrigin() = S2Coords.faceUVtoXYZ(0, -1.0, -1.0).normalize();
+        fun kInteriorTrackerOrigin() = S2Coords.faceUVtoXYZ(0, -1.0, -1.0).normalize()
 
         // TODO(fmeurisse) check memory estimation with kotlin objects.
         // The following memory estimates are based on heap profiling.
@@ -767,12 +1372,12 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // subdivision.  For very large indexes this can be 200 bytes per edge.
         val kFinalBytesPerEdge = 8
         val kTmpBytesPerEdge = 200
-        val kTmpMemoryBudgetBytes = 100 shl 20// static_cast<size_t>(FLAGS_s2shape_index_tmp_memory_budget_mb) << 20;
+        val kTmpMemoryBudgetBytes = 100 shl 20// static_cast<size_t>(FLAGS_s2shape_index_tmp_memory_budget_mb) << 20
 
         // We arbitrarily limit the number of batches just as a safety measure.
         // With the current default memory budget of 100 MB, this limit is not
         // reached even when building an index of 350 million edges.
-        val kMaxUpdateBatches = 100;
+        val kMaxUpdateBatches = 100
 
     }
 }

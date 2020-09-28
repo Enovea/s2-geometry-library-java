@@ -23,6 +23,8 @@ import dilivia.s2.math.R2Point
 @Strictfp
 class MutableR2Rect(x: MutableR1Interval, y: MutableR1Interval) : R2Rect(x, y) {
 
+    constructor(): this(MutableR1Interval.empty(), MutableR1Interval.empty())
+
     override operator fun get(idx: Int): MutableR1Interval {
         require(idx in 0..1)
         return if (idx == 0) x as MutableR1Interval else y as MutableR1Interval
@@ -49,8 +51,8 @@ class MutableR2Rect(x: MutableR1Interval, y: MutableR1Interval) : R2Rect(x, y) {
     // same as replacing the rectangle by the union of the two rectangles, but
     // is somewhat more efficient.
     override fun addRect(other: R2Rect): MutableR2Rect {
-        x.addInterval(other.x)
-        y.addInterval(other.y)
+        (x as MutableR1Interval).addInterval(other.x)
+        (y as MutableR1Interval).addInterval(other.y)
         return this
     }
 

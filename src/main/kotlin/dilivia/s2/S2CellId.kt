@@ -152,7 +152,6 @@ class S2CellId(val id: ULong) : Comparable<S2CellId> {
      * @return The ST cell bound.
      */
     fun getBoundUV(): R2Rect {
-        println("Cell $this => GetBoundUV")
         val (_, i, j) = toFaceIJOrientation(false)
         return ijLevelToBoundUV(i, j, level())
     }

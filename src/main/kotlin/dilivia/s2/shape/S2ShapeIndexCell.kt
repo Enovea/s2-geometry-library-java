@@ -40,4 +40,8 @@ class S2ShapeIndexCell() {
         return n
     }
 
+    fun addClipped(shape: S2ClippedShape) {
+        shapes.add(shape)
+    }
+
 }

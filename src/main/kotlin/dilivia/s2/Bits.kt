@@ -51,6 +51,8 @@ object Bits {
         }
     }
 
+    fun findMSBSetNonZero(n: UInt): Int { return log2FloorNonZero(n); }
+
     fun findMSBSetNonZero64(n: ULong): Int { return log2FloorNonZero64(n); }
 
     // Log2FloorNonZero64() is defined in terms of Log2FloorNonZero32()
