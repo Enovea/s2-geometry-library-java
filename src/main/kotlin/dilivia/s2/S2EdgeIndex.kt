@@ -31,6 +31,7 @@ import dilivia.s2.S2Point.Companion.minus
 import dilivia.s2.S2Point.Companion.normalize
 import dilivia.s2.S2Point.Companion.plus
 import dilivia.s2.S2Point.Companion.times
+import dilivia.s2.region.S2Cell
 import java.util.*
 
 @Strictfp

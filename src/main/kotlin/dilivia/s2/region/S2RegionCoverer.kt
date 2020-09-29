@@ -16,15 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
+import dilivia.s2.*
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.Assertions.assertLE
 import dilivia.s2.Assertions.assertNE
 import mu.KotlinLogging
 import java.util.*
-import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.min
 

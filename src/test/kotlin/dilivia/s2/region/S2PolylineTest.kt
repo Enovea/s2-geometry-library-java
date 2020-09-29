@@ -1,6 +1,7 @@
-package dilivia.s2
+package dilivia.s2.region
 
 import com.google.common.geometry.S2.M_PI
+import dilivia.s2.*
 import mu.KotlinLogging
 import kotlin.math.*
 
@@ -130,8 +131,8 @@ class S2PolylineTest : S2GeometryTestCase() {
 
     fun testProject() {
         val latlngs = listOf(
-            S2LatLng.fromDegrees(0, 0), S2LatLng.fromDegrees(0, 1),
-            S2LatLng.fromDegrees(0, 2), S2LatLng.fromDegrees(1, 2)
+                S2LatLng.fromDegrees(0, 0), S2LatLng.fromDegrees(0, 1),
+                S2LatLng.fromDegrees(0, 2), S2LatLng.fromDegrees(1, 2)
         )
         val line = S2Polyline.fromLatLng(latlngs)
 
@@ -155,8 +156,8 @@ class S2PolylineTest : S2GeometryTestCase() {
 
     fun testIsOnRight() {
         var latlngs = listOf(
-            S2LatLng.fromDegrees(0, 0), S2LatLng.fromDegrees(0, 1),
-            S2LatLng.fromDegrees(0, 2), S2LatLng.fromDegrees(1, 2)
+                S2LatLng.fromDegrees(0, 0), S2LatLng.fromDegrees(0, 1),
+                S2LatLng.fromDegrees(0, 2), S2LatLng.fromDegrees(1, 2)
         )
         val line = S2Polyline.fromLatLng(latlngs)
 
@@ -169,8 +170,8 @@ class S2PolylineTest : S2GeometryTestCase() {
 
         // Explicitly test the case where the closest point is an interior vertex.
         latlngs = listOf(
-            S2LatLng.fromDegrees(0, 0), S2LatLng.fromDegrees(0, 1),
-            S2LatLng.fromDegrees(-1, 0)
+                S2LatLng.fromDegrees(0, 0), S2LatLng.fromDegrees(0, 1),
+                S2LatLng.fromDegrees(-1, 0)
         )
         val line2 = S2Polyline.fromLatLng(latlngs)
 

@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
 import dilivia.s2.*
 import dilivia.s2.Assertions.assert
@@ -109,7 +109,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
     //
     // Returns true if the number of cells was reduced.
     // TODO(ericv): Change this method to return void.
-    fun normalize(): Boolean = Companion.normalize(cellIds)
+    fun normalize(): Boolean = normalize(cellIds)
 
     // Replaces "output" with an expanded version of the cell union where any
     // cells whose level is less than "min_level" or where (level - min_level)

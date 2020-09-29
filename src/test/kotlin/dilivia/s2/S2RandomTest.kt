@@ -18,6 +18,7 @@
  */
 package dilivia.s2
 
+import dilivia.s2.region.S2Cap
 import junit.framework.TestCase
 
 class S2RandomTest: TestCase() {

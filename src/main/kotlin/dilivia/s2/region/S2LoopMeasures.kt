@@ -1,8 +1,9 @@
-package dilivia.s2
+package dilivia.s2.region
 
 import com.google.common.geometry.S2.DBL_EPSILON
 import com.google.common.geometry.S2.M_PI
-import dilivia.s2.S2Loop.S2PointLoopSpan
+import dilivia.s2.*
+import dilivia.s2.region.S2Loop.S2PointLoopSpan
 import mu.KotlinLogging
 import kotlin.math.IEEErem
 import kotlin.math.abs
@@ -39,7 +40,7 @@ object S2LoopMeasures {
   // while nearly-degenerate counter-clockwise loops have areas close to 4*Pi.
   fun getArea(loop: S2PointLoopSpan): Double {
     var area = getSignedArea(loop)
-    Assertions.assertLE(abs(area), 2 * M_PI)
+      Assertions.assertLE(abs(area), 2 * M_PI)
     if (area < 0.0) area += 4 * M_PI;
     return area;
   }
@@ -139,7 +140,7 @@ object S2LoopMeasures {
     // Normalize it to be in the range [-2*Pi, 2*Pi].
     var area = getSurfaceIntegral(loop, SummableDouble(0.0)) { a: S2Point, b: S2Point, c: S2Point -> SummableDouble(S2Measures.signedArea(a,b,c)) }
     val max_error = getCurvatureMaxError(loop);
-    Assertions.assertLE(abs(area), 4 * M_PI + max_error)
+      Assertions.assertLE(abs(area), 4 * M_PI + max_error)
     area = area.IEEErem(4 * M_PI)
 
     // If the area is a small negative or positive number, verify that the sign
@@ -147,7 +148,7 @@ object S2LoopMeasures {
     if (abs(area) <= max_error) {
       val curvature = getCurvature(loop)
       // Zero-area loops should have a curvature of approximately +/- 2*Pi.
-      Assertions.assert { !(area == 0.0 && curvature == 0.0) }
+        Assertions.assert { !(area == 0.0 && curvature == 0.0) }
       if (curvature == 2 * M_PI) return 0.0;  // Degenerate
       if (area <= 0 && curvature > 0) {
         return Double.MIN_VALUE
@@ -339,7 +340,7 @@ object S2LoopMeasures {
     var i2 = order2.first
     val dir1 = order1.dir
     val dir2 = order2.dir
-    Assertions.assertEQ(loop[i1], loop[i2])
+      Assertions.assertEQ(loop[i1], loop[i2])
     var n = loop.size
     while (--n > 0) {
       i1 += dir1;
@@ -467,8 +468,8 @@ object S2LoopMeasures {
       //  2. Either O == V_0, or O is approximately perpendicular to V_0.
       //  3. "sum" is the oriented integral of f over the area defined by
       //     (O, V_0, V_1, ..., V_i).
-      Assertions.assert { i == 1 || origin.angle(loop[i]) < kMaxLength }
-      Assertions.assert { origin == loop[0] || abs(origin.dotProd(loop[0])) < 1e-15 }
+        Assertions.assert { i == 1 || origin.angle(loop[i]) < kMaxLength }
+        Assertions.assert { origin == loop[0] || abs(origin.dotProd(loop[0])) < 1e-15 }
 
       if (loop[i + 1].angle(origin) > kMaxLength) {
         // We are about to create an unstable edge, so choose a new origin O'

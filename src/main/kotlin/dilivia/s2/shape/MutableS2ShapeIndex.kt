@@ -2,6 +2,7 @@ package dilivia.s2.shape
 
 import dilivia.s2.*
 import dilivia.s2.math.R2Point
+import dilivia.s2.region.S2CellUnion
 import mu.KotlinLogging
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference

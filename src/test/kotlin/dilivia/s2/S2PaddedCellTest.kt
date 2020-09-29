@@ -1,6 +1,7 @@
 package dilivia.s2
 
 import dilivia.s2.math.R2Point
+import dilivia.s2.region.S2Cell
 import mu.KotlinLogging
 import kotlin.math.pow
 

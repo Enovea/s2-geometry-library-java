@@ -24,8 +24,11 @@ import com.google.common.collect.Lists
 import com.google.common.geometry.S2Loop
 import com.google.common.geometry.S2Polygon
 import dilivia.s2.S1Angle.Companion.radians
-import dilivia.s2.S2CellId.Companion.fromFacePosLevel
 import dilivia.s2.S2LatLng.Companion.fromDegrees
+import dilivia.s2.region.S2Cell
+import dilivia.s2.region.S2CellUnion
+import dilivia.s2.region.S2Polyline
+import dilivia.s2.region.S2Region
 import junit.framework.TestCase
 
 @Strictfp

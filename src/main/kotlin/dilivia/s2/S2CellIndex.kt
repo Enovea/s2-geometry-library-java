@@ -1,5 +1,7 @@
 package dilivia.s2
 
+import dilivia.s2.region.S2CellUnion
+
 // S2CellIndex stores a collection of (cell_id, label) pairs.  The S2CellIds
 // may be overlapping or contain duplicate values.  For example, an
 // S2CellIndex could store a collection of S2CellUnions, where each

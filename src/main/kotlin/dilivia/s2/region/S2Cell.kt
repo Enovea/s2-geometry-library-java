@@ -16,14 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
-import com.google.common.geometry.S2
 import com.google.common.geometry.S2.*
+import dilivia.s2.*
 import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.S2Coords.kPosToIJ
 import dilivia.s2.S2Coords.kPosToOrientation
-import dilivia.s2.math.R2Vector
 import kotlin.math.asin
 import kotlin.math.min
 import kotlin.math.sqrt

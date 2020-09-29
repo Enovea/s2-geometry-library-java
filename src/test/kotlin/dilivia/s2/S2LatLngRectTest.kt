@@ -23,6 +23,8 @@ import dilivia.s2.S1Angle.Companion.min
 import dilivia.s2.S1Angle.Companion.zero
 import dilivia.s2.S2Random.randomPoint
 import dilivia.s2.math.R2Vector
+import dilivia.s2.region.S2Cap
+import dilivia.s2.region.S2Cell
 import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random

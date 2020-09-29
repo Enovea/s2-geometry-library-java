@@ -19,6 +19,7 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.M_PI
+import dilivia.s2.region.S2Cap
 import kotlin.math.*
 import kotlin.random.Random
 import kotlin.random.nextUInt

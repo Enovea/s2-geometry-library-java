@@ -37,6 +37,7 @@ import dilivia.s2.S2Random.randomDouble
 import dilivia.s2.S2Random.randomPoint
 import dilivia.s2.S2Random.randomULong
 import dilivia.s2.S2Random.skewed
+import dilivia.s2.region.S2Cell
 import java.util.logging.Logger
 import kotlin.math.*
 

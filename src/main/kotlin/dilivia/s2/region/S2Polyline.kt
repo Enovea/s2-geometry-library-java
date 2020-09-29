@@ -1,6 +1,7 @@
-package dilivia.s2
+package dilivia.s2.region
 
 import com.google.common.geometry.S2.M_PI
+import dilivia.s2.*
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLE

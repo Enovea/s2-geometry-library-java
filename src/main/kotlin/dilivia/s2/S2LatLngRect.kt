@@ -18,13 +18,14 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
 import com.google.common.geometry.S2.M_PI
 import com.google.common.geometry.S2.M_PI_2
-import com.google.common.geometry.S2EdgeUtil
 import dilivia.s2.Assertions.assertLatLngIsValid
 import dilivia.s2.Assertions.assertLatLngRectIsValid
 import dilivia.s2.Assertions.assertPointIsUnitLength
+import dilivia.s2.region.S2Cap
+import dilivia.s2.region.S2Cell
+import dilivia.s2.region.S2Region
 import kotlin.math.*
 
 /**

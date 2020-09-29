@@ -1,8 +1,9 @@
-package dilivia.s2
+package dilivia.s2.region
 
 import Matrix3x3
 import com.google.common.geometry.S2.M_PI
 import com.google.common.geometry.S2.M_PI_2
+import dilivia.s2.*
 import dilivia.s2.shape.MutableS2ShapeIndex
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.S2ShapeUtil

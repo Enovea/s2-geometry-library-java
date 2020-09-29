@@ -16,9 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
 import com.google.common.geometry.S2.M_PI
+import dilivia.s2.*
 import mu.KotlinLogging
 import java.util.*
 import kotlin.math.max

@@ -23,6 +23,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.TreeMultimap;
 import dilivia.s2.*;
+import dilivia.s2.region.S2Cap;
+import dilivia.s2.region.S2Cell;
+import dilivia.s2.region.S2Region;
 
 import java.util.Collections;
 import java.util.Iterator;

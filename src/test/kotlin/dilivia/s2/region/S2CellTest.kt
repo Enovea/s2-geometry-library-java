@@ -16,10 +16,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
 import com.google.common.geometry.S2.*
 import com.google.common.geometry.S2Loop
+import dilivia.s2.*
 import dilivia.s2.S2Coords.kMaxCellLevel
 import dilivia.s2.S2Coords.kSwapMask
 import dilivia.s2.S2Random.oneIn

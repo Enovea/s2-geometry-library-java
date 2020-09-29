@@ -18,6 +18,8 @@ package com.google.common.geometry;
 
 import com.google.common.collect.Lists;
 import dilivia.s2.*;
+import dilivia.s2.region.S2Cap;
+import dilivia.s2.region.S2Polyline;
 
 import java.util.List;
 import java.util.logging.Logger;
