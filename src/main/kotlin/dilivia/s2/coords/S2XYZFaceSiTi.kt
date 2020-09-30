@@ -1,4 +1,6 @@
-package dilivia.s2
+package dilivia.s2.coords
+
+import dilivia.s2.S2Point
 
 
 // The XYZ and face,si,ti coordinates of an S2Point and, if this point is equal

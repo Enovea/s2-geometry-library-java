@@ -1,16 +1,16 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.DBL_EPSILON
-import dilivia.s2.S2Coords.faceSiTitoXYZ
-import dilivia.s2.S2Coords.kIJtoPos
-import dilivia.s2.S2Coords.kInvertMask
-import dilivia.s2.S2Coords.kPosToIJ
-import dilivia.s2.S2Coords.kPosToOrientation
-import dilivia.s2.S2Coords.kSwapMask
-import dilivia.s2.S2Coords.siTiToSt
-import dilivia.s2.S2Coords.stToIJ
-import dilivia.s2.S2Coords.stToUv
-import dilivia.s2.S2Coords.uvToSt
+import dilivia.s2.coords.S2Coords.faceSiTitoXYZ
+import dilivia.s2.coords.S2Coords.kIJtoPos
+import dilivia.s2.coords.S2Coords.kInvertMask
+import dilivia.s2.coords.S2Coords.kPosToIJ
+import dilivia.s2.coords.S2Coords.kPosToOrientation
+import dilivia.s2.coords.S2Coords.kSwapMask
+import dilivia.s2.coords.S2Coords.siTiToSt
+import dilivia.s2.coords.S2Coords.stToIJ
+import dilivia.s2.coords.S2Coords.stToUv
+import dilivia.s2.coords.S2Coords.uvToSt
 import mu.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min

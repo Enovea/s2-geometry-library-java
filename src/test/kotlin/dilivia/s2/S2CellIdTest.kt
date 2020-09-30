@@ -20,12 +20,13 @@ package dilivia.s2
 
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLT
-import dilivia.s2.S2Coords.kPosToOrientation
+import dilivia.s2.coords.S2Coords.kPosToOrientation
 import dilivia.s2.S2Random.oneIn
 import dilivia.s2.S2Random.randomCellId
 import dilivia.s2.S2Random.randomDouble
 import dilivia.s2.S2Random.randomInt
 import dilivia.s2.S2Random.randomPoint
+import dilivia.s2.coords.S2Coords
 import dilivia.s2.math.R2Point
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell

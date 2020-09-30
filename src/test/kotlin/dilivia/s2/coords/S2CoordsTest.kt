@@ -16,12 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.coords
 
-import dilivia.s2.S2Coords.kIJtoPos
-import dilivia.s2.S2Coords.kInvertMask
-import dilivia.s2.S2Coords.kPosToIJ
-import dilivia.s2.S2Coords.kSwapMask
+import dilivia.s2.S2CellId
+import dilivia.s2.S2GeometryTestCase
+import dilivia.s2.S2Point
+import dilivia.s2.coords.S2Coords.kIJtoPos
+import dilivia.s2.coords.S2Coords.kInvertMask
+import dilivia.s2.coords.S2Coords.kPosToIJ
+import dilivia.s2.coords.S2Coords.kSwapMask
 import dilivia.s2.S2Random.randomCellId
 import dilivia.s2.S2Random.randomInt
 import kotlin.math.abs

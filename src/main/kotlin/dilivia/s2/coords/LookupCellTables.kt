@@ -16,11 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.coords
 
-import com.google.common.base.Preconditions
-import com.google.common.geometry.S2
-import dilivia.s2.S2Coords.kPosToIJ
+import dilivia.s2.coords.S2Coords.kPosToIJ
 
 /**
  * The following lookup tables are used to convert efficiently between an

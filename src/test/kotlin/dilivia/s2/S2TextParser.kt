@@ -1,5 +1,8 @@
 package dilivia.s2
 
+import dilivia.s2.region.S2Loop
+import dilivia.s2.shape.S2LaxPolylineShape
+
 object S2TextParser {
 
     // Parses a string of one or more latitude-longitude coordinates in degrees,
@@ -48,6 +51,31 @@ object S2TextParser {
             vertices.add(latlng.toPoint())
         }
         return true
+    }
+
+    fun makePoint(str: String): S2Point {
+        val vertices = mutableListOf<S2Point>()
+        check (!parsePoints(str, vertices) || vertices.size != 1) { ": str == \"$str\"" }
+        return vertices[0];
+    }
+
+    fun makeLoop(str: String, check: Boolean = true): S2Loop {
+        return when (str) {
+            "empty" -> S2Loop(S2Loop.kEmpty)
+            "full" -> S2Loop(S2Loop.kFull)
+            else -> {
+                val vertices = mutableListOf<S2Point>()
+                check (!parsePoints(str, vertices)) { ": str == \"$str\"" }
+                S2Loop(vertices, check = check);
+            }
+        }
+    }
+
+    // Like MakePolyline, but returns an S2LaxPolylineShape instead.
+    fun makeLaxPolyline(str: String): S2LaxPolylineShape {
+        val vertices = mutableListOf<S2Point>()
+        check (parsePoints(str, vertices))  { ": str == \"$str\"" }
+        return S2LaxPolylineShape(vertices)
     }
 
 }

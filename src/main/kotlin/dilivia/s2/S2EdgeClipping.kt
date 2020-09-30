@@ -1,6 +1,7 @@
 package dilivia.s2
 
 import com.google.common.geometry.S2.*
+import dilivia.s2.coords.S2Coords
 import dilivia.s2.math.R2Point
 import dilivia.s2.math.R3Vector
 import dilivia.s2.math.ldexp

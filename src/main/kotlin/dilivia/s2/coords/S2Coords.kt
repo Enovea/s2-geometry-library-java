@@ -16,9 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.coords
 
 import com.google.common.geometry.S2.*
+import dilivia.s2.*
 import dilivia.s2.math.R2Point
 import kotlin.math.*
 
@@ -117,7 +118,7 @@ object S2LinearProjection : S2Projection {
     override fun stToUV(s: Double): Double = 2 * s - 1
     override fun uvToST(u: Double): Double = 0.5 * (u + 1)
     
-    override val kMinAngleSpan: LengthMetric = LengthMetric(1.0)                                          // 1.000 
+    override val kMinAngleSpan: LengthMetric = LengthMetric(1.0)                                          // 1.000
     override val kMaxAngleSpan: LengthMetric = LengthMetric(2.0)                                          // 2.000
     override val kAvgAngleSpan: LengthMetric = LengthMetric(M_PI / 2)                                     // 1.571
 

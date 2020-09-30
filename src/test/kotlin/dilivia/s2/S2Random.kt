@@ -59,6 +59,9 @@ object S2Random {
     @JvmStatic
     fun randomInt(): Int = random.nextInt()
 
+    @JvmStatic
+    fun randomLong(): Long = random.nextLong()
+
     // Return a uniformly distributed "double" in the range [min, limit).
     @JvmStatic
     fun randomDouble(min: Double, limit: Double): Double = random.nextDouble(min, limit)

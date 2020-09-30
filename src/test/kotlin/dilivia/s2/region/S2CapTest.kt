@@ -21,6 +21,7 @@ package dilivia.s2.region
 import com.google.common.geometry.S2.*
 import dilivia.s2.*
 import dilivia.s2.S2LatLng.Companion.fromDegrees
+import dilivia.s2.coords.S2Coords
 import kotlin.math.atan
 import kotlin.math.sqrt
 import kotlin.random.Random

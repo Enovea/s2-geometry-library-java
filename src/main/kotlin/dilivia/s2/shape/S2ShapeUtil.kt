@@ -1,12 +1,14 @@
 package dilivia.s2.shape
 
+import dilivia.s2.Assertions
+import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2Error
 import dilivia.s2.S2Point
 
 object S2ShapeUtil {
 
-    fun findSelfIntersection(index: S2ShapeIndex): S2Error = TODO()
+
 
     // Returns true if the given shape contains the given point.  Most clients
     // should not use this method, since its running time is linear in the number

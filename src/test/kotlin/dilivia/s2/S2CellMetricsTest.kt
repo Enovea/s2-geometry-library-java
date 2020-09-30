@@ -18,6 +18,7 @@
  */
 package dilivia.s2
 
+import dilivia.s2.coords.S2Coords
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow

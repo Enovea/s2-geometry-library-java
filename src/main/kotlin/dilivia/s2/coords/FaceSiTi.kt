@@ -16,6 +16,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.coords
 
 data class FaceSiTi(val face: Int, val si: UInt, val ti: UInt)

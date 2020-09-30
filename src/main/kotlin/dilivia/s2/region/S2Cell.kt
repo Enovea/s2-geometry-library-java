@@ -21,8 +21,9 @@ package dilivia.s2.region
 import com.google.common.geometry.S2.*
 import dilivia.s2.*
 import dilivia.s2.Assertions.assertEQ
-import dilivia.s2.S2Coords.kPosToIJ
-import dilivia.s2.S2Coords.kPosToOrientation
+import dilivia.s2.coords.S2Coords
+import dilivia.s2.coords.S2Coords.kPosToIJ
+import dilivia.s2.coords.S2Coords.kPosToOrientation
 import kotlin.math.asin
 import kotlin.math.min
 import kotlin.math.sqrt

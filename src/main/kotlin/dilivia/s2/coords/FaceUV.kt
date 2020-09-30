@@ -16,6 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.coords
 
-data class FaceIJ(val face: Int, val i: Int, val j: Int, val orientation: Int?)
+import dilivia.s2.math.R2Point
+
+data class FaceUV(val face: Int, val u: Double, val v: Double) {
+
+    fun getUV(): R2Point = R2Point(u, v)
+
+}

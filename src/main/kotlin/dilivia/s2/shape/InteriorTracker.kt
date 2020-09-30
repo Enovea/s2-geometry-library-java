@@ -1,6 +1,7 @@
 package dilivia.s2.shape
 
 import dilivia.s2.*
+import dilivia.s2.coords.S2Coords
 
 
 // Given a set of shapes, InteriorTracker keeps track of which shapes contain
