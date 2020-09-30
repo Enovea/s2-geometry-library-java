@@ -55,7 +55,7 @@ object S2TextParser {
 
     fun makePoint(str: String): S2Point {
         val vertices = mutableListOf<S2Point>()
-        check (!parsePoints(str, vertices) || vertices.size != 1) { ": str == \"$str\"" }
+        check (parsePoints(str, vertices) && vertices.size == 1) { ": str == \"$str\"" }
         return vertices[0];
     }
 
@@ -65,7 +65,7 @@ object S2TextParser {
             "full" -> S2Loop(S2Loop.kFull)
             else -> {
                 val vertices = mutableListOf<S2Point>()
-                check (!parsePoints(str, vertices)) { ": str == \"$str\"" }
+                check (parsePoints(str, vertices)) { ": str == \"$str\"" }
                 S2Loop(vertices, check = check);
             }
         }

@@ -8,8 +8,11 @@ import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.S2ShapeIndex
 import dilivia.s2.shape.S2ShapeIndexCell
 import dilivia.s2.shape.ShapeEdge
+import mu.KotlinLogging
 
 object S2CrossingEdgePairsScanner {
+
+    private val logger = KotlinLogging.logger {  }
 
     // Visits all pairs of crossing edges in the given S2ShapeIndex, terminating
     // early if the given EdgePairVisitor function returns false (in which case
@@ -97,11 +100,13 @@ object S2CrossingEdgePairsScanner {
     // chains).  This option exists for the benefit of FindSelfIntersection(),
     // which does not need such edge pairs (see below).
     fun visitCrossings(index: S2ShapeIndex, type: CrossingType, need_adjacent: Boolean, visitor: EdgePairVisitor): Boolean {
+        logger.trace { "Visit crossings(type = $type, needAdjacent = $need_adjacent)" }
         // TODO(ericv): Use brute force if the total number of edges is small enough
         // (using a larger threshold if the S2ShapeIndex is not constructed yet).
         val shape_edges = mutableListOf<ShapeEdge>()
         val iter = index.iterator(S2ShapeIndex.InitialPosition.BEGIN)
         while (!iter.done()) {
+            logger.trace { "Iterate on cell: ${iter.cell()}" }
             getShapeEdges(index, iter.cell()!!, shape_edges)
             if (!visitCrossings(shape_edges, type, need_adjacent, visitor)) {
                 return false

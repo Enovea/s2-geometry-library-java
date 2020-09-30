@@ -155,10 +155,12 @@ class S2LoopTest : S2GeometryTestCase() {
 
 
         fun addLoop(str: String): S2Loop {
+            logger.trace { "Add loop: $str" }
             return addLoop(S2TextParser.makeLoop(str))
         }
 
         fun addLoop(loop: S2Loop): S2Loop {
+            logger.trace { "Add loop: $loop" }
             allLoops.add(loop)
             return loop
         }
@@ -518,10 +520,10 @@ class S2LoopTest : S2GeometryTestCase() {
         // we can still check that the expected invariants hold.
         checkCurvatureInvariants(candy_cane)
 
-        assertEquals(2 * M_PI, line_triangle.getCurvature())
+        assertEquals(2 * M_PI, line_triangle.getCurvature(), 1e-15)
         checkCurvatureInvariants(line_triangle)
 
-        assertEquals(2 * M_PI, skinny_chevron.getCurvature())
+        assertEquals(2 * M_PI, skinny_chevron.getCurvature(), 1e-15)
         checkCurvatureInvariants(skinny_chevron)
 
         // Build a narrow spiral loop starting at the north pole.  This is designed
@@ -684,6 +686,7 @@ class S2LoopTest : S2GeometryTestCase() {
 
 
     fun testLoopRelations() {
+        fail("A corriger")
         // Check full and empty relationships with normal loops and each other.
         testRelation(full, full, CONTAINS or CONTAINED or COVERS, true)
         testRelation(full, north_hemi, CONTAINS or COVERS, false)
@@ -795,6 +798,7 @@ class S2LoopTest : S2GeometryTestCase() {
 
 
     fun testLoopRelations2() {
+        fail("A corriger")
         // Construct polygons consisting of a sequence of adjacent cell ids
         // at some fixed level.  Comparing two polygons at the same level
         // ensures that there are no T-vertices.

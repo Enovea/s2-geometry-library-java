@@ -9,7 +9,7 @@ package dilivia.s2.shape
 // edges for intersection tests so that the results will be the same as the
 // original shape.
 // @property shapeId The shape id of the clipped shape.
-class S2ClippedShape(val shapeId: Int, val edges: List<Int>, val containsCenter: Boolean) {
+data class S2ClippedShape(val shapeId: Int, val edges: List<Int>, val containsCenter: Boolean) {
 
     // Returns true if the center of the S2CellId is inside the shape.  Returns
     // false for shapes that do not have an interior.

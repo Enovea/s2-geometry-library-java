@@ -44,4 +44,9 @@ class S2ShapeIndexCell() {
         shapes.add(shape)
     }
 
+    override fun toString(): String {
+        return "S2ShapeIndexCell(shapes=$shapes)"
+    }
+
+
 }

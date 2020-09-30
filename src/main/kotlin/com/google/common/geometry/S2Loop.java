@@ -92,6 +92,7 @@ public final strictfp class S2Loop implements S2Region, Comparable<S2Loop> {
    * @param vertices
    */
   public S2Loop(final List<S2Point> vertices) {
+
     this.numVertices = vertices.size();
     this.vertices = new S2Point[numVertices];
     this.bound = S2LatLngRect.full;

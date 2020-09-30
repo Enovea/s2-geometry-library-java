@@ -119,6 +119,7 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
     // have at least 3 vertices (except for the empty and full loops, see
     // kEmpty and kFull).  This method may be called multiple times.
     init {
+        logger.trace { "Create loop: $vertices" }
         if (initOriginAndBound) {
             initOriginAndBound(check)
         }
@@ -179,9 +180,11 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
             if (isEmpty()) {
                 subregionBound = S2LatLngRect.empty
                 bound = S2LatLngRect.empty
+                logger.trace { "initBound(): Loop is empty => bound = $bound, subregion = $subregionBound" }
             } else {
                 subregionBound = S2LatLngRect.full
                 bound = S2LatLngRect.full
+                logger.trace { "initBound(): Loop is full => bound = $bound, subregion = $subregionBound" }
             }
             return
         }
@@ -1058,6 +1061,11 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
         unindexedContainsCalls.set(0)
         index.clear()
     }
+
+    override fun toString(): String {
+        return "S2Loop(vertices=$vertices)"
+    }
+
 
     companion object {
 
