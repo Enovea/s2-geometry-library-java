@@ -27,6 +27,7 @@ import dilivia.s2.Assertions.assertLT
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.TypeTag
+import dilivia.s2.shape.TypeTags
 import mu.KotlinLogging
 import kotlin.math.*
 
@@ -593,20 +594,15 @@ class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolea
 
         override fun chainPosition(edgeId: Int): ChainPosition = ChainPosition(0, edgeId)
 
-        override val typeTag: TypeTag = kTypeTag
+        override val typeTag: TypeTag = TypeTags.kPolylineTypeTag
 
-        companion object {
-            val kTypeTag: TypeTag = 2U
-        }
     };
-
 
     companion object {
 
         private val logger = KotlinLogging.logger(S2Polyline::class.java.name)
 
         fun fromLatLng(vertices: List<S2LatLng>): S2Polyline = S2Polyline(vertices.map { it.toPoint() })
-
 
         // Returns the length of the polyline.  Returns zero for polylines with fewer
         // than two vertices.

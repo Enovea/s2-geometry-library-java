@@ -28,6 +28,12 @@ import dilivia.s2.S2Point
 // Type tags in the range 0..8191 are reserved for use by the S2 library.
 typealias TypeTag = UInt
 
+object TypeTags {
+    val kNoTypeTag: TypeTag = 0U
+    val kPolylineTypeTag: TypeTag = 2U
+    val kPointVectorTypeTag: TypeTag = 3U
+}
+
 // An edge, consisting of two vertices "v0" and "v1".  Zero-length edges are
 // allowed, and can be used to represent points.
 data class Edge(val v0: S2Point = S2Point(), val v1: S2Point = S2Point()): Comparable<Edge> {

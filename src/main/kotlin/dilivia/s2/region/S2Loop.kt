@@ -873,11 +873,8 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
 
         override fun chainPosition(edgeId: Int): ChainPosition = ChainPosition(0, edgeId)
 
-        override val typeTag: TypeTag = kTypeTag
+        override val typeTag: TypeTag = kNoTypeTag
 
-        companion object {
-            val kTypeTag: TypeTag = 0U
-        }
 
     }
 

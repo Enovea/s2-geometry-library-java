@@ -4,20 +4,18 @@ import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2Error
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2LatLng
-import dilivia.s2.S2Point
-import dilivia.s2.region.S2Loop
 import dilivia.s2.shape.S2EdgeVectorShape
 import dilivia.s2.shape.ShapeEdge
 import dilivia.s2.shape.ShapeEdgeId
 import mu.KotlinLogging
 
 // A set of edge pairs within an S2ShapeIndex.
-typealias EdgePairVector = List<Pair<ShapeEdgeId, ShapeEdgeId>>
-/*
+typealias EdgePairVector = Set<Pair<ShapeEdgeId, ShapeEdgeId>>
+
 class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
 
     fun getCrossings(index: S2ShapeIndex, type: CrossingType): EdgePairVector {
-        val edge_pairs = mutableListOf<Pair<ShapeEdgeId, ShapeEdgeId>>()
+        val edge_pairs = HashSet<Pair<ShapeEdgeId, ShapeEdgeId>>()
         S2CrossingEdgePairsScanner.visitCrossingEdgePairs(
                 index, type, object : EdgePairVisitor {
             override fun visit(a: ShapeEdge, b: ShapeEdge, is_interior: Boolean): Boolean {
@@ -25,18 +23,16 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
                 return true;  // Continue visiting.
             }
         })
-        return if (edge_pairs.size > 1) {
-            edge_pairs.distinct()
-        } else edge_pairs
+        return edge_pairs
     }
 
     fun getCrossingEdgePairsBruteForce(index: S2ShapeIndex, type: CrossingType): EdgePairVector {
-        val result = mutableListOf<Pair<ShapeEdgeId, ShapeEdgeId>>()
+        val result = HashSet<Pair<ShapeEdgeId, ShapeEdgeId>>()
         val min_sign = if (type == CrossingType.ALL) 0 else 1
         val a_iter = EdgeIterator(index)
-        while (!a_iter.Done()) {
+        while (!a_iter.done()) {
             val a = a_iter.edge()
-            EdgeIterator b_iter = EdgeIterator (a_iter)
+            val b_iter = EdgeIterator(a_iter)
             b_iter.next()
             while (!b_iter.done()) {
                 val b = b_iter.edge()
@@ -84,7 +80,7 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
         testGetCrossingEdgePairs(index, CrossingType.ALL)
         testGetCrossingEdgePairs(index, CrossingType.INTERIOR)
     }
-
+/*
     // This function recursively verifies that HasCrossing returns the given
     // result for all possible cyclic permutations of the loop vertices for the
     // given set of loops.
@@ -129,6 +125,8 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
         testHasCrossing("0:0, 0:2, 2:2, 2:0; 1:1, 0:2, 3:1, 2:0", true);  // vertex crossing
     }
 
+ */
+
     companion object {
 
         private val logger = KotlinLogging.logger { }
@@ -147,5 +145,3 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
 
     }
 }
-
- */
