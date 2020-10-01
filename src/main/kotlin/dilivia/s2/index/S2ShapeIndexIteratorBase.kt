@@ -16,11 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.shape
+package dilivia.s2.index
 
 import dilivia.s2.Assertions
 import dilivia.s2.S2CellId
 import dilivia.s2.S2Point
+import dilivia.s2.index.S2ShapeIndex
+import dilivia.s2.index.S2ShapeIndexCell
 import java.util.concurrent.atomic.AtomicReference
 
 // Each subtype of S2ShapeIndex should define an Iterator type derived

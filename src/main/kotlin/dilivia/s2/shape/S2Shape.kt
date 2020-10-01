@@ -28,6 +28,18 @@ import dilivia.s2.S2Point
 // Type tags in the range 0..8191 are reserved for use by the S2 library.
 typealias TypeTag = UInt
 
+// An edge, consisting of two vertices "v0" and "v1".  Zero-length edges are
+// allowed, and can be used to represent points.
+data class Edge(val v0: S2Point = S2Point(), val v1: S2Point = S2Point()): Comparable<Edge> {
+
+    override fun compareTo(other: Edge): Int {
+        val v0Comparison = v0.compareTo(other.v0)
+        return if (v0Comparison == 0) {
+            v1.compareTo(other.v1)
+        } else v0Comparison
+    }
+
+};
 // The purpose of S2Shape is to represent polygonal geometry in a flexible
 // way.  It is organized as a collection of edges that optionally defines an
 // interior.  All geometry represented by an S2Shape must have the same
@@ -59,19 +71,6 @@ typealias TypeTag = UInt
 // sufficient for most purposes, but the chain representation is useful for
 // certain algorithms such as intersection (see S2BooleanOperation).
 abstract class S2Shape(var id: Int = -1) {
-
-    // An edge, consisting of two vertices "v0" and "v1".  Zero-length edges are
-    // allowed, and can be used to represent points.
-    data class Edge(val v0: S2Point = S2Point(), val v1: S2Point = S2Point()): Comparable<Edge> {
-
-        override fun compareTo(other: Edge): Int {
-            val v0Comparison = v0.compareTo(other.v0)
-            return if (v0Comparison == 0) {
-                v1.compareTo(other.v1)
-            } else v0Comparison
-        }
-
-    };
 
     // A range of edge ids corresponding to a chain of zero or more connected
     // edges, specified as a (start, length) pair.  The chain is defined to

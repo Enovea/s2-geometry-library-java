@@ -42,13 +42,13 @@ import dilivia.s2.coords.S2Coords
 import dilivia.s2.coords.S2XYZFaceSiTi
 import dilivia.s2.index.S2CrossingEdgePairsScanner
 import dilivia.s2.index.S2CrossingEdgeQuery
-import dilivia.s2.shape.MutableS2ShapeIndex
-import dilivia.s2.shape.RangeIterator
+import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.RangeIterator
 import dilivia.s2.shape.S2ClippedShape
 import dilivia.s2.shape.S2Shape
-import dilivia.s2.shape.S2ShapeIndex
-import dilivia.s2.shape.S2ShapeIndexCell
-import dilivia.s2.shape.S2ShapeUtil
+import dilivia.s2.index.S2ShapeIndex
+import dilivia.s2.index.S2ShapeIndexCell
+import dilivia.s2.shape.Edge
 import dilivia.s2.shape.TypeTag
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicInteger
@@ -121,7 +121,7 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
     private var subregionBound: S2LatLngRect = S2LatLngRect.empty
 
     // Spatial index for this loop.
-    private val index: MutableS2ShapeIndex = MutableS2ShapeIndex()
+    val index: MutableS2ShapeIndex = MutableS2ShapeIndex()
 
     // In general we build the index the first time it is needed, but we make an
     // exception for Contains(S2Point) because this method has a simple brute
@@ -1375,7 +1375,7 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
     private var bjPrev: Int = -1
 
     // Temporary data declared here to avoid repeated memory allocations.
-    private val bQuery: S2CrossingEdgeQuery = S2CrossingEdgeQuery()
+    private val bQuery: S2CrossingEdgeQuery = S2CrossingEdgeQuery(b.index)
     private val bCells = mutableListOf<S2ShapeIndexCell>()
 
     // Given two iterators positioned such that ai->id().Contains(bi->id()),

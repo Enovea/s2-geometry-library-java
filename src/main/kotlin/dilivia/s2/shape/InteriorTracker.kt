@@ -98,7 +98,7 @@ class InteriorTracker {
     // Indicates that the given edge of the given shape may cross the line
     // segment between the old and new focus locations (see DrawTo).
     // REQUIRES: shape->dimension() == 2
-    fun testEdge(shapeId: Int, edge: S2Shape.Edge) {
+    fun testEdge(shapeId: Int, edge: Edge) {
         if (crosser.edgeOrVertexCrossing(edge.v0, edge.v1)) {
             toggleShape(shapeId)
         }

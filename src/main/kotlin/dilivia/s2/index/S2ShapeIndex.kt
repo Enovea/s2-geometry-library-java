@@ -16,7 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.shape
+package dilivia.s2.index
+
+import dilivia.s2.shape.S2Shape
 
 //
 // S2ShapeIndex is an abstract base class for indexing polygonal geometry in

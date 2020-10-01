@@ -18,7 +18,7 @@
     <logger name="dilivia.s2.region.S2LoopMeasures" level="INFO" />
     <logger name="dilivia.s2.region.S2Polyline" level="INFO" />
     <logger name="dilivia.s2.region.S2RegionCoverer" level="INFO" />
-    <logger name="dilivia.s2.shape.MutableS2ShapeIndex" level="INFO" />
+    <logger name="dilivia.s2.index.MutableS2ShapeIndex" level="INFO" />
 
     <logger name="dilivia.s2.S2EdgeClippingTest" level="INFO" />
     <logger name="dilivia.s2.S2PaddedCellTest" level="INFO" />

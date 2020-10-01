@@ -19,18 +19,19 @@
 package dilivia.s2.index
 
 import dilivia.s2.Assertions
+import dilivia.s2.S2CellId
 import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2Error
+import dilivia.s2.S2PaddedCell
 import dilivia.s2.S2WedgeRelations
+import dilivia.s2.index.S2CrossingEdgePairsScanner.getShapeEdges
 import dilivia.s2.shape.S2Shape
-import dilivia.s2.shape.S2ShapeIndex
-import dilivia.s2.shape.S2ShapeIndexCell
 import dilivia.s2.shape.ShapeEdge
 import mu.KotlinLogging
 
 object S2CrossingEdgePairsScanner {
 
-    private val logger = KotlinLogging.logger {  }
+    private val logger = KotlinLogging.logger { }
 
     // Visits all pairs of crossing edges in the given S2ShapeIndex, terminating
     // early if the given EdgePairVisitor function returns false (in which case
@@ -38,13 +39,53 @@ object S2CrossingEdgePairsScanner {
     // crossings should be visited, or only interior crossings.
     //
     // CAVEAT: Crossings may be visited more than once.
-    fun visitCrossingEdgePairs(index: S2ShapeIndex, type: CrossingType, visitor: EdgePairVisitor): Boolean = TODO()
+    fun visitCrossingEdgePairs(index: S2ShapeIndex, type: CrossingType, visitor: EdgePairVisitor): Boolean {
+        val needAdjacent = (type == CrossingType.ALL)
+        return visitCrossings(index, type, needAdjacent, visitor)
+    }
 
     // Like the above, but visits all pairs of crossing edges where one edge comes
     // from each S2ShapeIndex.
     //
     // CAVEAT: Crossings may be visited more than once.
-    fun visitCrossingEdgePairs(a_index: S2ShapeIndex, b_index: S2ShapeIndex, type: CrossingType, visitor: EdgePairVisitor): Boolean = TODO()
+    fun visitCrossingEdgePairs(a_index: S2ShapeIndex, b_index: S2ShapeIndex, type: CrossingType, visitor: EdgePairVisitor): Boolean {
+        // We look for S2CellId ranges where the indexes of A and B overlap, and
+        // then test those edges for crossings.
+
+        // TODO(ericv): Use brute force if the total number of edges is small enough
+        // (using a larger threshold if the S2ShapeIndex is not constructed yet).
+        val ai = RangeIterator(a_index)
+        val bi = RangeIterator(b_index)
+        val ab = IndexCrosser(a_index, b_index, type, visitor, false);  // Tests A against B
+        val ba = IndexCrosser(b_index, a_index, type, visitor, true);   // Tests B against A
+        while (!ai.done() || !bi.done()) {
+            if (ai.rangeMax() < bi.rangeMin()) {
+                // The A and B cells don't overlap, and A precedes B.
+                ai.seekTo(bi);
+            } else if (bi.rangeMax() < ai.rangeMin()) {
+                // The A and B cells don't overlap, and B precedes A.
+                bi.seekTo(ai);
+            } else {
+                // One cell contains the other.  Determine which cell is larger.
+                val ab_relation = ai.id().lsb() - bi.id().lsb();
+                if (ab_relation > 0UL) {
+                    // A's index cell is larger.
+                    if (!ab.visitCrossings(ai, bi)) return false
+                } else if (ab_relation < 0UL) {
+                    // B's index cell is larger.
+                    if (!ba.visitCrossings(bi, ai)) return false
+                } else {
+                    // The A and B cells are the same.
+                    if (ai.cell()!!.num_edges() > 0 && bi.cell()!!.num_edges() > 0) {
+                        if (!ab.visitCellCellCrossings(ai.cell()!!, bi.cell()!!)) return false
+                    }
+                    ai.next()
+                    bi.next()
+                }
+            }
+        }
+        return true;
+    }
 
     // Given an S2ShapeIndex containing a single polygonal shape (e.g., an
     // S2Polygon or S2Loop), return true if any loop has a self-intersection
@@ -93,7 +134,7 @@ object S2CrossingEdgePairsScanner {
     // Returns a vector containing all edges in the given S2ShapeIndexCell.
     // (The result is returned as an output parameter so that the same storage can
     // be reused, rather than allocating a new temporary vector each time.)
-    private fun getShapeEdges(index: S2ShapeIndex, cell: S2ShapeIndexCell, shape_edges: ShapeEdgeVector) {
+    internal fun getShapeEdges(index: S2ShapeIndex, cell: S2ShapeIndexCell, shape_edges: ShapeEdgeVector) {
         shape_edges.clear()
         appendShapeEdges(index, cell, shape_edges)
     }
@@ -201,14 +242,14 @@ object S2CrossingEdgePairsScanner {
         }
         val a_len = shape.chain(ap.chainId).length;
         val b_len = shape.chain(bp.chainId).length;
-        val a_next = if(ap.offset + 1 == a_len) 0 else (ap.offset + 1)
-        val b_next = if(bp.offset + 1 == b_len) 0 else (bp.offset + 1)
+        val a_next = if (ap.offset + 1 == a_len) 0 else (ap.offset + 1)
+        val b_next = if (bp.offset + 1 == b_len) 0 else (bp.offset + 1)
         val a2 = shape.chainEdge(ap.chainId, a_next).v1
         val b2 = shape.chainEdge(bp.chainId, b_next).v1
         if (a.v0 == b.v0 || a.v0 == b2) {
             // The second edge index is sometimes off by one, hence "near".
             return S2Error(code = S2Error.POLYGON_LOOPS_SHARE_EDGE, text = "Loop %d edge %d has duplicate near loop %d edge %d".format(
-                ap.chainId, ap.offset, bp.chainId, bp.offset))
+                    ap.chainId, ap.offset, bp.chainId, bp.offset))
         }
         // Since S2ShapeIndex loops are oriented such that the polygon interior is
         // always on the left, we need to handle the case where one wedge contains
@@ -239,5 +280,151 @@ typealias ShapeEdgeVector = MutableList<ShapeEdge>
 interface EdgePairVisitor {
 
     fun visit(a: ShapeEdge, b: ShapeEdge, is_interior: Boolean): Boolean
+
+}
+
+
+// IndexCrosser is a helper class for finding the edge crossings between a
+// pair of S2ShapeIndexes.  It is instantiated twice, once for the index pair
+// (A,B) and once for the index pair (B,A), in order to be able to test edge
+// crossings in the most efficient order.
+// @constructor
+// If "swapped" is true, the loops A and B have been swapped.  This affects
+// how arguments are passed to the given loop relation, since for example
+// A.Contains(B) is not the same as B.Contains(A).
+class IndexCrosser(val a_index: S2ShapeIndex, val b_index: S2ShapeIndex, type: CrossingType, val visitor: EdgePairVisitor, val swapped: Boolean) {
+
+    private val min_crossing_sign: Int = if (type == CrossingType.INTERIOR) 1 else 0
+
+    // Temporary data declared here to avoid repeated memory allocations.
+    private val b_query: S2CrossingEdgeQuery = S2CrossingEdgeQuery(b_index)
+    private val b_cells = mutableListOf<S2ShapeIndexCell>()
+    private val a_shape_edges: ShapeEdgeVector = mutableListOf()
+    private val b_shape_edges: ShapeEdgeVector = mutableListOf()
+
+    // Given two iterators positioned such that ai->id().Contains(bi->id()),
+    // visits all crossings between edges of A and B that intersect a->id().
+    // Terminates early and returns false if visitor_ returns false.
+    // Advances both iterators past ai->id().
+    fun visitCrossings(ai: RangeIterator, bi: RangeIterator): Boolean {
+        Assertions.assert { ai.id().contains(bi.id()) }
+        if (ai.cell()!!.num_edges() == 0) {
+            // Skip over the cells of B using binary search.
+            bi.seekBeyond(ai)
+        } else {
+            // If ai->id() intersects many edges of B, then it is faster to use
+            // S2CrossingEdgeQuery to narrow down the candidates.  But if it
+            // intersects only a few edges, it is faster to check all the crossings
+            // directly.  We handle this by advancing "bi" and keeping track of how
+            // many edges we would need to test.
+            val kEdgeQueryMinEdges = 23;
+            var b_edges = 0
+            b_cells.clear()
+            do {
+                val cell_edges = bi.cell()!!.num_edges()
+                if (cell_edges > 0) {
+                    b_edges += cell_edges;
+                    if (b_edges >= kEdgeQueryMinEdges) {
+                        // There are too many edges, so use an S2CrossingEdgeQuery.
+                        if (!visitSubcellCrossings(ai.cell()!!, ai.id())) return false
+                        bi.seekBeyond(ai)
+                        return true;
+                    }
+                    b_cells.add(bi.cell()!!)
+                }
+                bi.next()
+            } while (bi.id() <= ai.rangeMax())
+            if (b_cells.isNotEmpty()) {
+                // Test all the edge crossings directly.
+                getShapeEdges(a_index, ai.cell()!!, a_shape_edges)
+                getShapeEdges(b_index, b_cells, b_shape_edges)
+                if (!visitEdgesEdgesCrossings(a_shape_edges, b_shape_edges)) {
+                    return false
+                }
+            }
+        }
+        ai.next()
+        return true
+    }
+
+    // Given two index cells, visits all crossings between edges of those cells.
+    // Terminates early and returns false if visitor_ returns false.
+    fun visitCellCellCrossings(a_cell: S2ShapeIndexCell, b_cell: S2ShapeIndexCell): Boolean {
+        // Test all edges of "a_cell" against all edges of "b_cell".
+        getShapeEdges(a_index, a_cell, a_shape_edges)
+        getShapeEdges(b_index, b_cell, b_shape_edges)
+        return visitEdgesEdgesCrossings(a_shape_edges, b_shape_edges)
+    }
+
+    private fun visitEdgePair(a: ShapeEdge, b: ShapeEdge, is_interior: Boolean): Boolean {
+        if (swapped) {
+            return visitor.visit(b, a, is_interior)
+        } else {
+            return visitor.visit(a, b, is_interior)
+        }
+    }
+
+    // Visits all crossings of the current edge with all edges of the given index
+    // cell of B.  Terminates early and returns false if visitor_ returns false.
+    private fun visitEdgeCellCrossings(a: ShapeEdge, b_cell: S2ShapeIndexCell): Boolean {
+        // Test the current edge of A against all edges of "b_cell".
+
+        // Note that we need to use a new S2EdgeCrosser (or call Init) whenever we
+        // replace the contents of b_shape_edges_, since S2EdgeCrosser requires that
+        // its S2Point arguments point to values that persist between Init() calls.
+        getShapeEdges(b_index, b_cell, b_shape_edges)
+        val crosser = S2EdgeCrosser(a.v0, a.v1)
+        for (b in b_shape_edges) {
+            if (crosser.c == null || crosser.c != b.v0) {
+                crosser.restartAt(b.v0)
+            }
+            val sign = crosser.crossingSign(b.v1)
+            if (sign >= min_crossing_sign) {
+                if (!visitEdgePair(a, b, sign == 1)) return false
+            }
+        }
+        return true
+    }
+
+    // Visits all crossings of any edge in "a_cell" with any index cell of B that
+    // is a descendant of "b_id".  Terminates early and returns false if
+    // visitor_ returns false.
+    private fun visitSubcellCrossings(a_cell: S2ShapeIndexCell, b_id: S2CellId): Boolean {
+        // Test all edges of "a_cell" against the edges contained in B index cells
+        // that are descendants of "b_id".
+        getShapeEdges(a_index, a_cell, a_shape_edges)
+        val b_root = S2PaddedCell(b_id, 0.0)
+        for (a in a_shape_edges) {
+            // Use an S2CrossingEdgeQuery starting at "b_root" to find the index cells
+            // of B that might contain crossing edges.
+            if (!b_query.visitCells(a.v0, a.v1, b_root, object : CellVisitor {
+                        override fun visit(cell: S2ShapeIndexCell): Boolean {
+                            return visitEdgeCellCrossings(a, cell)
+                        }
+
+                    })) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Visits all crossings of any edge in "a_edges" with any edge in "b_edges".
+    private fun visitEdgesEdgesCrossings(a_edges: ShapeEdgeVector, b_edges: ShapeEdgeVector): Boolean {
+        // Test all edges of "a_edges" against all edges of "b_edges".
+        for (a in a_edges) {
+            val crosser = S2EdgeCrosser(a.v0, a.v1)
+            for (b in b_edges) {
+                if (crosser.c == null || crosser.c != b.v0) {
+                    crosser.restartAt(b.v0)
+                }
+                val sign = crosser.crossingSign(b.v1)
+                if (sign >= min_crossing_sign) {
+                    if (!visitEdgePair(a, b, sign == 1)) return false;
+                }
+            }
+        }
+        return true
+    }
 
 }

@@ -16,9 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.shape
+package dilivia.s2.index
 
 import dilivia.s2.S2CellId
+import dilivia.s2.shape.S2ClippedShape
 
 // RangeIterator is a wrapper over S2ShapeIndex::Iterator with extra methods
 // that are useful for merging the contents of two or more S2ShapeIndexes.

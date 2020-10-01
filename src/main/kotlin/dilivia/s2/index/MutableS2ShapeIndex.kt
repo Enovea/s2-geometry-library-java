@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.shape
+package dilivia.s2.index
 
 import dilivia.s2.Assertions
 import dilivia.s2.MutableR2Rect
@@ -29,6 +29,11 @@ import dilivia.s2.S2PaddedCell
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.math.R2Point
 import dilivia.s2.region.S2CellUnion
+import dilivia.s2.shape.Edge
+import dilivia.s2.shape.InteriorTracker
+import dilivia.s2.shape.S2ClippedShape
+import dilivia.s2.shape.S2Shape
+import dilivia.s2.shape.S2ShapeUtil
 import mu.KotlinLogging
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -123,7 +128,7 @@ typealias CellMap = TreeMap<S2CellId, S2ShapeIndexCell>
 class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
     // The representation of an edge that has been queued for removal.
-    data class RemovedShape(val shapeId: Int, val hasInterior: Boolean, val contains_tracker_origin: Boolean, val edges: List<S2Shape.Edge>)
+    data class RemovedShape(val shapeId: Int, val hasInterior: Boolean, val contains_tracker_origin: Boolean, val edges: List<Edge>)
 
     enum class IndexStatus {
         STALE,     // There are pending updates.
@@ -177,7 +182,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             val hasInterior: Boolean = false,       // Belongs to a shape of dimension 2.
             var a: R2Point = R2Point(),
             var b: R2Point = R2Point(),             // The edge endpoints, clipped to a given face
-            var edge: S2Shape.Edge = S2Shape.Edge() // The edge endpoints
+            var edge: Edge = Edge() // The edge endpoints
     )
 
     data class ClippedEdge(
@@ -396,7 +401,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             // We build the new RemovedShape in place, since it includes a potentially
             // large vector of edges that might be expensive to copy.
             val numEdges = shape.numEdges
-            val removedEdges = mutableListOf<S2Shape.Edge>()
+            val removedEdges = mutableListOf<Edge>()
             for (e in 0 until numEdges) {
                 removedEdges.add(shape.edge(e))
             }
@@ -739,7 +744,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
     // Return the first level at which the edge will *not* contribute towards
     // the decision to subdivide.
-    private fun getEdgeMaxLevel(edge: S2Shape.Edge): Int {
+    private fun getEdgeMaxLevel(edge: Edge): Int {
         // Compute the maximum cell size for which this edge is considered "long".
         // The calculation does not need to be perfectly accurate, so we use Norm()
         // rather than Angle() for speed.
