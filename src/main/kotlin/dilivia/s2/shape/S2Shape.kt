@@ -18,7 +18,9 @@
  */
 package dilivia.s2.shape
 
+import dilivia.s2.Assertions
 import dilivia.s2.S2Point
+import dilivia.s2.region.S2ContainsVertexQuery
 
 // A 32-bit tag that can be used to identify the type of an encoded S2Shape.
 // All encodable types have a non-zero type tag.  The tag associated with a
@@ -91,16 +93,6 @@ abstract class S2Shape(var id: Int = -1) {
     // A ReferencePoint consists of a point P and a boolean indicating whether P
     // is contained by a particular shape.
     data class ReferencePoint(val point: S2Point = S2Point.origin(), val contained: Boolean)
-
-    companion object {
-
-        // Indicates that a given S2Shape type cannot be encoded.
-        val kNoTypeTag: TypeTag = 0U
-
-        // The minimum allowable tag for user-defined S2Shape types.
-        val kMinUserTypeTag: TypeTag = 8192.toUInt()
-    }
-
 
     // Returns the number of edges in this shape.  Edges have ids ranging from 0
     // to num_edges() - 1.
@@ -229,5 +221,108 @@ abstract class S2Shape(var id: Int = -1) {
     //    add your own methods and fields.  You can access this data by
     //    downcasting the S2Shape pointers returned by S2ShapeIndex methods.
     open fun userData(): Any? = null
+
+    companion object {
+
+        // Indicates that a given S2Shape type cannot be encoded.
+        val kNoTypeTag: TypeTag = 0U
+
+        // The minimum allowable tag for user-defined S2Shape types.
+        val kMinUserTypeTag: TypeTag = 8192.toUInt()
+        // This is a helper function for implementing S2Shape::GetReferencePoint().
+        //
+        // Given a shape consisting of closed polygonal loops, the interior of the
+        // shape is defined as the region to the left of all edges (which must be
+        // oriented consistently).  This function then chooses an arbitrary point and
+        // returns true if that point is contained by the shape.
+        //
+        // Unlike S2Loop and S2Polygon, this method allows duplicate vertices and
+        // edges, which requires some extra care with definitions.  The rule that we
+        // apply is that an edge and its reverse edge "cancel" each other: the result
+        // is the same as if that edge pair were not present.  Therefore shapes that
+        // consist only of degenerate loop(s) are either empty or full; by convention,
+        // the shape is considered full if and only if it contains an empty loop (see
+        // S2LaxPolygonShape for details).
+        //
+        // Determining whether a loop on the sphere contains a point is harder than
+        // the corresponding problem in 2D plane geometry.  It cannot be implemented
+        // just by counting edge crossings because there is no such thing as a "point
+        // at infinity" that is guaranteed to be outside the loop.
+        fun getReferencePoint(shape: S2Shape): ReferencePoint {
+            Assertions.assertEQ(shape.dimension, 2)
+            if (shape.numEdges == 0) {
+                // A shape with no edges is defined to be full if and only if it
+                // contains at least one chain.
+                return ReferencePoint(contained = shape.numChains > 0)
+            }
+            // Define a "matched" edge as one that can be paired with a corresponding
+            // reversed edge.  Define a vertex as "balanced" if all of its edges are
+            // matched. In order to determine containment, we must find an unbalanced
+            // vertex.  Often every vertex is unbalanced, so we start by trying an
+            // arbitrary vertex.
+            val edge = shape.edge(0)
+            var result = getReferencePointAtVertex(shape, edge.v0)
+            if (result != null) {
+                return result
+            }
+            // That didn't work, so now we do some extra work to find an unbalanced
+            // vertex (if any).  Essentially we gather a list of edges and a list of
+            // reversed edges, and then sort them.  The first edge that appears in one
+            // list but not the other is guaranteed to be unmatched.
+            val n = shape.numEdges
+            val edges = ArrayList<Edge>(n)
+            val rev_edges = ArrayList<Edge>(n)
+            for (i in 0 until n) {
+                val e = shape.edge(i)
+                edges.add(e)
+                rev_edges.add(Edge(e.v1, e.v0))
+            }
+            edges.sort()
+            rev_edges.sort()
+            for (i in 0 until n) {
+                if (edges[i] < rev_edges[i]) {  // edges[i] is unmatched
+                    result = getReferencePointAtVertex(shape, edges[i].v0)
+                    check(result != null)
+                    return result;
+                }
+                if (rev_edges[i] < edges[i]) {  // rev_edges[i] is unmatched
+                    result = getReferencePointAtVertex(shape, rev_edges[i].v0)
+                    check(result != null)
+                    return result;
+                }
+            }
+            // All vertices are balanced, so this polygon is either empty or full except
+            // for degeneracies.  By convention it is defined to be full if it contains
+            // any chain with no edges.
+            for (i in 0 until shape.numChains) {
+                if (shape.chain(i).length == 0) return ReferencePoint(contained = true)
+            }
+            return ReferencePoint(contained = false)
+        }
+
+        // This is a helper function for GetReferencePoint() above.
+        //
+        // If the given vertex "vtest" is unbalanced (see definition below), sets
+        // "result" to a ReferencePoint indicating whther "vtest" is contained and
+        // returns true.  Otherwise returns false.
+        private fun getReferencePointAtVertex(shape: S2Shape, vtest: S2Point): ReferencePoint? {
+            // Let P be an unbalanced vertex.  Vertex P is defined to be inside the
+            // region if the region contains a particular direction vector starting from
+            // P, namely the direction S2::Ortho(P).  This can be calculated using
+            // S2ContainsVertexQuery.
+            val contains_query = S2ContainsVertexQuery(vtest)
+            val n = shape.numEdges
+            for (e in 0 until n) {
+                val edge = shape.edge(e)
+                if (edge.v0 == vtest) contains_query.addEdge(edge.v1, 1)
+                if (edge.v1 == vtest) contains_query.addEdge(edge.v0, -1)
+            }
+            val contains_sign = contains_query.containsSign()
+            if (contains_sign == 0) {
+                return null;  // There are no unmatched edges incident to this vertex.
+            }
+            return ReferencePoint(point = vtest, contained = contains_sign > 0)
+        }
+    }
 
 }
