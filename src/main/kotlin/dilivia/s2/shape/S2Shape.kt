@@ -19,6 +19,7 @@
 package dilivia.s2.shape
 
 import dilivia.s2.Assertions
+import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2Point
 import dilivia.s2.region.S2ContainsVertexQuery
 
@@ -32,8 +33,11 @@ typealias TypeTag = UInt
 
 object TypeTags {
     val kNoTypeTag: TypeTag = 0U
+    val kPolygonTypeTag: TypeTag = 1U
     val kPolylineTypeTag: TypeTag = 2U
     val kPointVectorTypeTag: TypeTag = 3U
+    val kLaxPolylineTypeTag: TypeTag = 4U
+    val kLaxPolygonTypeTag: TypeTag = 5U
 }
 
 // An edge, consisting of two vertices "v0" and "v1".  Zero-length edges are
@@ -322,6 +326,32 @@ abstract class S2Shape(var id: Int = -1) {
                 return null;  // There are no unmatched edges incident to this vertex.
             }
             return ReferencePoint(point = vtest, contained = contains_sign > 0)
+        }
+
+        // Returns true if the given shape contains the given point.  Most clients
+        // should not use this method, since its running time is linear in the number
+        // of shape edges.  Instead clients should create an S2ShapeIndex and use
+        // S2ContainsPointQuery, since this strategy is much more efficient when many
+        // points need to be tested.
+        //
+        // Polygon boundaries are treated as being semi-open (see S2ContainsPointQuery
+        // and S2VertexModel for other options).
+        //
+        // CAVEAT: Typically this method is only used internally.  Its running time is
+        //         linear in the number of shape edges.
+        fun containsBruteForce(shape: S2Shape, focus: S2Point): Boolean {
+            if (shape.dimension < 2) return false
+
+            val refPoint = shape.getReferencePoint()
+            if (refPoint.point == focus) return refPoint.contained
+
+            val crosser = S2EdgeCrosser(refPoint.point, focus);
+            var inside = refPoint.contained;
+            for (e in 0 until  shape.numEdges) {
+                val edge = shape.edge(e)
+                inside = inside xor crosser.edgeOrVertexCrossing(edge.v0, edge.v1)
+            }
+            return inside;
         }
     }
 

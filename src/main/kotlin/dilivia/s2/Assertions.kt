@@ -48,6 +48,12 @@ object Assertions {
         }
     }
 
+    fun assertTrue(condition: Boolean, lazyMessage: (() -> Any)? = null) {
+        this.assert( { condition}, {
+            if (lazyMessage != null) lazyMessage() else "The condition is false."
+        })
+    }
+
     fun assertNE(v1: Any, v2: Any, lazyMessage: (() -> Any)? = null) {
         this.assert( { v1 != v2 }, {
             if (lazyMessage != null) lazyMessage() else "The value $v1 is equals to $v2."

@@ -25,7 +25,7 @@ package dilivia.s2
 
 // This class is intended to be copied by value as desired.  It uses
 // the default copy constructor and assignment operator.
-class S2Error(val code: Int = OK, val text: String = ""): Exception("S2Error $code: $text") {
+data class S2Error(var code: Int = OK, var text: String = ""): Exception("S2Error $code: $text") {
 
     companion object Code {
         const val OK = 0                  // No error.

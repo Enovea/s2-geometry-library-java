@@ -22,6 +22,7 @@ import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.S2Point
 import dilivia.s2.region.S2Polyline
+import dilivia.s2.shape.TypeTags.kLaxPolylineTypeTag
 import mu.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min
@@ -74,11 +75,9 @@ class S2LaxPolylineShape(val vertices: List<S2Point>) : S2Shape() {
 
     override fun chainPosition(edgeId: Int): ChainPosition = ChainPosition(0, edgeId)
 
-    override val typeTag: TypeTag = kTypeTag
-
+    override val typeTag: TypeTag = kLaxPolylineTypeTag
 
     companion object {
-        val kTypeTag: TypeTag = 4U
         val logger = KotlinLogging.logger(S2LaxPolylineShape::class.java.name)
     }
 }

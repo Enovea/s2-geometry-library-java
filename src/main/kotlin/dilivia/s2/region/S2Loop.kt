@@ -106,7 +106,7 @@ import kotlin.math.sin
 // polygon.  "Outer shell" loops have depth 0, holes within those loops have
 // depth 1, shells within those holes have depth 2, etc.  This field is only
 // used by the S2Polygon implementation.
-class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, check: Boolean, initOriginAndBound: Boolean = true) : S2Region {
+class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, check: Boolean, initOriginAndBound: Boolean = true) : S2Region {
 
     private val vertices: MutableList<S2Point> = vertices.toMutableList()
 
@@ -915,11 +915,11 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
     fun verticesSpan(): S2PointLoopSpan = S2PointLoopSpan(vertices)
 
     // Returns true if this loop contains S2::Origin().
-    private fun containsOrigin(): Boolean = originInside
+    public fun containsOrigin(): Boolean = originInside
 
     // A version of Contains(S2Point) that does not use the S2ShapeIndex.
     // Used by the S2Polygon implementation.
-    private fun bruteForceContains(p: S2Point): Boolean {
+    public fun bruteForceContains(p: S2Point): Boolean {
         // Empty and full loops don't need a special case, but invalid loops with
         // zero vertices do, so we might as well handle them all at once.
         if (numVertices() < 3) return originInside
@@ -937,7 +937,7 @@ class S2Loop internal constructor(vertices: List<S2Point>, val depth: Int = 0, c
     // building the S2ShapeIndex (i.e., self-intersection tests).  This is used
     // by the S2Polygon implementation, which uses its own index to check for
     // loop self-intersections.
-    private fun findValidationErrorNoIndex(): S2Error {
+    internal fun findValidationErrorNoIndex(): S2Error {
         // subregion_bound_ must be at least as large as bound_.  (This is an
         // internal consistency check rather than a test of client data.)
         assert { subregionBound.contains(bound) }

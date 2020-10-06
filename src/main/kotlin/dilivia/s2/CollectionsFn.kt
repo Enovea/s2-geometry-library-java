@@ -65,3 +65,18 @@ fun <T: Comparable<T>> List<T>.upperBound(beginIdx: Int, endIdx: Int, value: T):
     }
     return i
 }
+
+
+fun IntArray.upperBound(beginIdx: Int, endIdx: Int, value: Int): Int {
+    var i = endIdx
+    var idx = beginIdx
+    while (idx < endIdx && idx <= this.lastIndex) {
+        val element = this[idx]
+        if (element > value) {
+            i = idx
+            break
+        }
+        ++idx
+    }
+    return i
+}

@@ -33,7 +33,6 @@ import dilivia.s2.shape.Edge
 import dilivia.s2.shape.InteriorTracker
 import dilivia.s2.shape.S2ClippedShape
 import dilivia.s2.shape.S2Shape
-import dilivia.s2.shape.S2ShapeUtil
 import mu.KotlinLogging
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -408,7 +407,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             pendingRemovals.add(RemovedShape(
                     shapeId = shape.id,
                     hasInterior = shape.dimension == 2,
-                    contains_tracker_origin = S2ShapeUtil.containsBruteForce(shape, kInteriorTrackerOrigin()),
+                    contains_tracker_origin = S2Shape.containsBruteForce(shape, kInteriorTrackerOrigin()),
                     edges = removedEdges
             ))
         }
@@ -696,7 +695,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
                 hasInterior = shape.dimension == 2
         )
         if (edge.hasInterior) {
-            tracker.addShape(id, S2ShapeUtil.containsBruteForce(shape, tracker.focus()))
+            tracker.addShape(id, S2Shape.containsBruteForce(shape, tracker.focus()))
         }
         val numEdges = shape.numEdges
         for (e in 0 until numEdges) {
