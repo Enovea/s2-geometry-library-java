@@ -20,9 +20,9 @@ package dilivia.s2
 
 import Matrix3x3
 import com.google.common.geometry.S2
+import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertPointIsUnitLength
 import dilivia.s2.math.*
-import kotlin.math.atan2
 
 /**
  * An S2Point represents a point on the unit sphere as a 3D vector. Usually
@@ -41,6 +41,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
 
     constructor(x: Int, y: Int, z: Int) : this(x.toDouble(), y.toDouble(), z.toDouble())
 
+    constructor(vector: R3VectorDouble): this(vector.coords)
     constructor(vectorExactFloat: R3VectorExactFloat): this(vectorExactFloat.coords.map { it.toDouble() })
 
     fun x(): Double {
@@ -116,7 +117,17 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         @JvmStatic
         @Strictfp
         fun origin(): S2Point {
-            return S2Point(0, 1, 0)
+            // The origin should not be a point that is commonly used in edge tests in
+            // order to avoid triggering code to handle degenerate cases.  (This rules
+            // out the north and south poles.)  It should also not be on the boundary of
+            // any low-level S2Cell for the same reason.
+            //
+            // The point chosen here is about 66km from the north pole towards the East
+            // Siberian Sea.  See the unittest for more details.  It is written out
+            // explicitly using floating-point literals because the optimizer doesn't
+            // seem willing to evaluate Normalize() at compile time.
+            return S2Point(-0.0099994664350250197, 0.0025924542609324121, 0.99994664350250195);
+
         }
 
         @JvmStatic
@@ -265,9 +276,30 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
             return ortho(a)
         }
 
+
+        // Rotate the given point about the given axis by the given angle.  "p" and
+        // "axis" must be unit length; "angle" has no restrictions (e.g., it can be
+        // positive, negative, greater than 360 degrees, etc).
+        fun rotate(p: S2Point, axis: S2Point, angle: S1Angle): S2Point {
+            assert { isUnitLength(p) }
+            assert { isUnitLength(axis) }
+            // Let M be the plane through P that is perpendicular to "axis", and let
+            // "center" be the point where M intersects "axis".  We construct a
+            // right-handed orthogonal frame (dx, dy, center) such that "dx" is the
+            // vector from "center" to P, and "dy" has the same length as "dx".  The
+            // result can then be expressed as (cos(angle)*dx + sin(angle)*dy + center).
+            val center = p.dotProd(axis) * axis
+            val dx = p - center
+            val dy = axis.crossProd(p)
+            // Mathematically the result is unit length, but normalization is necessary
+            // to ensure that numerical errors don't accumulate.
+            return (cos(angle) * dx + sin(angle) * dy + center).normalize()
+        }
+
     }
 
 }
 
+fun R3VectorDouble.toS2Point(): S2Point = S2Point(this)
 operator fun Double.times(point: S2Point): S2Point = point * this
 operator fun Int.times(point: S2Point): S2Point = point * this.toDouble()
