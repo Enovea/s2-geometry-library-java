@@ -5,7 +5,7 @@ enum class DegenerateEdges { DISCARD, DISCARD_EXCESS, KEEP }
 enum class DuplicateEdges { MERGE, KEEP }
 enum class SiblingPairs { DISCARD, DISCARD_EXCESS, KEEP, REQUIRE, CREATE }
 
-/*
+
 // This class is only needed by S2Builder::Layer implementations.  A layer is
 // responsible for assembling an S2Builder::Graph of snapped edges into the
 // desired output format (e.g., an S2Polygon).  The GraphOptions class allows
@@ -141,6 +141,3 @@ data class GraphOptions(
         var allow_vertex_filtering: Boolean = true
 )
 
-
-
- */

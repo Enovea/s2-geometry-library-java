@@ -114,16 +114,15 @@ class S2LoopTest : S2GeometryTestCase() {
         assertTrue(candyCane.rectBound.latLo().degrees() < -20)
         assertTrue(candyCane.rectBound.latHi().degrees() > 10)
         assertTrue(smallNeCw.rectBound.isFull)
-        assertEquals(arctic80.rectBound, S2LatLngRect(fromDegrees(80, -180), fromDegrees(90, 180)))
-        assertEquals(antarctic80.rectBound,
-                S2LatLngRect(fromDegrees(-90, -180), fromDegrees(-80, 180)))
+        assertTrue(arctic80.rectBound.approxEquals(S2LatLngRect(fromDegrees(80, -180), fromDegrees(90, 180))))
+        assertTrue(antarctic80.rectBound.approxEquals(S2LatLngRect(fromDegrees(-90, -180), fromDegrees(-80, 180))))
         arctic80.invert()
         // The highest latitude of each edge is attained at its midpoint.
         val mid = times(plus(arctic80.vertex(0), arctic80.vertex(1)), 0.5)
         assertDoubleNear(arctic80.rectBound.latHi().radians, fromPoint(mid).lat().radians)
         arctic80.invert()
         assertTrue(southHemi.rectBound.lng.isFull)
-        assertEquals(southHemi.rectBound.lat, R1Interval(-S2.M_PI_2, 0.0))
+        assertTrue(southHemi.rectBound.lat.approxEquals(R1Interval(-S2.M_PI_2, 0.0), 2e-15))
     }
 
     fun testAreaCentroid() {

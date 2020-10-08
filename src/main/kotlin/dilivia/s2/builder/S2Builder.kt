@@ -1,24 +1,9 @@
 package dilivia.s2.builder
 
-/*
-import com.google.common.geometry.S2
-import com.google.common.geometry.S2.DBL_EPSILON
-import dilivia.s2.Assertions.assertGE
-import dilivia.s2.Assertions.assertLE
+
 import dilivia.s2.S1Angle
-import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2CellId
-import dilivia.s2.S2EdgeCrossings
-import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Error
-import dilivia.s2.S2Point
-import dilivia.s2.index.MutableS2ShapeIndex
-import dilivia.s2.region.S2Loop
-import dilivia.s2.region.S2Polygon
-import dilivia.s2.region.S2Polyline
-import dilivia.s2.shape.S2Shape
-import dilivia.s2.sin
-import kotlin.math.acos
 
 //
 // This class is a replacement for S2PolygonBuilder.  Once all clients have
@@ -175,306 +160,306 @@ typealias LabelSetId = Int;
 //    ...
 //  }
 class S2Builder(val options: Options = Options()) {
+    /*
+        //////////// Parameters
 
-    //////////// Parameters
+        // The maximum distance (inclusive) that a vertex can move when snapped,
+        // equal to S1ChordAngle(options_.snap_function().snap_radius()).
+        private var siteSnapRadiusCa: S1ChordAngle
 
-    // The maximum distance (inclusive) that a vertex can move when snapped,
-    // equal to S1ChordAngle(options_.snap_function().snap_radius()).
-    private var siteSnapRadiusCa: S1ChordAngle
+        // The maximum distance (inclusive) that an edge can move when snapping to a
+        // snap site.  It can be slightly larger than the site snap radius when
+        // edges are being split at crossings.
+        private var edgeSnapRadiusCa: S1ChordAngle
 
-    // The maximum distance (inclusive) that an edge can move when snapping to a
-    // snap site.  It can be slightly larger than the site snap radius when
-    // edges are being split at crossings.
-    private var edgeSnapRadiusCa: S1ChordAngle
+        private var maxEdgeDeviation: S1Angle
+        private var edgeSiteQueryRadiusCa: S1ChordAngle
+        private var minEdgeLengthToSplitCa: S1ChordAngle
 
-    private var maxEdgeDeviation: S1Angle
-    private var edgeSiteQueryRadiusCa: S1ChordAngle
-    private var minEdgeLengthToSplitCa: S1ChordAngle
+        private var minSiteSeparation: S1Angle
+        private var minSiteSeparationCa: S1ChordAngle
+        private var minEdgeSiteSeparationCa: S1ChordAngle
+        private var minEdgeSiteSeparationCaLimit: S1ChordAngle
 
-    private var minSiteSeparation: S1Angle
-    private var minSiteSeparationCa: S1ChordAngle
-    private var minEdgeSiteSeparationCa: S1ChordAngle
-    private var minEdgeSiteSeparationCaLimit: S1ChordAngle
+        private var maxAdjacentSiteSeparationCa: S1ChordAngle
 
-    private var maxAdjacentSiteSeparationCa: S1ChordAngle
+        // The squared sine of the edge snap radius.  This is equivalent to the snap
+        // radius (squared) for distances measured through the interior of the
+        // sphere to the plane containing an edge.  This value is used only when
+        // interpolating new points along edges (see GetSeparationSite).
+        private var edgeSnapRadiusSin2: Double
 
-    // The squared sine of the edge snap radius.  This is equivalent to the snap
-    // radius (squared) for distances measured through the interior of the
-    // sphere to the plane containing an edge.  This value is used only when
-    // interpolating new points along edges (see GetSeparationSite).
-    private var edgeSnapRadiusSin2: Double
+        // A copy of the argument to Build().
+        private var error: S2Error = S2Error(code = S2Error.OK, text = "")
 
-    // A copy of the argument to Build().
-    private var error: S2Error = S2Error(code = S2Error.OK, text = "")
+        // True if snapping was requested.  This is true if either snap_radius() is
+        // positive, or split_crossing_edges() is true (which implicitly requests
+        // snapping to ensure that both crossing edges are snapped to the
+        // intersection point).
+        private var snappingRequested: Boolean
 
-    // True if snapping was requested.  This is true if either snap_radius() is
-    // positive, or split_crossing_edges() is true (which implicitly requests
-    // snapping to ensure that both crossing edges are snapped to the
-    // intersection point).
-    private var snappingRequested: Boolean
+        // Initially false, and set to true when it is discovered that at least one
+        // input vertex or edge does not meet the output guarantees (e.g., that
+        // vertices are separated by at least snap_function.min_vertex_separation).
+        private var snappingNeeded: Boolean
 
-    // Initially false, and set to true when it is discovered that at least one
-    // input vertex or edge does not meet the output guarantees (e.g., that
-    // vertices are separated by at least snap_function.min_vertex_separation).
-    private var snappingNeeded: Boolean
+        //////////// Input Data /////////////
 
-    //////////// Input Data /////////////
+        // A flag indicating whether label_set_ has been modified since the last
+        // time label_set_id_ was computed.
+        private var labelSetModified: Boolean
 
-    // A flag indicating whether label_set_ has been modified since the last
-    // time label_set_id_ was computed.
-    private var labelSetModified: Boolean
+        private var inputVertices: MutableList<S2Point> = mutableListOf()
+        private var inputEdges: MutableList<InputEdge> = mutableListOf()
 
-    private var inputVertices: MutableList<S2Point> = mutableListOf()
-    private var inputEdges: MutableList<InputEdge> = mutableListOf()
+        private var layers: MutableList<Layer> = mutableListOf()
+        private var layerOptions: MutableList<GraphOptions> = mutableListOf()
+        private var layerBegins: MutableList<InputEdgeId> = mutableListOf()
+        private var layerIsFullPolygonPredicates: MutableList<IsFullPolygonPredicate> = mutableListOf()
 
-    private var layers: MutableList<Layer> = mutableListOf()
-    private var layerOptions: MutableList<GraphOptions> = mutableListOf()
-    private var layerBegins: MutableList<InputEdgeId> = mutableListOf()
-    private var layerIsFullPolygonPredicates: MutableList<IsFullPolygonPredicate> = mutableListOf()
+        private var labelSetIds: MutableList<LabelSetId> = mutableListOf()
+        private var label_set_lexicon: IdSetLexicon
 
-    private var labelSetIds: MutableList<LabelSetId> = mutableListOf()
-    private var label_set_lexicon: IdSetLexicon
+        // The current set of labels (represented as a stack).
+        private var labelSet: MutableList<Label> = mutableListOf()
 
-    // The current set of labels (represented as a stack).
-    private var labelSet: MutableList<Label> = mutableListOf()
+        // The LabelSetId corresponding to the current label set, computed on demand
+        // (by adding it to label_set_lexicon()).
+        private var labelSetId: LabelSetId
 
-    // The LabelSetId corresponding to the current label set, computed on demand
-    // (by adding it to label_set_lexicon()).
-    private var labelSetId: LabelSetId
+        ////////////// Data for Snapping and Simplifying //////////////
 
-    ////////////// Data for Snapping and Simplifying //////////////
+        // The number of sites specified using ForceVertex().  These sites are
+        // always at the beginning of the sites_ vector.
+        private var num_forced_sites: SiteId
 
-    // The number of sites specified using ForceVertex().  These sites are
-    // always at the beginning of the sites_ vector.
-    private var num_forced_sites: SiteId
+        // The set of snapped vertex locations ("sites").
+        private var sites: MutableList<S2Point>
 
-    // The set of snapped vertex locations ("sites").
-    private var sites: MutableList<S2Point>
-
-    // A map from each input edge to the set of sites "nearby" that edge,
-    // defined as the set of sites that are candidates for snapping and/or
-    // avoidance.  Note that compact_array will inline up to two sites, which
-    // usually takes care of the vast majority of edges.  Sites are kept sorted
-    // by increasing distance from the origin of the input edge.
-    //
-    // Once snapping is finished, this field is discarded unless edge chain
-    // simplification was requested, in which case instead the sites are
-    // filtered by removing the ones that each edge was snapped to, leaving only
-    // the "sites to avoid" (needed for simplification).
-    private var edgeSites: MutableList<MutableList<SiteId>> = mutableListOf()
-
-    // Initializes an S2Builder with the given options.
-    init {
-        val snapFunction = options.snapFunction
-        val snapRadius = snapFunction.snapRadius()
-        assertLE(snapRadius, SnapFunction.kMaxSnapRadius)
-
-        // Convert the snap radius to an S1ChordAngle.  This is the "true snap
-        // radius" used when evaluating exact predicates (s2predicates.h).
-        siteSnapRadiusCa = S1ChordAngle(snapRadius)
-
-        // When split_crossing_edges() is true, we need to use a larger snap radius
-        // for edges than for vertices to ensure that both edges are snapped to the
-        // edge intersection location.  This is because the computed intersection
-        // point is not exact; it may be up to kIntersectionError away from its true
-        // position.  The computed intersection point might then be snapped to some
-        // other vertex up to snap_radius away.  So to ensure that both edges are
-        // snapped to a common vertex, we need to increase the snap radius for edges
-        // to at least the sum of these two values (calculated conservatively).
-        var edgeSnapRadius = snapRadius
-        if (!options.simplifyEdgeChains) {
-            edgeSnapRadiusCa = siteSnapRadiusCa
-        } else {
-            edgeSnapRadius += S2EdgeCrossings.kIntersectionError
-            edgeSnapRadiusCa = roundUp(edgeSnapRadius)
-        }
-        snappingRequested = (edgeSnapRadius > S1Angle.zero)
-
-        // Compute the maximum distance that a vertex can be separated from an
-        // edge while still affecting how that edge is snapped.
-        maxEdgeDeviation = snapFunction.maxEdgeDeviation()
-        edgeSiteQueryRadiusCa = S1ChordAngle(maxEdgeDeviation + snapFunction.minEdgeVertexSeparation())
-
-        // Compute the maximum edge length such that even if both endpoints move by
-        // the maximum distance allowed (i.e., snap_radius), the center of the edge
-        // will still move by less than max_edge_deviation().  This saves us a lot
-        // of work since then we don't need to check the actual deviation.
-        minEdgeLengthToSplitCa = S1ChordAngle.radians(2 * acos(sin(snapRadius) / sin(maxEdgeDeviation)))
-
-        // If the condition below is violated, then AddExtraSites() needs to be
-        // modified to check that snapped edges pass on the same side of each "site
-        // to avoid" as the input edge.  Currently it doesn't need to do this
-        // because the condition below guarantees that if the snapped edge passes on
-        // the wrong side of the site then it is also too close, which will cause a
-        // separation site to be added.
+        // A map from each input edge to the set of sites "nearby" that edge,
+        // defined as the set of sites that are candidates for snapping and/or
+        // avoidance.  Note that compact_array will inline up to two sites, which
+        // usually takes care of the vast majority of edges.  Sites are kept sorted
+        // by increasing distance from the origin of the input edge.
         //
-        // Currently max_edge_deviation() is at most 1.1 * snap_radius(), whereas
-        // min_edge_vertex_separation() is at least 0.219 * snap_radius() (based on
-        // S2CellIdSnapFunction, which is currently the worst case).
-        assertLE(snapFunction.maxEdgeDeviation(),snapFunction.snapRadius() + snapFunction.minEdgeVertexSeparation())
+        // Once snapping is finished, this field is discarded unless edge chain
+        // simplification was requested, in which case instead the sites are
+        // filtered by removing the ones that each edge was snapped to, leaving only
+        // the "sites to avoid" (needed for simplification).
+        private var edgeSites: MutableList<MutableList<SiteId>> = mutableListOf()
 
-        // To implement idempotency, we check whether the input geometry could
-        // possibly be the output of a previous S2Builder invocation.  This involves
-        // testing whether any site/site or edge/site pairs are too close together.
-        // This is done using exact predicates, which require converting the minimum
-        // separation values to an S1ChordAngle.
-        minSiteSeparation = snapFunction.minVertexSeparation()
-        minSiteSeparationCa = S1ChordAngle(minSiteSeparation)
-        minEdgeSiteSeparationCa = S1ChordAngle(snapFunction.minEdgeVertexSeparation())
+        // Initializes an S2Builder with the given options.
+        init {
+            val snapFunction = options.snapFunction
+            val snapRadius = snapFunction.snapRadius()
+            assertLE(snapRadius, SnapFunction.kMaxSnapRadius)
 
-        // This is an upper bound on the distance computed by S2ClosestPointQuery
-        // where the true distance might be less than min_edge_site_separation_ca_.
-        minEdgeSiteSeparationCaLimit = addPointToEdgeError(minEdgeSiteSeparationCa)
+            // Convert the snap radius to an S1ChordAngle.  This is the "true snap
+            // radius" used when evaluating exact predicates (s2predicates.h).
+            siteSnapRadiusCa = S1ChordAngle(snapRadius)
 
-        // Compute the maximum possible distance between two sites whose Voronoi
-        // regions touch.  (The maximum radius of each Voronoi region is
-        // edge_snap_radius_.)  Then increase this bound to account for errors.
-        maxAdjacentSiteSeparationCa = addPointToPointError(roundUp(edgeSnapRadius * 2.0))
+            // When split_crossing_edges() is true, we need to use a larger snap radius
+            // for edges than for vertices to ensure that both edges are snapped to the
+            // edge intersection location.  This is because the computed intersection
+            // point is not exact; it may be up to kIntersectionError away from its true
+            // position.  The computed intersection point might then be snapped to some
+            // other vertex up to snap_radius away.  So to ensure that both edges are
+            // snapped to a common vertex, we need to increase the snap radius for edges
+            // to at least the sum of these two values (calculated conservatively).
+            var edgeSnapRadius = snapRadius
+            if (!options.simplifyEdgeChains) {
+                edgeSnapRadiusCa = siteSnapRadiusCa
+            } else {
+                edgeSnapRadius += S2EdgeCrossings.kIntersectionError
+                edgeSnapRadiusCa = roundUp(edgeSnapRadius)
+            }
+            snappingRequested = (edgeSnapRadius > S1Angle.zero)
 
-        // Finally, we also precompute sin^2(edge_snap_radius), which is simply the
-        // squared distance between a vertex and an edge measured perpendicular to
-        // the plane containing the edge, and increase this value by the maximum
-        // error in the calculation to compare this distance against the bound.
-        val d = sin(edgeSnapRadius)
-        edgeSnapRadiusSin2 = d * d;
-        edgeSnapRadiusSin2 += ((9.5 * d + 2.5 + 2 * S2.M_SQRT3) * d + 9 * DBL_EPSILON) * DBL_EPSILON
+            // Compute the maximum distance that a vertex can be separated from an
+            // edge while still affecting how that edge is snapped.
+            maxEdgeDeviation = snapFunction.maxEdgeDeviation()
+            edgeSiteQueryRadiusCa = S1ChordAngle(maxEdgeDeviation + snapFunction.minEdgeVertexSeparation())
 
-        // Initialize the current label set.
-        labelSetId = label_set_lexicon.EmptySetId();
-        labelSetModified = false
+            // Compute the maximum edge length such that even if both endpoints move by
+            // the maximum distance allowed (i.e., snap_radius), the center of the edge
+            // will still move by less than max_edge_deviation().  This saves us a lot
+            // of work since then we don't need to check the actual deviation.
+            minEdgeLengthToSplitCa = S1ChordAngle.radians(2 * acos(sin(snapRadius) / sin(maxEdgeDeviation)))
 
-        // If snapping was requested, we try to determine whether the input geometry
-        // already meets the output requirements.  This is necessary for
-        // idempotency, and can also save work.  If we discover any reason that the
-        // input geometry needs to be modified, snapping_needed_ is set to true.
-        snappingNeeded = false;
-    }
+            // If the condition below is violated, then AddExtraSites() needs to be
+            // modified to check that snapped edges pass on the same side of each "site
+            // to avoid" as the input edge.  Currently it doesn't need to do this
+            // because the condition below guarantees that if the snapped edge passes on
+            // the wrong side of the site then it is also too close, which will cause a
+            // separation site to be added.
+            //
+            // Currently max_edge_deviation() is at most 1.1 * snap_radius(), whereas
+            // min_edge_vertex_separation() is at least 0.219 * snap_radius() (based on
+            // S2CellIdSnapFunction, which is currently the worst case).
+            assertLE(snapFunction.maxEdgeDeviation(),snapFunction.snapRadius() + snapFunction.minEdgeVertexSeparation())
 
-  // Indicates whether the input edges are undirected.  Typically this is
-  // specified for each output layer (e.g., s2builderutil::S2PolygonLayer).
-  //
-  // Directed edges are preferred, since otherwise the output is ambiguous.
-  // For example, output polygons may be the *inverse* of the intended result
-  // (e.g., a polygon intended to represent the world's oceans may instead
-  // represent the world's land masses).  Directed edges are also somewhat
-  // more efficient.
-  //
-  // However even with undirected edges, most S2Builder layer types try to
-  // preserve the input edge direction whenever possible.  Generally, edges
-  // are reversed only when it would yield a simpler output.  For example,
-  // S2PolygonLayer assumes that polygons created from undirected edges should
-  // cover at most half of the sphere.  Similarly, S2PolylineVectorLayer
-  // assembles edges into as few polylines as possible, even if this means
-  // reversing some of the "undirected" input edges.
-  //
-  // For shapes with interiors, directed edges should be oriented so that the
-  // interior is to the left of all edges.  This means that for a polygon with
-  // holes, the outer loops ("shells") should be directed counter-clockwise
-  // while the inner loops ("holes") should be directed clockwise.  Note that
-  // S2Builder::AddPolygon() follows this convention automatically.
-  enum class EdgeType { DIRECTED, UNDIRECTED };
+            // To implement idempotency, we check whether the input geometry could
+            // possibly be the output of a previous S2Builder invocation.  This involves
+            // testing whether any site/site or edge/site pairs are too close together.
+            // This is done using exact predicates, which require converting the minimum
+            // separation values to an S1ChordAngle.
+            minSiteSeparation = snapFunction.minVertexSeparation()
+            minSiteSeparationCa = S1ChordAngle(minSiteSeparation)
+            minEdgeSiteSeparationCa = S1ChordAngle(snapFunction.minEdgeVertexSeparation())
 
-  data class Options(
+            // This is an upper bound on the distance computed by S2ClosestPointQuery
+            // where the true distance might be less than min_edge_site_separation_ca_.
+            minEdgeSiteSeparationCaLimit = addPointToEdgeError(minEdgeSiteSeparationCa)
 
-          // Sets the desired snap function.  The snap function is copied
-          // internally, so you can safely pass a temporary object.
-          //
-          // Note that if your input data includes vertices that were created using
-          // S2::GetIntersection(), then you should use a "snap_radius" of
-          // at least S2::kIntersectionSnapRadius, e.g. by calling
-          //
-          //  options.set_snap_function(s2builderutil::IdentitySnapFunction(
-          //      S2::kIntersectionSnapRadius));
-          //
-          // DEFAULT: s2builderutil::IdentitySnapFunction(S1Angle::Zero())
-          // [This does no snapping and preserves all input vertices exactly.]
-          val snapFunction: SnapFunction = IdentitySnapFunction(S1Angle.zero),
+            // Compute the maximum possible distance between two sites whose Voronoi
+            // regions touch.  (The maximum radius of each Voronoi region is
+            // edge_snap_radius_.)  Then increase this bound to account for errors.
+            maxAdjacentSiteSeparationCa = addPointToPointError(roundUp(edgeSnapRadius * 2.0))
 
-          // If true, then detect all pairs of crossing edges and eliminate them by
-          // adding a new vertex at their intersection point.
-          //
-          // When this option is true, the effective snap_radius() for edges is
-          // increased by S2::kIntersectionError to take into account the
-          // additional error when computing intersection points.  In other words,
-          // edges may move by up to snap_radius() + S2::kIntersectionError.
-          //
-          // Undirected edges should always be used when the output is a polygon,
-          // since splitting a directed loop at a self-intersection converts it into
-          // two loops that don't define a consistent interior according to the
-          // "interior is on the left" rule.  (On the other hand, it is fine to use
-          // directed edges when defining a polygon *mesh* because in that case the
-          // input consists of sibling edge pairs.)
-          //
-          // Self-intersections can also arise when importing data from a 2D
-          // projection.  You can minimize this problem by subdividing the input
-          // edges so that the S2 edges (which are geodesics) stay close to the
-          // original projected edges (which are curves on the sphere).  This can
-          // be done using s2builderutil::EdgeSplitter(), for example.
-          //
-          // DEFAULT: false
-          val splitCrossingEdges: Boolean = false
+            // Finally, we also precompute sin^2(edge_snap_radius), which is simply the
+            // squared distance between a vertex and an edge measured perpendicular to
+            // the plane containing the edge, and increase this value by the maximum
+            // error in the calculation to compare this distance against the bound.
+            val d = sin(edgeSnapRadius)
+            edgeSnapRadiusSin2 = d * d;
+            edgeSnapRadiusSin2 += ((9.5 * d + 2.5 + 2 * S2.M_SQRT3) * d + 9 * DBL_EPSILON) * DBL_EPSILON
 
-          // If true, then simplify the output geometry by replacing nearly straight
-          // chains of short edges with a single long edge.
-          //
-          // The combined effect of snapping and simplifying will not change the
-          // input by more than the guaranteed tolerances (see the list documented
-          // with the SnapFunction class).  For example, simplified edges are
-          // guaranteed to pass within snap_radius() of the *original* positions of
-          // all vertices that were removed from that edge.  This is a much tighter
-          // guarantee than can be achieved by snapping and simplifying separately.
-          //
-          // However, note that this option does not guarantee idempotency.  In
-          // other words, simplifying geometry that has already been simplified once
-          // may simplify it further.  (This is unavoidable, since tolerances are
-          // measured with respect to the original geometry, which is no longer
-          // available when the geometry is simplified a second time.)
-          //
-          // When the output consists of multiple layers, simplification is
-          // guaranteed to be consistent: for example, edge chains are simplified in
-          // the same way across layers, and simplification preserves topological
-          // relationships between layers (e.g., no crossing edges will be created).
-          // Note that edge chains in different layers do not need to be identical
-          // (or even have the same number of vertices, etc) in order to be
-          // simplified together.  All that is required is that they are close
-          // enough together so that the same simplified edge can meet all of their
-          // individual snapping guarantees.
-          //
-          // Note that edge chains are approximated as parametric curves rather than
-          // point sets.  This means that if an edge chain backtracks on itself (for
-          // example, ABCDEFEDCDEFGH) then such backtracking will be preserved to
-          // within snap_radius() (for example, if the preceding point were all in a
-          // straight line then the edge chain would be simplified to ACFCFH, noting
-          // that C and F have degree > 2 and therefore can't be simplified away).
-          //
-          // Simplified edges are assigned all labels associated with the edges of
-          // the simplified chain.
-          //
-          // For this option to have any effect, a SnapFunction with a non-zero
-          // snap_radius() must be specified.  Also note that vertices specified
-          // using ForceVertex are never simplified away.
-          //
-          // DEFAULT: false
-          val simplifyEdgeChains: Boolean = false,
+            // Initialize the current label set.
+            labelSetId = label_set_lexicon.EmptySetId();
+            labelSetModified = false
 
-          // If true, then snapping occurs only when the input geometry does not
-          // already meet the S2Builder output guarantees (see the SnapFunction
-          // class description for details).  This means that if all input vertices
-          // are at snapped locations, all vertex pairs are separated by at least
-          // min_vertex_separation(), and all edge-vertex pairs are separated by at
-          // least min_edge_vertex_separation(), then no snapping is done.
-          //
-          // If false, then all vertex pairs and edge-vertex pairs closer than
-          // "snap_radius" will be considered for snapping.  This can be useful, for
-          // example, if you know that your geometry contains errors and you want to
-          // make sure that features closer together than "snap_radius" are merged.
-          //
-          // This option is automatically turned off by simplify_edge_chains(),
-          // since simplifying edge chains is never guaranteed to be idempotent.
-          //
-          // DEFAULT: true
-          val idempotent: Boolean = true
-  )
+            // If snapping was requested, we try to determine whether the input geometry
+            // already meets the output requirements.  This is necessary for
+            // idempotency, and can also save work.  If we discover any reason that the
+            // input geometry needs to be modified, snapping_needed_ is set to true.
+            snappingNeeded = false;
+        }
+    */
+    // Indicates whether the input edges are undirected.  Typically this is
+    // specified for each output layer (e.g., s2builderutil::S2PolygonLayer).
+    //
+    // Directed edges are preferred, since otherwise the output is ambiguous.
+    // For example, output polygons may be the *inverse* of the intended result
+    // (e.g., a polygon intended to represent the world's oceans may instead
+    // represent the world's land masses).  Directed edges are also somewhat
+    // more efficient.
+    //
+    // However even with undirected edges, most S2Builder layer types try to
+    // preserve the input edge direction whenever possible.  Generally, edges
+    // are reversed only when it would yield a simpler output.  For example,
+    // S2PolygonLayer assumes that polygons created from undirected edges should
+    // cover at most half of the sphere.  Similarly, S2PolylineVectorLayer
+    // assembles edges into as few polylines as possible, even if this means
+    // reversing some of the "undirected" input edges.
+    //
+    // For shapes with interiors, directed edges should be oriented so that the
+    // interior is to the left of all edges.  This means that for a polygon with
+    // holes, the outer loops ("shells") should be directed counter-clockwise
+    // while the inner loops ("holes") should be directed clockwise.  Note that
+    // S2Builder::AddPolygon() follows this convention automatically.
+    enum class EdgeType { DIRECTED, UNDIRECTED };
+
+    data class Options(
+
+            // Sets the desired snap function.  The snap function is copied
+            // internally, so you can safely pass a temporary object.
+            //
+            // Note that if your input data includes vertices that were created using
+            // S2::GetIntersection(), then you should use a "snap_radius" of
+            // at least S2::kIntersectionSnapRadius, e.g. by calling
+            //
+            //  options.set_snap_function(s2builderutil::IdentitySnapFunction(
+            //      S2::kIntersectionSnapRadius));
+            //
+            // DEFAULT: s2builderutil::IdentitySnapFunction(S1Angle::Zero())
+            // [This does no snapping and preserves all input vertices exactly.]
+            val snapFunction: SnapFunction = IdentitySnapFunction(S1Angle.zero),
+
+            // If true, then detect all pairs of crossing edges and eliminate them by
+            // adding a new vertex at their intersection point.
+            //
+            // When this option is true, the effective snap_radius() for edges is
+            // increased by S2::kIntersectionError to take into account the
+            // additional error when computing intersection points.  In other words,
+            // edges may move by up to snap_radius() + S2::kIntersectionError.
+            //
+            // Undirected edges should always be used when the output is a polygon,
+            // since splitting a directed loop at a self-intersection converts it into
+            // two loops that don't define a consistent interior according to the
+            // "interior is on the left" rule.  (On the other hand, it is fine to use
+            // directed edges when defining a polygon *mesh* because in that case the
+            // input consists of sibling edge pairs.)
+            //
+            // Self-intersections can also arise when importing data from a 2D
+            // projection.  You can minimize this problem by subdividing the input
+            // edges so that the S2 edges (which are geodesics) stay close to the
+            // original projected edges (which are curves on the sphere).  This can
+            // be done using s2builderutil::EdgeSplitter(), for example.
+            //
+            // DEFAULT: false
+            val splitCrossingEdges: Boolean = false,
+
+            // If true, then simplify the output geometry by replacing nearly straight
+            // chains of short edges with a single long edge.
+            //
+            // The combined effect of snapping and simplifying will not change the
+            // input by more than the guaranteed tolerances (see the list documented
+            // with the SnapFunction class).  For example, simplified edges are
+            // guaranteed to pass within snap_radius() of the *original* positions of
+            // all vertices that were removed from that edge.  This is a much tighter
+            // guarantee than can be achieved by snapping and simplifying separately.
+            //
+            // However, note that this option does not guarantee idempotency.  In
+            // other words, simplifying geometry that has already been simplified once
+            // may simplify it further.  (This is unavoidable, since tolerances are
+            // measured with respect to the original geometry, which is no longer
+            // available when the geometry is simplified a second time.)
+            //
+            // When the output consists of multiple layers, simplification is
+            // guaranteed to be consistent: for example, edge chains are simplified in
+            // the same way across layers, and simplification preserves topological
+            // relationships between layers (e.g., no crossing edges will be created).
+            // Note that edge chains in different layers do not need to be identical
+            // (or even have the same number of vertices, etc) in order to be
+            // simplified together.  All that is required is that they are close
+            // enough together so that the same simplified edge can meet all of their
+            // individual snapping guarantees.
+            //
+            // Note that edge chains are approximated as parametric curves rather than
+            // point sets.  This means that if an edge chain backtracks on itself (for
+            // example, ABCDEFEDCDEFGH) then such backtracking will be preserved to
+            // within snap_radius() (for example, if the preceding point were all in a
+            // straight line then the edge chain would be simplified to ACFCFH, noting
+            // that C and F have degree > 2 and therefore can't be simplified away).
+            //
+            // Simplified edges are assigned all labels associated with the edges of
+            // the simplified chain.
+            //
+            // For this option to have any effect, a SnapFunction with a non-zero
+            // snap_radius() must be specified.  Also note that vertices specified
+            // using ForceVertex are never simplified away.
+            //
+            // DEFAULT: false
+            val simplifyEdgeChains: Boolean = false,
+
+            // If true, then snapping occurs only when the input geometry does not
+            // already meet the S2Builder output guarantees (see the SnapFunction
+            // class description for details).  This means that if all input vertices
+            // are at snapped locations, all vertex pairs are separated by at least
+            // min_vertex_separation(), and all edge-vertex pairs are separated by at
+            // least min_edge_vertex_separation(), then no snapping is done.
+            //
+            // If false, then all vertex pairs and edge-vertex pairs closer than
+            // "snap_radius" will be considered for snapping.  This can be useful, for
+            // example, if you know that your geometry contains errors and you want to
+            // make sure that features closer together than "snap_radius" are merged.
+            //
+            // This option is automatically turned off by simplify_edge_chains(),
+            // since simplifying edge chains is never guaranteed to be idempotent.
+            //
+            // DEFAULT: true
+            val idempotent: Boolean = true
+    )
 
   // For output layers that represent polygons, there is an ambiguity inherent
   // in spherical geometry that does not exist in planar geometry.  Namely, if
@@ -497,9 +482,9 @@ class S2Builder(val options: Options = Options()) {
   // This predicate is only needed by layers that are assembled into polygons.
   // It is not used by other layer types.
   interface IsFullPolygonPredicate {
-      fun test(g: Graph, error: S2Error): Boolean
+      //fun test(g: Graph, error: S2Error): Boolean
   }
-
+/*
   // Starts a new output layer.  This method must be called before adding any
   // edges to the S2Builder.  You may call this method multiple times to build
   // multiple geometric objects that are snapped to the same set of sites.
@@ -859,8 +844,6 @@ class S2Builder(val options: Options = Options()) {
             return ca.plusError(S2EdgeDistances.getUpdateMinDistanceMaxError(ca))
         }
     }
-
+*/
 }
 
-
- */

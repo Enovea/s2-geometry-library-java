@@ -65,7 +65,7 @@ import dilivia.s2.S2Point
 //    of degeneracies).  This means that there exists a continuous
 //    deformation from the input to the output such that no vertex
 //    crosses an edge.
-abstract class SnapFunction {
+abstract class SnapFunction : Cloneable {
 
     // The maximum distance that vertices can move when snapped.
     //
@@ -75,7 +75,7 @@ abstract class SnapFunction {
     // edge is zero, unless split_crossing_edges() is true.
     //
     // REQUIRES: snap_radius() <= kMaxSnapRadius
-    abstract fun snapRadius(): S1Angle
+    abstract val snapRadius: S1Angle
 
     // The maximum distance that the center of an edge can move when snapped.
     // This is slightly larger than "snap_radius" because when a geodesic edge
@@ -97,8 +97,8 @@ abstract class SnapFunction {
         // actual edge deviation exceeds the limit; in practice, splitting is rare
         // even with long edges.)  Note that it is always possible to split edges
         // when max_edge_deviation() is exceeded; see MaybeAddExtraSites().
-        Assertions.assertLE(snapRadius(), kMaxSnapRadius)
-        return snapRadius() * kMaxEdgeDeviationRatio
+        Assertions.assertLE(snapRadius, kMaxSnapRadius)
+        return snapRadius * kMaxEdgeDeviationRatio
     }
 
     // The guaranteed minimum distance between vertices in the output.
@@ -118,7 +118,7 @@ abstract class SnapFunction {
     abstract fun snapPoint(point: S2Point): S2Point
 
     // Returns a deep copy of this SnapFunction.
-    abstract fun clone(): SnapFunction
+    abstract override fun clone(): SnapFunction
 
     companion object {
         private val kMaxEdgeDeviationRatio = 1.1
