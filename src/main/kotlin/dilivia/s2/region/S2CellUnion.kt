@@ -4,7 +4,7 @@
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -22,6 +22,7 @@ import dilivia.s2.*
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLE
+import dilivia.s2.Assertions.assertNE
 import mu.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min
@@ -39,9 +40,8 @@ import kotlin.math.min
 // S2CellUnions are not required to be normalized, but certain operations will
 // return different results if they are not (e.g., Contains(S2CellUnion).)
 //
-// S2CellUnion is movable and copyable.
 
-class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>, verbatim: Boolean) : S2Region, Iterable<S2CellId> by cellIds {
+class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>, verbatim: Boolean) : S2Region, Iterable<S2CellId> by cellIds, ListIterable<S2CellId> {
 
     private val logger = KotlinLogging.logger {  }
 
@@ -60,7 +60,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
     //
     // A cell union containing a single S2CellId may be constructed like this:
     //
-    //     S2CellUnion example({cell_id});
+    //     S2CellUnion example({cell_id})
     constructor(cellIds: List<S2CellId>) : this(cellIds.toMutableList(), false)
     constructor(vararg cellId: S2CellId): this(cellId.toMutableList(), false)
 
@@ -81,7 +81,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
     fun isValid(): Boolean {
         if (numCells() > 0 && !cellId(0).isValid()) return false
         for (i in 1 until numCells()) {
-            if (!cellId(i).isValid()) return false;
+            if (!cellId(i).isValid()) return false
             if (cellId(i - 1).rangeMax() >= cellId(i).rangeMin()) return false
         }
         return true
@@ -165,9 +165,9 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         // TODO(ericv): A divide-and-conquer or alternating-skip-search
         // approach may be sigificantly faster in both the average and worst case.
         for (y_id in y) {
-            if (!contains(y_id)) return false;
+            if (!contains(y_id)) return false
         }
-        return true;
+        return true
     }
 
     // Returns true if this cell union intersects the given other cell union.
@@ -183,7 +183,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     // Returns the union of the two given cell unions.
     fun union(y: S2CellUnion): S2CellUnion {
-        return S2CellUnion(cellIds + y.cellIds);
+        return S2CellUnion(cellIds + y.cellIds)
     }
 
     // Returns the intersection of the two given cell unions.
@@ -211,7 +211,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
                     // Advance "j" to the first cell possibly contained by *i.
                     j = y.cellIds.lowerBound(j + 1, y.cellIds.size, imin)
                     // y.cellIds.subList(j + 1, y.cellIds.size).indexOfFirst { cellId -> cellId >= imin }
-                    // std::lower_bound(j + 1, y.end(), imin);
+                    // std::lower_bound(j + 1, y.end(), imin)
                     if (j == -1) j = y.cellIds.size
                     // The previous cell *(j-1) may now contain *i.
                     if ( cellI <= y.cellIds[j - 1].rangeMax()) --j
@@ -225,7 +225,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
                 else {
                     i = cellIds.lowerBound(i + 1, cellIds.size, jmin)
                     // cellIds.subList(i + 1, cellIds.size).indexOfFirst { cellId -> cellId >= jmin }
-                    // std::lower_bound(i + 1, x.end(), jmin);
+                    // std::lower_bound(i + 1, x.end(), jmin)
                     //if (i == -1) i = cellIds.size
                     if ( cellJ <= cellIds[i - 1].rangeMax()) --i
                 }
@@ -257,7 +257,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
     fun intersection(id: S2CellId): S2CellUnion {
         val result = mutableListOf<S2CellId>()
         if (contains(id)) {
-            result.add(id);
+            result.add(id)
         } else {
             var i = cellIds.lowerBound(0, cellIds.size, id.rangeMin())
             val idMax = id.rangeMax()
@@ -280,7 +280,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         // The output is normalized as long as the first argument is normalized.
         val difference = S2CellUnion(result, true)
         assert { difference.isNormalized() || !isNormalized() }
-        return difference;
+        return difference
     }
 
     // Expands the cell union by adding a buffer of cells at "expand_level"
@@ -299,12 +299,12 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
     // easier to use.
     fun expand(expand_level: Int) {
         val output = mutableListOf<S2CellId>()
-        val level_lsb = S2CellId.lsbForLevel(expand_level)
+        val levelLsb = S2CellId.lsbForLevel(expand_level)
         var i = numCells()
         while (--i >= 0) {
             var id = cellId(i)
-            if (id.lsb() < level_lsb) {
-                id = id.parent(expand_level);
+            if (id.lsb() < levelLsb) {
+                id = id.parent(expand_level)
                 // Optimization: skip over any cells contained by this one.  This is
                 // especially important when very small regions are being expanded.
                 while (i > 0 && id.contains(cellId(i - 1))) --i
@@ -337,9 +337,9 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         if (radius_level == 0 && min_radius.radians > S2CellMetrics.kMinWidth.getValue(0)) {
             // The requested expansion is greater than the width of a face cell.
             // The easiest way to handle this is to expand twice.
-            expand(0);
+            expand(0)
         }
-        expand(min(min_level + max_level_diff, radius_level));
+        expand(min(min_level + max_level_diff, radius_level))
     }
 
     // The number of leaf cells covered by the union.
@@ -373,13 +373,13 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         for (id in this) {
             area += S2Cell(id).approxArea()
         }
-        return area;
+        return area
     }
 
     // Calculates this cell union's area in steradians by summing the exact area
     // for each contained cell, using the Exact method from the S2Cell class.
     fun exactArea(): Double {
-        var area = 0.0;
+        var area = 0.0
         for (id in this) {
             area += S2Cell(id).exactArea()
         }
@@ -389,7 +389,9 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     fun cellIds(): List<S2CellId> = cellIds.toList()
 
-    fun listIterator(): ListIterator<S2CellId> = cellIds.listIterator()
+    override fun listIterator(): ListIterator<S2CellId> = cellIds.listIterator()
+
+    override fun listIterator(index: Int): ListIterator<S2CellId> = cellIds.listIterator(index)
 
     fun begin(): S2CellId = cellIds.first()
 
@@ -462,11 +464,70 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     operator fun get(i: Int): S2CellId = cellId(i)
     override fun toString(): String {
-        return "S2CellUnion(cellIds=$cellIds)"
+        return "S2CellUnion(cellIds=${cellIds.joinToString("\n", prefix = "\n", postfix = "\n")})"
     }
 
 
     companion object {
+
+
+        fun getIntersection(x: List<S2CellId>, y: List<S2CellId>, out: MutableList<S2CellId>) {
+            assertNE(out, x)
+            assertNE(out, y)
+            assert { x.isSorted() }
+            assert { y.isSorted() }
+
+            // This is a fairly efficient calculation that uses binary search to skip
+            // over sections of both input vectors.  It takes logarithmic time if all the
+            // cells of "x" come before or after all the cells of "y" in S2CellId order.
+
+            out.clear()
+            val iIter = x.listIterator()
+            var i = if (iIter.hasNext()) iIter.next() else null
+            val jIter = y.listIterator()
+            var j = if(jIter.hasNext()) jIter.next() else null
+            while (i != null && j != null) {
+                val imin = i.rangeMin()
+                val jmin = j.rangeMin()
+                if (imin > jmin) {
+                    // Either j->contains(*i) or the two cells are disjoint.
+                    if (i <= j.rangeMax()) {
+                        out.add(i)
+                        i = if (iIter.hasNext()) iIter.next() else null
+                    } else {
+                        // Advance "j" to the first cell possibly contained by *i.
+                        while (j != null && j < imin) {
+                            j = if (jIter.hasNext()) jIter.next() else null
+                        }
+                        // The previous cell *(j-1) may now contain *i.
+                        if (jIter.hasPrevious() && i <= y[jIter.previousIndex()].rangeMax()) j = jIter.previous()
+                    }
+                } else if (jmin > imin) {
+                    // Identical to the code above with "i" and "j" reversed.
+                    if (j <= i.rangeMax()) {
+                        out.add(j)
+                        j = if (jIter.hasNext()) jIter.next() else null
+                    } else {
+                        while (i != null && i < jmin) {
+                            i = if (iIter.hasNext()) iIter.next() else null
+                        }
+                        if (iIter.hasPrevious() && j <= x[iIter.previousIndex()].rangeMax()) i = iIter.previous()
+                    }
+                } else {
+                    // "i" and "j" have the same range_min(), so one contains the other.
+                    if (i < j) {
+                        out.add(i)
+                        i = if (iIter.hasNext()) iIter.next() else null
+                    }
+                    else {
+                        out.add(j)
+                        j = if (jIter.hasNext()) jIter.next() else null
+                    }
+                }
+            }
+            // The output is generated in sorted order.
+            assert { out.isSorted() }
+        }
 
         // Converts a vector of uint64 to a vector of S2CellIds.
         private fun toS2CellIds(ids: List<ULong>): List<S2CellId> = ids.map { S2CellId(it) }
@@ -496,7 +557,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         fun fromIds(ids: List<ULong>): S2CellUnion = S2CellUnion(toS2CellIds(ids))
 
         // Constructs a cell union for the whole sphere.
-        fun wholeSphere(): S2CellUnion = S2CellUnion((0..5).map { S2CellId.fromFace(it) });
+        fun wholeSphere(): S2CellUnion = S2CellUnion((0..5).map { S2CellId.fromFace(it) })
 
         // Constructs a cell union from S2CellIds that have already been normalized
         // (typically because they were extracted from another S2CellUnion).
@@ -508,7 +569,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         fun fromNormalized(cellIds: List<S2CellId>): S2CellUnion {
             val result = S2CellUnion(cellIds)
             assert(result.isNormalized())
-            return result;
+            return result
         }
 
         // Constructs a cell union from a vector of sorted, non-overlapping
@@ -522,9 +583,9 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         //
         // REQUIRES: "cell_ids" satisfies the requirements of IsValid().
         fun fromVerbatim(cellIds: List<S2CellId>): S2CellUnion {
-            val result = S2CellUnion(cellIds.toMutableList(), true);
+            val result = S2CellUnion(cellIds.toMutableList(), true)
             assert { result.isValid() }
-            return result;
+            return result
         }
 
         // Constructs a cell union that corresponds to a continuous range of cell
@@ -569,7 +630,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
             for (id in cellIds) {
                 currentId = id
                 // Check whether this cell is contained by the previous cell.
-                if (out > 0 && cellIds[out - 1].contains(currentId)) continue;
+                if (out > 0 && cellIds[out - 1].contains(currentId)) continue
 
                 // Discard any previous cells contained by this cell.
                 while (out > 0 && currentId.contains(cellIds[out - 1])) --out
@@ -578,10 +639,10 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
                 // single parent cell.
                 while (out >= 3 && areSiblings(cellIds[out - 3], cellIds[out - 2], cellIds[out - 1], currentId)) {
                     // Replace four children by their parent cell.
-                    currentId = currentId.parent();
-                    out -= 3;
+                    currentId = currentId.parent()
+                    out -= 3
                 }
-                cellIds[out++] = currentId;
+                cellIds[out++] = currentId
             }
             if (cellIds.size == out) return false
             while (cellIds.size > out) cellIds.removeLast()
@@ -633,8 +694,8 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
                 var child = cell.childBegin()
                 for (i in 0..3) {
                     cell_ids.addAll(getDifferenceInternal(child, y))
-                    if (i == 3) break;  // Avoid unnecessary next() computation.
-                    child = child.next();
+                    if (i == 3) break  // Avoid unnecessary next() computation.
+                    child = child.next()
                 }
             }
             return cell_ids

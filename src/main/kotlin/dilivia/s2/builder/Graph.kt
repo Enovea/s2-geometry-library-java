@@ -1,9 +1,16 @@
 package dilivia.s2.builder
 
+import dilivia.s2.Assertions
+import dilivia.s2.Assertions.assertEQ
+import dilivia.s2.Assertions.assertLT
+import dilivia.s2.Assertions.assertTrue
 import dilivia.s2.S2Error
 import dilivia.s2.S2Point
+import dilivia.s2.S2Predicates
+import dilivia.s2.assign
 import dilivia.s2.builder.S2Builder.IsFullPolygonPredicate
-/*
+import dilivia.s2.remove
+
 // Identifies a vertex in the graph.  Vertices are numbered sequentially
 // starting from zero.
 typealias VertexId = Int
@@ -14,6 +21,14 @@ typealias EdgeLoop = List<EdgeId>
 typealias DirectedComponent = List<EdgeLoop>
 typealias UndirectedComponent = Pair<List<EdgeLoop>, List<EdgeLoop>>
 typealias EdgePolyline = List<EdgeId>
+
+// A struct for sorting the incoming and outgoing edges around a vertex "v0".
+data class VertexEdge(
+    val incoming: Boolean,       // Is this an incoming edge to "v0"?
+    val index: EdgeId,           // Index of this edge in "edges_" or "in_edge_ids"
+    val endpoint: VertexId,      // The other (not "v0") endpoint of this edge
+    val rank: Int                // Secondary key for edges with the same endpoint
+)
 
 // An S2Builder::Graph represents a collection of snapped edges that is passed
 // to a Layer for assembly.  (Example layers include polygons, polylines, and
@@ -62,34 +77,34 @@ class Graph(
         //   - a vector indexed by EdgeId that allows access to the set of
         //     InputEdgeIds that were mapped to the given edge, by looking up the
         //     returned value (an InputEdgeIdSetId) in "input_edge_id_set_lexicon".
-        val input_edge_id_set_ids: List<InputEdgeIdSetId> = emptyList(),
+        val inputEdgeIdSetIds: List<InputEdgeIdSetId> = emptyList(),
 
         // "input_edge_id_set_lexicon":
         //   - a class that maps an InputEdgeIdSetId to a set of InputEdgeIds.
-        val input_edge_id_set_lexicon: IdSetLexicon,
+        val inputEdgeIdSetLexicon: IdSetLexicon,
 
         // "label_set_ids":
         //   - a vector indexed by InputEdgeId that allows access to the set of
         //     labels that were attached to the given input edge, by looking up the
         //     returned value (a LabelSetId) in the "label_set_lexicon".
-        val label_set_ids: List<LabelSetId> = emptyList(),
+        val labelSetIds: List<LabelSetId> = emptyList(),
 
-        val label_set_lexicon: IdSetLexicon,
+        val labelSetLexicon: IdSetLexicon,
 
         val is_full_polygon_predicate: IsFullPolygonPredicate
 
 ) {
 
-    private var num_vertices: Int = -1;  // Cached to avoid division by 24.
+    private var numVertices: Int = -1;  // Cached to avoid division by 24.
 
     // Returns the number of vertices in the graph.
-    fun num_vertices(): VertexId = num_vertices
+    fun numVertices(): VertexId = numVertices
 
     // Returns the vertex at the given index.
     fun vertex(v: VertexId): S2Point = vertices[v]
 
     // Returns the total number of edges in the graph.
-    fun num_edges(): EdgeId = edges.size
+    fun numEdges(): EdgeId = edges.size
 
     // Returns the endpoints of the given edge (as vertex indices).
     fun edge(e: EdgeId): Edge = edges[e]
@@ -97,7 +112,12 @@ class Graph(
     // Returns a vector of edge ids sorted in lexicographic order by
     // (destination, origin).  All of the incoming edges to each vertex form a
     // contiguous subrange of this ordering.
-    fun getInEdgeIds(): List<EdgeId> = TODO()
+    fun getInEdgeIds(): MutableList<EdgeId> {
+        val inEdgeIds = mutableListOf<EdgeId>()
+        repeat(numEdges()) { i -> inEdgeIds.add(i) }
+        inEdgeIds.sortWith { ai, bi -> if (stableLessThan(reverse(edge(ai)), reverse(edge(bi)), ai, bi)) -1 else 1 }
+        return inEdgeIds
+    }
 
     // Given a graph such that every directed edge has a sibling, returns a map
     // from EdgeId to the sibling EdgeId.  This method is identical to
@@ -109,14 +129,43 @@ class Graph(
     // REQUIRES: An option is chosen that guarantees sibling pairs:
     //     (options.sibling_pairs() == { REQUIRE, CREATE } ||
     //      options.edge_type() == UNDIRECTED)
-    fun getSiblingMap(): List<EdgeId> = TODO()
+    fun getSiblingMap(): List<EdgeId> {
+        val inEdgeIds = getInEdgeIds()
+        makeSiblingMap(inEdgeIds)
+        return inEdgeIds
+    }
 
     // Like GetSiblingMap(), but constructs the map starting from the vector of
     // incoming edge ids returned by GetInEdgeIds().  (This operation is a no-op
     // except unless undirected degenerate edges are present, in which case such
     // edges are grouped together in pairs to satisfy the requirement that every
     // edge must have a sibling edge.)
-    fun makeSiblingMap(in_edge_ids: MutableList<EdgeId>): Unit = TODO()
+    fun makeSiblingMap(in_edge_ids: MutableList<EdgeId>): Unit {
+        Assertions.assert {
+            (options.sibling_pairs == SiblingPairs.REQUIRE ||
+                    options.sibling_pairs == SiblingPairs.CREATE ||
+                    options.edge_type == S2Builder.EdgeType.UNDIRECTED)
+        }
+        repeat(numEdges()) { e -> Assertions.assert { (edge(e) == reverse(edge(in_edge_ids[e]))) } }
+        if (options.edge_type == S2Builder.EdgeType.DIRECTED) return
+        if (options.degenerate_edges == DegenerateEdges.DISCARD) return
+
+        var e = 0
+        while (e < numEdges()) {
+            val v = edge(e).first
+            if (edge(e).second == v) {
+                assertLT(e + 1, numEdges())
+                assertEQ(edge(e + 1).first, v)
+                assertEQ(edge(e + 1).second, v)
+                assertEQ(in_edge_ids[e], e)
+                assertEQ(in_edge_ids[e + 1], e + 1)
+                in_edge_ids[e] = e + 1
+                in_edge_ids[e + 1] = e
+                ++e
+            }
+            ++e
+        }
+    }
 
     // Returns the set of input edge ids that were snapped to the given
     // edge.  ("Input edge ids" are assigned to input edges sequentially in
@@ -138,45 +187,50 @@ class Graph(
     //    SiblingPairs::CREATE have an empty set of input edge ids.  (However
     //    you can use a LabelFetcher to retrieve the set of labels associated
     //    with both edges of a given sibling pair.)
-    fun input_edge_ids(e: EdgeId): IdSetLexicon.IdSet = input_edge_id_set_lexicon.id_set(input_edge_id_set_ids[e])
+    fun inputEdgeIds(e: EdgeId): IdSetLexicon.IdSet = inputEdgeIdSetLexicon.idSet(inputEdgeIdSetIds[e])
 
     // Low-level method that returns an integer representing the entire set of
     // input edge ids that were snapped to the given edge.  The elements of the
     // IdSet can be accessed using input_edge_id_set_lexicon().
-    fun input_edge_id_set_id(e: EdgeId): InputEdgeIdSetId = input_edge_id_set_ids[e]
-
-    // Returns a mapping from an InputEdgeIdSetId to a set of input edge ids.
-    fun input_edge_id_set_lexicon(): IdSetLexicon = TODO()
+    fun inputEdgeIdSetId(e: EdgeId): InputEdgeIdSetId = inputEdgeIdSetIds[e]
 
     // Returns the minimum input edge id that was snapped to this edge, or -1 if
     // no input edges were snapped (see SiblingPairs::CREATE).  This is
     // useful for layers that wish to preserve the input edge ordering as much
     // as possible (e.g., to ensure idempotency).
-    fun min_input_edge_id(e: EdgeId): InputEdgeId = TODO()
+    fun minInputEdgeId(e: EdgeId): InputEdgeId {
+        val idSet = inputEdgeIds(e)
+        return if (idSet.size() == 0) kNoInputEdgeId else idSet.values.first()
+    }
 
     // Returns a vector containing the minimum input edge id for every edge.
     // If an edge has no input ids, kNoInputEdgeId is used.
-    fun getMinInputEdgeIds(): List<InputEdgeId> = TODO()
+    fun getMinInputEdgeIds(): List<InputEdgeId> {
+        val minInputIds = mutableListOf<InputEdgeId>()
+        repeat(numEdges()) { e -> minInputIds[e] = minInputEdgeId(e) }
+        return minInputIds
+    }
 
     // Returns a vector of EdgeIds sorted by minimum input edge id.  This is an
     // approximation of the input edge ordering.x
-    fun getInputEdgeOrder(min_input_edge_ids: List<InputEdgeId>): List<EdgeId> = TODO()
+    fun getInputEdgeOrder(min_input_edge_ids: List<InputEdgeId>): List<EdgeId> {
+        val order = mutableListOf<EdgeId>()
+        min_input_edge_ids.indices.forEach { i -> order.add(i) }
+        order.sortWith { a: EdgeId, b: EdgeId ->
+            if (min_input_edge_ids[a] == min_input_edge_ids[b]) a.compareTo(b)
+            else min_input_edge_ids[a].compareTo(min_input_edge_ids[b])
+        }
+        return order;
+    }
 
     // Returns the set of labels associated with a given input edge.  Example:
     //   for (Label label : g.labels(input_edge_id)) { ... }
-    fun labels(e: InputEdgeId): IdSetLexicon.IdSet =  label_set_lexicon.id_set(label_set_ids[e]);
+    fun labels(e: InputEdgeId): IdSetLexicon.IdSet = labelSetLexicon.idSet(labelSetIds[e])
 
     // Low-level method that returns an integer representing the set of
     // labels associated with a given input edge.  The elements of
     // the IdSet can be accessed using label_set_lexicon().
-    fun label_set_id(e: InputEdgeId): LabelSetId = label_set_ids[e]
-
-    // Low-level method that returns a vector where each element represents the
-    // set of labels associated with a particular output edge.
-    fun label_set_ids(): List<LabelSetId> = TODO()
-
-    // Returns a mapping from a LabelSetId to a set of labels.
-    fun label_set_lexicon(): IdSetLexicon = TODO()
+    fun labelSetId(e: InputEdgeId): LabelSetId = labelSetIds[e]
 
     // Convenience method that calls is_full_polygon_predicate() to determine
     // whether a graph that consists only of polygon degeneracies represents the
@@ -201,7 +255,62 @@ class Graph(
     //
     // REQUIRES: options.degenerate_edges() == {DISCARD, DISCARD_EXCESS}
     // REQUIRES: options.edge_type() == DIRECTED
-    fun getDirectedLoops(loop_type: LoopType, loops: MutableList<EdgeLoop>, error: S2Error): Boolean = TODO()
+    fun getDirectedLoops(loop_type: LoopType, loops: MutableList<EdgeLoop>, error: S2Error): Boolean {
+        assertTrue(options.degenerate_edges == DegenerateEdges.DISCARD ||
+                options.degenerate_edges == DegenerateEdges.DISCARD_EXCESS)
+        assertTrue(options.edge_type == S2Builder.EdgeType.DIRECTED)
+
+        val leftTurnMap = mutableListOf<EdgeId>()
+        if (!getLeftTurnMap(getInEdgeIds(), leftTurnMap, error)) return false
+        val minInputIds = getMinInputEdgeIds()
+
+        // If we are breaking loops at repeated vertices, we maintain a map from
+        // VertexId to its position in "path".
+        val path_index = mutableListOf<Int>()
+        if (loop_type == LoopType.SIMPLE) repeat(numVertices) { path_index.add(-1) }
+
+        // Visit edges in arbitrary order, and try to build a loop from each edge.
+        val path = mutableListOf<EdgeId>()
+        for (start in 0 until numEdges()) {
+            if (leftTurnMap[start] < 0) continue
+
+            // Build a loop by making left turns at each vertex until we return to
+            // "start".  We use "left_turn_map" to keep track of which edges have
+            // already been visited by setting its entries to -1 as we go along.  If
+            // we are building vertex cycles, then whenever we encounter a vertex that
+            // is already part of the path, we "peel off" a loop by removing those
+            // edges from the path so far.
+            var e = start
+            var next: EdgeId
+            while (leftTurnMap[e] >= 0) {
+                path.add(e)
+                next = leftTurnMap[e];
+                leftTurnMap[e] = -1;
+                if (loop_type == LoopType.SIMPLE) {
+                    path_index[edge(e).first] = path.size - 1
+                    val loop_start = path_index[edge(e).second]
+                    if (loop_start < 0) continue
+                    // Peel off a loop from the path.
+                    val loop = path.subList(loop_start, path.size)
+                    while (path.size > loop_start) path.removeLast()
+                    path.remove(loop_start, path.size)
+                    for (e2 in loop) path_index[edge(e2).first] = -1
+                    canonicalizeLoopOrder(minInputIds, loop)
+                    loops.add(loop)
+                }
+                e = next
+            }
+            if (loop_type == LoopType.SIMPLE) {
+                assertTrue(path.isEmpty())  // Invariant.
+            } else {
+                canonicalizeLoopOrder(minInputIds, path)
+                loops.add(path)
+                path.clear()
+            }
+        }
+        canonicalizeVectorOrder(minInputIds, loops)
+        return true
+    }
 
     // Returns a map "m" that maps each edge e=(v0,v1) to the following outgoing
     // edge around "v1" in clockwise order.  (This corresponds to making a "left
@@ -233,7 +342,101 @@ class Graph(
     // is not possible to make a left turn will have its entry set to -1.
     //
     // "in_edge_ids" should be equal to GetInEdgeIds() or GetSiblingMap().
-    fun getLeftTurnMap(in_edge_ids: List<EdgeId>, left_turn_map: MutableList<EdgeId>, error: S2Error): Boolean = TODO()
+    fun getLeftTurnMap(in_edge_ids: List<EdgeId>, left_turn_map: MutableList<EdgeId>, error: S2Error): Boolean {
+        left_turn_map.assign(numEdges(), -1)
+        if (numEdges() == 0) return true
+
+        // Declare vectors outside the loop to avoid reallocating them each time.
+        val v0_edges = mutableListOf<VertexEdge>()
+        val e_in = mutableListOf<EdgeId>()
+        val e_out = mutableListOf<EdgeId>()
+
+        // Walk through the two sorted arrays of edges (outgoing and incoming) and
+        // gather all the edges incident to each vertex.  Then we sort those edges
+        // and add an entry to the left turn map from each incoming edge to the
+        // immediately following outgoing edge in clockwise order.
+        var out = 0
+        var input = 0
+        var out_edge = edge(out)
+        var in_edge = edge(in_edge_ids[input])
+        val sentinel = Edge(numVertices(), numVertices())
+        var min_edge = min(out_edge, reverse(in_edge))
+        while (min_edge != sentinel) {
+            // Gather all incoming and outgoing edges around vertex "v0".
+            val v0: VertexId = min_edge.first
+            while (min_edge.first == v0) {
+                val v1: VertexId = min_edge.second
+                // Count the number of copies of "min_edge" in each direction.
+                val out_begin = out
+                var in_begin = input
+                while (out_edge == min_edge) {
+                out_edge = if(++out == numEdges()) sentinel else edge(out)
+            }
+                while (reverse(in_edge) == min_edge) {
+                    in_edge = if(++input == numEdges()) sentinel else edge(in_edge_ids[input])
+                }
+                if (v0 != v1) {
+                    addVertexEdges(out_begin, out, in_begin, input, v1, v0_edges)
+                } else {
+                    // Each degenerate edge becomes its own loop.
+                    while (in_begin < input) {
+                        left_turn_map[in_begin] = in_begin
+                        ++in_begin
+                    }
+                }
+
+                min_edge = min(out_edge, reverse(in_edge))
+            }
+            if (v0_edges.isEmpty()) continue
+
+            // Sort the edges in clockwise order around "v0".
+            val min_endpoint: VertexId = v0_edges.first().endpoint
+
+            val v0VertexEdge = v0_edges.removeFirst()
+            v0_edges.sortWith { a: VertexEdge, b: VertexEdge ->
+                when {
+                    a.endpoint == b.endpoint -> if(a.rank < b.rank) -1 else 1
+                    a.endpoint == min_endpoint -> -1
+                    b.endpoint == min_endpoint -> 1
+                    !S2Predicates.orderedCCW(vertex(a.endpoint), vertex(b.endpoint), vertex(min_endpoint), vertex(v0)) -> -1
+                    else -> 1
+                }
+            }
+            v0_edges.add(0, v0VertexEdge)
+
+            // Match incoming with outgoing edges.  We do this by keeping a stack of
+            // unmatched incoming edges.  We also keep a stack of outgoing edges with
+            // no previous incoming edge, and match these at the end by wrapping
+            // around circularly to the start of the edge ordering.
+            for (e in v0_edges) {
+                when {
+                    e.incoming -> e_in.add(in_edge_ids[e.index])
+                    e_in.isNotEmpty() -> {
+                        left_turn_map[e_in.last()] = e.index
+                        e_in.removeLast()
+                    }
+                    else ->  e_out.add(e.index)  // Matched below.
+                }
+            }
+            // Pair up additional edges using the fact that the ordering is circular.
+            e_out.reverse()
+            while (e_out.isNotEmpty() && e_in.isNotEmpty()) {
+                left_turn_map[e_in.last()] = e_out.last()
+                e_out.removeLast()
+                e_in.removeLast()
+            }
+            // We only need to process unmatched incoming edges, since we are only
+            // responsible for creating left turn map entries for those edges.
+            if (e_in.isNotEmpty() && error.isOk()) {
+                error.code = S2Error.BUILDER_EDGES_DO_NOT_FORM_LOOPS
+                error.text = "Given edges do not form loops (indegree != outdegree)"
+            }
+            e_in.clear()
+            e_out.clear()
+            v0_edges.clear()
+        }
+        return error.isOk()
+    }
 
     companion object {
 
@@ -257,7 +460,7 @@ class Graph(
         // input edge id of each chains's first edge.  This ensures that when the
         // output consists of multiple loops or polylines, they are sorted in the
         // same order as they were provided in the input.
-        fun canonicalizeVectorOrder(min_input_ids: List<InputEdgeId>, chains: MutableList<MutableList<EdgeId>>): Unit = TODO()
+        fun canonicalizeVectorOrder(min_input_ids: List<InputEdgeId>, chains: List<List<EdgeId>>): Unit = TODO()
 
         ////////////////////////////////////////////////////////////////////////
         //////////////// Helper Functions for Creating Graphs //////////////////
@@ -313,6 +516,44 @@ class Graph(
             return ai < bi  // Stable sort.
         }
 
+        // Given a set of duplicate outgoing edges (v0, v1) and a set of duplicate
+        // incoming edges (v1, v0), this method assigns each edge an integer "rank" so
+        // that the edges are sorted in a consistent order with respect to their
+        // orderings around "v0" and "v1".  Usually there is just one edge, in which
+        // case this is easy.  Sometimes there is one edge in each direction, in which
+        // case the outgoing edge is always ordered before the incoming edge.
+        //
+        // In general, we allow any number of duplicate edges in each direction, in
+        // which case outgoing edges are interleaved with incoming edges so as to
+        // create as many degenerate (two-edge) loops as possible.  In order to get a
+        // consistent ordering around "v0" and "v1", we move forwards through the list
+        // of outgoing edges and backwards through the list of incoming edges.  If
+        // there are more incoming edges, they go at the beginning of the ordering,
+        // while if there are more outgoing edges then they go at the end.
+        //
+        // For example, suppose there are 2 edges "a,b" from "v0" to "v1", and 4 edges
+        // "w,x,y,z" from "v1" to "v0".  Using lower/upper case letters to represent
+        // incoming/outgoing edges, the clockwise ordering around v0 would be zyAxBw,
+        // and the clockwise ordering around v1 would be WbXaYZ.  (Try making a
+        // diagram with each edge as a separate arc.)
+        private fun addVertexEdges(out_begin: EdgeId, out_end: EdgeId, in_begin: EdgeId, in_end: EdgeId, v1: VertexId, v0_edges: MutableList<VertexEdge>) {
+            var rank = 0
+            var in_end = in_end
+            var out_begin = out_begin
+            // Any extra incoming edges go at the beginning of the ordering.
+            while (in_end - in_begin > out_end - out_begin) {
+                v0_edges.add(VertexEdge(true, --in_end, v1, rank++))
+            }
+            // Next we interleave as many outgoing and incoming edges as possible.
+            while (in_end > in_begin) {
+                v0_edges.add(VertexEdge(false, out_begin++, v1, rank++))
+                v0_edges.add(VertexEdge(true, --in_end, v1, rank++))
+            }
+            // Any extra outgoing edges to at the end of the ordering.
+            while (out_end > out_begin) {
+                v0_edges.add(VertexEdge(false, out_begin++, v1, rank++))
+            }
+        }
     }
 
     // A helper class for VertexOutMap that represents the outgoing edges
@@ -324,7 +565,7 @@ class Graph(
         }
 
     }
-
+/*
     // A helper class for VertexOutMap that represents the outgoing edge *ids*
     // from a given vertex.
     class VertexOutEdgeIds
@@ -362,6 +603,8 @@ class Graph(
         EdgeId begin_, end_;
     };
 
+
+
     // A class that maps vertices to their outgoing edge ids.  Example usage:
     //   VertexOutMap out(g);
     //   for (Graph::EdgeId e : out.edge_ids(v)) { ... }
@@ -372,8 +615,9 @@ class Graph(
 
         // Return the edges (or edge ids) between a specific pair of vertices.
         fun edges(v: VertexId): VertexOutEdges {
-            return VertexOutEdges(edgeBegins[v], edgeBegins[v+1])
+            return VertexOutEdges(edgeBegins[v], edgeBegins[v + 1])
         }
+
         fun edges(v0: VertexId, v1: VertexId): VertexOutEdges {
             TODO()
             // auto range = std ::equal_range(edges_->data()+edge_begins_[v0],
@@ -480,7 +724,7 @@ class Graph(
         EdgeType edge_type_;
         std::vector<EdgeId> sibling_map_;
     };
-
+ */
     // Indicates whether loops should be simple cycles (no repeated vertices) or
     // circuits (which allow repeated vertices but not repeated edges).  In
     // terms of how the loops are built, this corresponds to closing off a loop
@@ -589,6 +833,3 @@ class Graph(
     fun getPolylines(polyline_type: PolylineType): List<EdgePolyline> = TODO()
 
 }
-
-
- */

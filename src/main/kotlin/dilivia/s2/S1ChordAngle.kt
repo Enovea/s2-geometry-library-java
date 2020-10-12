@@ -161,7 +161,7 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         }
     }
 
-    operator fun minus(b: S1ChordAngle): S1ChordAngle {
+    open operator fun minus(b: S1ChordAngle): S1ChordAngle {
         // See comments in operator+().
         check(!isSpecial())
         require(!b.isSpecial())

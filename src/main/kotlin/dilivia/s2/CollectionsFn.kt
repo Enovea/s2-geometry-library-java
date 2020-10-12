@@ -18,6 +18,14 @@
  */
 package dilivia.s2
 
+import java.util.ArrayList
+import kotlin.math.min
+
+interface ListIterable<T> {
+    fun listIterator(): ListIterator<T>
+    fun listIterator(index: Int): ListIterator<T>
+}
+
 fun <T> List<T>.isSorted(): Boolean where T:Comparable<T>{
     if (this.size <= 1) return true
 
@@ -32,7 +40,7 @@ fun <T> List<T>.isSorted(): Boolean where T:Comparable<T>{
     return true
 }
 
-fun <T: Comparable<T>> List<T>.lowerBound(beginIdx: Int, endIdx: Int, value: T): Int {
+fun <V, T: Comparable<V>> ListIterable<T>.lowerBound(beginIdx: Int, endIdx: Int, value: V): Int {
     var i = endIdx
     val listIterator = this.listIterator(beginIdx).withIndex()
     while (listIterator.hasNext()) {
@@ -49,7 +57,42 @@ fun <T: Comparable<T>> List<T>.lowerBound(beginIdx: Int, endIdx: Int, value: T):
     return i
 }
 
-fun <T: Comparable<T>> List<T>.upperBound(beginIdx: Int, endIdx: Int, value: T): Int {
+fun <V, T: Comparable<V>> List<T>.lowerBound(beginIdx: Int = 0, endIdx: Int = this.size, value: V): Int {
+    var i = endIdx
+    val listIterator = this.listIterator(beginIdx).withIndex()
+    while (listIterator.hasNext()) {
+        val element = listIterator.next()
+        val index = element.index + beginIdx
+        if (index >= endIdx) {
+            break
+        }
+        if (element.value >= value) {
+            i = index
+            break
+        }
+    }
+    return i
+}
+
+fun <V, T: Comparable<V>> ListIterable<T>.upperBound(beginIdx: Int = 0, endIdx: Int, value: V): Int {
+    var i = endIdx
+    val listIterator = this.listIterator(beginIdx).withIndex()
+    while (listIterator.hasNext()) {
+        val element = listIterator.next()
+        val index = element.index + beginIdx
+        if (index >= endIdx) {
+            break
+        }
+        if (element.value > value) {
+            i = index
+            break
+        }
+    }
+    return i
+}
+
+
+fun <V, T: Comparable<V>> List<T>.upperBound(beginIdx: Int = 0, endIdx: Int = this.size, value: V): Int {
     var i = endIdx
     val listIterator = this.listIterator(beginIdx).withIndex()
     while (listIterator.hasNext()) {
@@ -80,3 +123,30 @@ fun IntArray.upperBound(beginIdx: Int, endIdx: Int, value: Int): Int {
     }
     return i
 }
+
+fun <T> MutableList<T>.remove(fromIndex: Int, toIndex: Int) {
+    require(fromIndex >= 0 && fromIndex <= this.lastIndex)
+    require(toIndex >= fromIndex && toIndex <= this.size)
+    val nbElementToRemove = toIndex - fromIndex
+    repeat(nbElementToRemove) { this.removeAt(fromIndex) }
+}
+
+fun <T> MutableList<T>.assign(size: Int, value: T) {
+    if (this is ArrayList) {
+        this.ensureCapacity(size)
+    }
+    (0 until min(this.size, size)).forEach { i -> this[i] = value }
+    while(this.size < size) this.add(value)
+    while (this.size > size) this.removeLast()
+}
+
+
+fun <T : Comparable<T>> MutableList<T>.sortAndRemoveDuplicates() {
+    this.sort()
+    var idx = this.lastIndex - 1
+    while(idx > 1) {
+        if (this[idx] == this[idx - 1]) this.removeAt(idx)
+        --idx
+    }
+}
+

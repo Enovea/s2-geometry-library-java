@@ -39,6 +39,12 @@ typealias SiteId = Int
 
 // Defines an output edge.
 typealias Edge = Pair<SiteId, SiteId>
+fun min(edge1: Edge, edge2: Edge) = when {
+    edge1.first < edge2.first -> edge1
+    edge1.first > edge2.first -> edge2
+    edge1.second > edge2.second -> edge2
+    else -> edge1
+}
 
 // Identifies an output edge.
 typealias EdgeId = Int
@@ -482,7 +488,7 @@ class S2Builder(val options: Options = Options()) {
   // This predicate is only needed by layers that are assembled into polygons.
   // It is not used by other layer types.
   interface IsFullPolygonPredicate {
-      //fun test(g: Graph, error: S2Error): Boolean
+      fun test(g: Graph, error: S2Error): Boolean
   }
 /*
   // Starts a new output layer.  This method must be called before adding any

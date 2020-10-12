@@ -1,5 +1,5 @@
 package dilivia.s2.region
-/*
+
 import com.google.common.geometry.S2.M_PI
 import dilivia.s2.Assertions
 import dilivia.s2.Assertions.assert
@@ -14,10 +14,13 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2LatLngRect
 import dilivia.s2.S2LatLngRectBounder
 import dilivia.s2.S2Point
+import dilivia.s2.builder.IdentitySnapFunction
 import dilivia.s2.builder.S2Builder
+import dilivia.s2.builder.S2CellIdSnapFunction
 import dilivia.s2.builder.SnapFunction
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.S2BooleanOperation
 import dilivia.s2.index.S2CrossingEdgePairsScanner
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.S2Shape
@@ -486,10 +489,11 @@ class S2Polygon() : S2Region {
     // polygon is empty or full, return S1Angle::Infinity() (since the polygon
     // has no boundary).  "x" should be unit length.
     fun getDistanceToBoundary(x: S2Point): S1Angle {
-        S2ClosestEdgeQuery::Options options;
-        options.set_include_interiors(false);
-        S2ClosestEdgeQuery::PointTarget t (x);
-        return S2ClosestEdgeQuery(index, options).getDistance(t).toAngle()
+        TODO()
+//        S2ClosestEdgeQuery::Options options;
+//        options.set_include_interiors(false);
+//        S2ClosestEdgeQuery::PointTarget t (x);
+//        return S2ClosestEdgeQuery(index, options).getDistance(t).toAngle()
     }
 
     // If the given point is contained by the polygon, return it.  Otherwise
@@ -505,12 +509,13 @@ class S2Polygon() : S2Region {
     // the polygon is empty or full, return the input argument (since the
     // polygon has no boundary).  "x" should be unit length.
     fun projectToBoundary(x: S2Point): S2Point {
-        S2ClosestEdgeQuery::Options options;
-        options.set_include_interiors(false);
-        S2ClosestEdgeQuery q (&index_, options);
-        S2ClosestEdgeQuery::PointTarget target (x);
-        S2ClosestEdgeQuery::Result edge = q . FindClosestEdge (&target);
-        return q.Project(x, edge);
+        TODO()
+//        S2ClosestEdgeQuery::Options options;
+//        options.set_include_interiors(false);
+//        S2ClosestEdgeQuery q (&index_, options);
+//        S2ClosestEdgeQuery::PointTarget target (x);
+//        S2ClosestEdgeQuery::Result edge = q . FindClosestEdge (&target);
+//        return q.Project(x, edge);
     }
 
     // Return true if this polygon contains the given other polygon, i.e.
@@ -540,7 +545,8 @@ class S2Polygon() : S2Region {
         // distinguish between the full and empty polygons).
         if (isEmpty() && b.isFull()) return false
 
-        return S2BooleanOperation::Contains(index_, b->index_)
+        TODO()
+//        return S2BooleanOperation::Contains(index_, b->index_)
     }
 
     // Returns true if this polgyon (A) approximately contains the given other
@@ -566,7 +572,8 @@ class S2Polygon() : S2Region {
         // distinguish between the full and empty polygons).
         if (isFull() && b.isFull()) return true
 
-        return S2BooleanOperation::Intersects(index_, b->index_);
+        TODO()
+//        return S2BooleanOperation::Intersects(index_, b->index_);
     }
 
     // Returns true if this polgyon (A) and the given polygon (B) are
@@ -702,7 +709,8 @@ class S2Polygon() : S2Region {
 
     fun initToIntersection(a: S2Polygon, b: S2Polygon, snap_function: SnapFunction): S2Error {
         if (!a.bound.intersects(b.bound)) return S2Error(code = S2Error.OK)
-        return initToOperation(S2BooleanOperation.OpType.INTERSECTION, snap_function, a, b)
+        TODO()
+//        return initToOperation(S2BooleanOperation.OpType.INTERSECTION, snap_function, a, b)
     }
 
     fun initToUnion(a: S2Polygon, b: S2Polygon) {
@@ -710,7 +718,8 @@ class S2Polygon() : S2Region {
     }
 
     fun initToUnion(a: S2Polygon, b: S2Polygon, snap_function: SnapFunction): S2Error {
-        return initToOperation(S2BooleanOperation.OpType.UNION, snap_function, a, b)
+        TODO()
+//        return initToOperation(S2BooleanOperation.OpType.UNION, snap_function, a, b)
     }
 
     fun initToDifference(a: S2Polygon, b: S2Polygon) {
@@ -718,7 +727,8 @@ class S2Polygon() : S2Region {
     }
 
     fun initToDifference(a: S2Polygon, b: S2Polygon, snap_function: SnapFunction): S2Error {
-        return initToOperation(S2BooleanOperation.OpType.DIFFERENCE, snap_function, a, b)
+        TODO()
+//        return initToOperation(S2BooleanOperation.OpType.DIFFERENCE, snap_function, a, b)
     }
 
     fun initToSymmetricDifference(a: S2Polygon, b: S2Polygon) {
@@ -726,7 +736,8 @@ class S2Polygon() : S2Region {
     }
 
     fun initToSymmetricDifference(a: S2Polygon, b: S2Polygon, snap_function: SnapFunction): S2Error {
-        return initToOperation(S2BooleanOperation.OpType.SYMMETRIC_DIFFERENCE, snap_function, a, b)
+        TODO()
+//        return initToOperation(S2BooleanOperation.OpType.SYMMETRIC_DIFFERENCE, snap_function, a, b)
     }
 
     // Convenience functions that use the IdentitySnapFunction with the given
@@ -753,33 +764,35 @@ class S2Polygon() : S2Region {
     // result should be the full polygon rather than the empty one based on the
     // area of the input polygon.  (See comments in InitToApproxIntersection.)
     fun initFromBuilder(a: S2Polygon, builder: S2Builder) {
-        builder.startLayer(S2PolygonLayer(this))
-        builder.addPolygon(a)
-        val error = builder.build()
-        if (!error.isOk()) {
-            logger.error { "Could not build polygon: $error" }
-        }
-        // If there are no loops, check whether the result should be the full
-        // polygon rather than the empty one.  (See InitToApproxIntersection.)
-        if (numLoops() == 0) {
-            if (a.bound.area > 2 * M_PI && a.getArea() > 2 * M_PI) invert()
-        }
+        TODO()
+//        builder.startLayer(S2PolygonLayer(this))
+//        builder.addPolygon(a)
+//        val error = builder.build()
+//        if (!error.isOk()) {
+//            logger.error { "Could not build polygon: $error" }
+//        }
+//        // If there are no loops, check whether the result should be the full
+//        // polygon rather than the empty one.  (See InitToApproxIntersection.)
+//        if (numLoops() == 0) {
+//            if (a.bound.area > 2 * M_PI && a.getArea() > 2 * M_PI) invert()
+//        }
     }
 
     fun operationWithPolyline(op_type: S2BooleanOperation.OpType, snap_function: SnapFunction, a: S2Polyline): List<S2Polyline> {
-        S2BooleanOperation::Options options;
-        options.set_snap_function(snap_function);
-        val result = mutableListOf<S2Polyline>()
-        S2PolylineVectorLayer::Options layer_options;
-        layer_options.set_polyline_type(S2PolylineVectorLayer::Options::PolylineType::WALK);
-        val op = S2BooleanOperation(op_type, make_unique<S2PolylineVectorLayer>(& result, layer_options), options);
-        val a_index = MutableS2ShapeIndex()
-        a_index.add(S2Polyline.Shape(polyline = a))
-        val error = op.Build(a_index, index)
-        if (!error.isOk()) {
-            logger.error { "Polyline " + S2BooleanOperation::OpTypeToString(op_type) + " operation failed: $error" }
-        }
-        return result;
+        TODO()
+//        S2BooleanOperation::Options options;
+//        options.set_snap_function(snap_function);
+//        val result = mutableListOf<S2Polyline>()
+//        S2PolylineVectorLayer::Options layer_options;
+//        layer_options.set_polyline_type(S2PolylineVectorLayer::Options::PolylineType::WALK);
+//        val op = S2BooleanOperation(op_type, make_unique<S2PolylineVectorLayer>(& result, layer_options), options);
+//        val a_index = MutableS2ShapeIndex()
+//        a_index.add(S2Polyline.Shape(polyline = a))
+//        val error = op.Build(a_index, index)
+//        if (!error.isOk()) {
+//            logger.error { "Polyline " + S2BooleanOperation::OpTypeToString(op_type) + " operation failed: $error" }
+//        }
+//        return result;
     }
 
     // Snaps the vertices of the given polygon using the given SnapFunction
@@ -930,20 +943,21 @@ class S2Polygon() : S2Region {
                 snapFunction = IdentitySnapFunction(S2EdgeCrossings.kIntersectionError),
                 idempotent = false  // Force snapping up to the given radius
         ))
-        builder.startLayer(S2PolygonLayer(this))
-        for (polyline in polylines) {
-            builder.addPolyline(polyline)
-        }
-        val error = builder.build()
-        if (!error.isOk()) {
-            logger.error { "Could not build polygon: $error" }
-            return;
-        }
-        // If there are no loops, check whether the result should be the full
-        // polygon rather than the empty one.  (See InitToApproxIntersection.)
-        if (numLoops() == 0) {
-            if (a.bound.area > 2 * M_PI && a.getArea() > 2 * M_PI) invert()
-        }
+        TODO()
+//        builder.startLayer(S2PolygonLayer(this))
+//        for (polyline in polylines) {
+//            builder.addPolyline(polyline)
+//        }
+//        val error = builder.build()
+//        if (!error.isOk()) {
+//            logger.error { "Could not build polygon: $error" }
+//            return;
+//        }
+//        // If there are no loops, check whether the result should be the full
+//        // polygon rather than the empty one.  (See InitToApproxIntersection.)
+//        if (numLoops() == 0) {
+//            if (a.bound.area > 2 * M_PI && a.getArea() > 2 * M_PI) invert()
+//        }
     }
 
     // Return true if this polygon contains the given polyline.  This method
@@ -1010,7 +1024,7 @@ class S2Polygon() : S2Region {
     // farther than "snap_radius" apart.  Note that this can change
     // the number of output polylines and/or yield single-vertex polylines.
     fun approxIntersectWithPolyline(line: S2Polyline, snapRadius: S1Angle): List<S2Polyline> {
-        return intersectWithPolyline(line, IdentitySnapFunction(snap_radius))
+        return intersectWithPolyline(line, IdentitySnapFunction(snapRadius))
     }
 
     // TODO(ericv): Update documentation.
@@ -1045,22 +1059,23 @@ class S2Polygon() : S2Region {
         val builder = S2Builder(S2Builder.Options(
                    snapFunction = IdentitySnapFunction(S1Angle.radians(snap_radius))
         ))
-        builder.startLayer(S2PolygonLayer(this))
-        for (id in cells) {
-            builder.addLoop(S2Loop { S2Cell { id } });
-        }
-        val error = builder.build()
-        if (!error.isOk()) {
-            logger.error { "InitToCellUnionBorder failed: $error" }
-        }
-        // If there are no loops, check whether the result should be the full
-        // polygon rather than the empty one.  There are only two ways that this can
-        // happen: either the cell union is empty, or it consists of all six faces.
-        if (numLoops() == 0) {
-            if (cells.isEmpty()) return
-            assertEQ(6UL shl (2 * S2CellId.kMaxLevel), cells.leafCellsCovered())
-            invert()
-        }
+        TODO()
+//        builder.startLayer(S2PolygonLayer(this))
+//        for (id in cells) {
+//            builder.addLoop(S2Loop { S2Cell { id } });
+//        }
+//        val error = builder.build()
+//        if (!error.isOk()) {
+//            logger.error { "InitToCellUnionBorder failed: $error" }
+//        }
+//        // If there are no loops, check whether the result should be the full
+//        // polygon rather than the empty one.  There are only two ways that this can
+//        // happen: either the cell union is empty, or it consists of all six faces.
+//        if (numLoops() == 0) {
+//            if (cells.isEmpty()) return
+//            assertEQ(6UL shl (2 * S2CellId.kMaxLevel), cells.leafCellsCovered())
+//            invert()
+//        }
     }
 
     // Return true if every loop of this polygon shares at most one vertex with
@@ -1252,12 +1267,13 @@ class S2Polygon() : S2Region {
         get() = bound
 
     override fun getCellUnionBound(cellIds: MutableList<S2CellId>) {
-        return MakeS2ShapeIndexRegion(index).getCellUnionBound(cellIds)
+        TODO()
+//        return makeS2ShapeIndexRegion(index).getCellUnionBound(cellIds)
     }
 
-    override fun contains(cell: S2Cell): Boolean = MakeS2ShapeIndexRegion(index).contains(cell)
+    override fun contains(cell: S2Cell): Boolean = TODO() //MakeS2ShapeIndexRegion(index).contains(cell)
 
-    override fun mayIntersect(cell: S2Cell): Boolean = MakeS2ShapeIndexRegion(index).mayIntersect(cell)
+    override fun mayIntersect(cell: S2Cell): Boolean = TODO() // MakeS2ShapeIndexRegion(index).mayIntersect(cell)
 
     // The point 'p' does not need to be normalized.
     override fun contains(p: S2Point): Boolean {
@@ -1278,7 +1294,8 @@ class S2Polygon() : S2Region {
             return inside
         }
         // Otherwise we look up the S2ShapeIndex cell containing this point.
-        return MakeS2ContainsPointQuery(index).contains(p)
+        TODO()
+//        return MakeS2ContainsPointQuery(index).contains(p)
     }
 
     // Wrapper class for indexing a polygon (see S2ShapeIndex).  Once this
@@ -1468,11 +1485,6 @@ class S2Polygon() : S2Region {
 
     }
 
-
-
-
-    private :
-
     // Given that loops_ contains a single loop, initialize all other fields.
     // This is an internal method that expects that loops_ has already been
     // initialized with a single non-empty loop.
@@ -1626,67 +1638,63 @@ class S2Polygon() : S2Region {
     // Initializes the polygon to the result of the given boolean operation,
     // returning an error on failure.
     fun initToOperation(op_type: S2BooleanOperation.OpType, snap_function: SnapFunction, a: S2Polygon, b: S2Polygon): S2Error {
-        S2BooleanOperation::Options options;
-        options.set_snap_function(snap_function);
-        S2BooleanOperation op (op_type, make_unique<S2PolygonLayer>(this), options);
-        return op.Build(a.index, b.index, error)
+        TODO()
+//        S2BooleanOperation::Options options;
+//        options.set_snap_function(snap_function);
+//        S2BooleanOperation op (op_type, make_unique<S2PolygonLayer>(this), options);
+//        return op.Build(a.index, b.index, error)
     }
 
-    // Initializes the polygon to the result of the given boolean operation,
-    // logging an error on failure (fatal in debug builds).
-    void InitToOperation(S2BooleanOperation::OpType op_type,
-    snap_function: SnapFunction,
-    a: S2Polygon, b: S2Polygon);
-
     fun simplifyEdgesInCell(a: S2Polygon, cell: S2Cell, tolerance_uv: Double, snap_radius: S1Angle): List<S2Polyline> {
-        val builder = S2Builder(S2Builder.Options(snapFunction = IdentitySnapFunction(snap_radius), simplifyEdgeChains = true))
-        // The output consists of a sequence of polylines.  Polylines consisting of
-        // interior edges are simplified using S2Builder, while polylines consisting
-        // of boundary edges are returned unchanged.
-        val polylines = mutableListOf<S2Polyline>()
-        for (i in 0 until a.numLoops()) {
-            val a_loop = a.loop(i)
-            var v0 = a_loop.orientedVertex(0)
-            var mask0 = getCellEdgeIncidenceMask(cell, v0, tolerance_uv)
-            var in_interior = false  // Was the last edge an interior edge?
-            for (j in 1..a_loop.numVertices()) {
-                val v1 = a_loop.orientedVertex(j)
-                val mask1 = getCellEdgeIncidenceMask(cell, v1, tolerance_uv)
-                if ((mask0 and mask1) != 0.toUByte()) {
-                    // This is an edge along the cell boundary.  Such edges do not get
-                    // simplified; we add them directly to the output.  (We create a
-                    // separate polyline for each edge to keep things simple.)  We call
-                    // ForceVertex on all boundary vertices to ensure that they don't
-                    // move, and so that nearby interior edges are snapped to them.
-                    assert { !in_interior }
-                    builder.forceVertex(v1)
-                    polylines.add(S2Polyline(listOf(v0, v1)))
-                } else {
-                    // This is an interior edge.  If this is the first edge of an interior
-                    // chain, then start a new S2Builder layer.  Also ensure that any
-                    // polyline vertices on the boundary do not move, so that they will
-                    // still connect with any boundary edge(s) there.
-                    if (!in_interior) {
-                        val polyline = S2Polyline()
-                        builder.startLayer(S2PolylineLayer(polyline))
-                        polylines.add(polyline)
-                        in_interior = true
-                    }
-                    builder.addEdge(v0, v1)
-                    if (mask1 != 0.toUByte()) {
-                        builder.forceVertex(v1)
-                        in_interior = false;  // Terminate this polyline.
-                    }
-                }
-                v0 = v1;
-                mask0 = mask1;
-            }
-        }
-        val error = builder.build()
-        if (!error.isOk()) {
-            logger.error { "InitToSimplifiedInCell failed: $error" }
-        }
-        return polylines
+        TODO()
+//        val builder = S2Builder(S2Builder.Options(snapFunction = IdentitySnapFunction(snap_radius), simplifyEdgeChains = true))
+//        // The output consists of a sequence of polylines.  Polylines consisting of
+//        // interior edges are simplified using S2Builder, while polylines consisting
+//        // of boundary edges are returned unchanged.
+//        val polylines = mutableListOf<S2Polyline>()
+//        for (i in 0 until a.numLoops()) {
+//            val a_loop = a.loop(i)
+//            var v0 = a_loop.orientedVertex(0)
+//            var mask0 = getCellEdgeIncidenceMask(cell, v0, tolerance_uv)
+//            var in_interior = false  // Was the last edge an interior edge?
+//            for (j in 1..a_loop.numVertices()) {
+//                val v1 = a_loop.orientedVertex(j)
+//                val mask1 = getCellEdgeIncidenceMask(cell, v1, tolerance_uv)
+//                if ((mask0 and mask1) != 0.toUByte()) {
+//                    // This is an edge along the cell boundary.  Such edges do not get
+//                    // simplified; we add them directly to the output.  (We create a
+//                    // separate polyline for each edge to keep things simple.)  We call
+//                    // ForceVertex on all boundary vertices to ensure that they don't
+//                    // move, and so that nearby interior edges are snapped to them.
+//                    assert { !in_interior }
+//                    builder.forceVertex(v1)
+//                    polylines.add(S2Polyline(listOf(v0, v1)))
+//                } else {
+//                    // This is an interior edge.  If this is the first edge of an interior
+//                    // chain, then start a new S2Builder layer.  Also ensure that any
+//                    // polyline vertices on the boundary do not move, so that they will
+//                    // still connect with any boundary edge(s) there.
+//                    if (!in_interior) {
+//                        val polyline = S2Polyline()
+//                        builder.startLayer(S2PolylineLayer(polyline))
+//                        polylines.add(polyline)
+//                        in_interior = true
+//                    }
+//                    builder.addEdge(v0, v1)
+//                    if (mask1 != 0.toUByte()) {
+//                        builder.forceVertex(v1)
+//                        in_interior = false;  // Terminate this polyline.
+//                    }
+//                }
+//                v0 = v1;
+//                mask0 = mask1;
+//            }
+//        }
+//        val error = builder.build()
+//        if (!error.isOk()) {
+//            logger.error { "InitToSimplifiedInCell failed: $error" }
+//        }
+//        return polylines
     }
 
     // Defines a total ordering on S2Loops that does not depend on the cyclic
@@ -1716,7 +1724,4 @@ class S2Polygon() : S2Region {
     }
 
 }
-
-
- */
 
