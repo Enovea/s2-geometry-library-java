@@ -20,4 +20,7 @@ package dilivia.s2
 
 @Strictfp
 open class MutableS1ChordAngle(override var length2: Double): S1ChordAngle(length2) {
+
+    constructor(distance: S1ChordAngle): this(distance.length2)
+
 }

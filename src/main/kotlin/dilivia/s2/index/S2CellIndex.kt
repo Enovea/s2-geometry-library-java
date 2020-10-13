@@ -385,6 +385,10 @@ class S2CellIndex() {
             rangeNodeIdx = kUninitialized
         }
 
+        constructor(iterator: RangeIterator): this(iterator.index) {
+            this.rangeNodeIdx = iterator.rangeNodeIdx
+        }
+
         // The start of the current range of leaf S2CellIds.
         //
         // If done() is true, returns S2CellId::End(S2CellId::kMaxLevel).  This

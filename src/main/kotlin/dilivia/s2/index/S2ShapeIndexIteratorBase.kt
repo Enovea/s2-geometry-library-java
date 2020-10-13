@@ -27,10 +27,10 @@ import java.util.concurrent.atomic.AtomicReference
 
 // Each subtype of S2ShapeIndex should define an Iterator type derived
 // from the following base class.
-abstract class S2ShapeIndexIteratorBase() {
+abstract class S2ShapeIndexIteratorBase(): Cloneable {
 
-    private var id: S2CellId = S2CellId.sentinel()
-    private val cell: AtomicReference<S2ShapeIndexCell?> = AtomicReference()
+    protected var id: S2CellId = S2CellId.sentinel()
+    protected val cell: AtomicReference<S2ShapeIndexCell?> = AtomicReference()
 
     // Returns the S2CellId of the current index cell.  If done() is true,
     // returns a value larger than any valid S2CellId (S2CellId::Sentinel()).
@@ -121,5 +121,7 @@ abstract class S2ShapeIndexIteratorBase() {
         this.id = S2CellId.sentinel()
         this.cell.set(null)
     }
+
+    public abstract override fun clone(): S2ShapeIndexIteratorBase
 
 }

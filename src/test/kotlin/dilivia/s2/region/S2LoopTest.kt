@@ -797,6 +797,7 @@ class S2LoopTest : S2GeometryTestCase() {
     // Make sure the relations are correct if the loop crossing happens on
     // two ends of a shared boundary segment.
     fun testLoopRelationsWhenSameExceptPiecesStickingOutAndIn() {
+        fail("Infinite Loop")
         testRelation(loop_a, loop_c, 0, true)
         testRelation(loop_c, loop_a, 0, true)
         testRelation(loop_a, loop_d, CONTAINED, true)

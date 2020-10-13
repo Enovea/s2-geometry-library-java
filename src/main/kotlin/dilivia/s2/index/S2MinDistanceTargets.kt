@@ -5,6 +5,7 @@ import dilivia.s2.S1Angle
 import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
+import dilivia.s2.index.S2ShapeIndexRegion.Companion.makeS2ShapeIndexRegion
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
@@ -45,9 +46,11 @@ class S2MinDistance constructor(distance: S1ChordAngle) : Distance<S2MinDistance
 
 }
 
-class S2MinDistanceFactory : DistanceFactory<S2MinDistance> {
+object S2MinDistanceFactory : DistanceFactory<S2MinDistance> {
 
     override fun distance(length2: Double): S2MinDistance = S2MinDistance(S1ChordAngle.fromLength2(length2))
+
+    override fun distance(other: S2MinDistance): S2MinDistance = S2MinDistance(other.value)
 
     override fun zero(): S2MinDistance = S2MinDistance(S1ChordAngle.zero)
 
@@ -66,15 +69,15 @@ class S2MinDistanceFactory : DistanceFactory<S2MinDistance> {
 typealias S2MinDistanceTarget = S2DistanceTarget<S2MinDistance>
 
 // An S2DistanceTarget subtype for computing the minimum distance to a point.
-class S2MinDistancePointTarget(val point: S2Point) : S2MinDistanceTarget {
+open class S2MinDistancePointTarget(val point: S2Point) : S2MinDistanceTarget {
 
     override fun getCapBound(): S2Cap = S2Cap(point, S1ChordAngle.zero)
 
-    override fun updateMinDistance(p: S2Point, min_dist: S2MinDistance): Boolean = min_dist.updateMin(S2MinDistance(S1ChordAngle.between(p, point)))
+    override fun updateMinDistance(p: S2Point, minDist: S2MinDistance): Boolean = minDist.updateMin(S2MinDistance(S1ChordAngle.between(p, point)))
 
-    override fun updateMinDistance(v0: S2Point, v1: S2Point, min_dist: S2MinDistance): Boolean = S2EdgeDistances.updateMinDistance(point, v0, v1, min_dist.value)
+    override fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: S2MinDistance): Boolean = S2EdgeDistances.updateMinDistance(point, v0, v1, minDist.value)
 
-    override fun updateMinDistance(cell: S2Cell, min_dist: S2MinDistance): Boolean = min_dist.updateMin(S2MinDistance(cell.getDistance(point)))
+    override fun updateMinDistance(cell: S2Cell, minDist: S2MinDistance): Boolean = minDist.updateMin(S2MinDistance(cell.getDistance(point)))
 
     override fun visitContainingShapes(query_index: S2ShapeIndex, visitor: S2DistanceTarget.ShapeVisitor): Boolean {
         TODO()
@@ -86,7 +89,7 @@ class S2MinDistancePointTarget(val point: S2Point) : S2MinDistanceTarget {
 }
 
 // An S2DistanceTarget subtype for computing the minimum distance to a edge.
-class S2MinDistanceEdgeTarget(val a: S2Point, val b: S2Point) : S2MinDistanceTarget {
+open class S2MinDistanceEdgeTarget(val a: S2Point, val b: S2Point) : S2MinDistanceTarget {
 
     override fun getCapBound(): S2Cap {
         // The following computes a radius equal to half the edge length in an
@@ -96,11 +99,11 @@ class S2MinDistanceEdgeTarget(val a: S2Point, val b: S2Point) : S2MinDistanceTar
         return S2Cap((a + b).normalize(), S1ChordAngle.fromLength2(r2))
     }
 
-    override fun updateMinDistance(p: S2Point, min_dist: S2MinDistance): Boolean = S2EdgeDistances.updateMinDistance(p, a, b, min_dist.value)
+    override fun updateMinDistance(p: S2Point, minDist: S2MinDistance): Boolean = S2EdgeDistances.updateMinDistance(p, a, b, minDist.value)
 
-    override fun updateMinDistance(v0: S2Point, v1: S2Point, min_dist: S2MinDistance): Boolean = S2EdgeDistances.updateEdgePairMinDistance(a, b, v0, v1, min_dist.value)
+    override fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: S2MinDistance): Boolean = S2EdgeDistances.updateEdgePairMinDistance(a, b, v0, v1, minDist.value)
 
-    override fun updateMinDistance(cell: S2Cell, min_dist: S2MinDistance): Boolean = min_dist.updateMin(S2MinDistance(cell.getDistance(a, b)))
+    override fun updateMinDistance(cell: S2Cell, minDist: S2MinDistance): Boolean = minDist.updateMin(S2MinDistance(cell.getDistance(a, b)))
 
     override fun visitContainingShapes(query_index: S2ShapeIndex, visitor: S2DistanceTarget.ShapeVisitor): Boolean {
         // We test the center of the edge in order to ensure that edge targets AB
@@ -115,15 +118,15 @@ class S2MinDistanceEdgeTarget(val a: S2Point, val b: S2Point) : S2MinDistanceTar
 
 // An S2DistanceTarget subtype for computing the minimum distance to an S2Cell
 // (including the interior of the cell).
-class S2MinDistanceCellTarget(val cell: S2Cell) : S2MinDistanceTarget {
+open class S2MinDistanceCellTarget(val cell: S2Cell) : S2MinDistanceTarget {
 
     override fun getCapBound(): S2Cap = cell.capBound
 
-    override fun updateMinDistance(p: S2Point, min_dist: S2MinDistance): Boolean = min_dist.updateMin(S2MinDistance(cell.getDistance(p)))
+    override fun updateMinDistance(p: S2Point, minDist: S2MinDistance): Boolean = minDist.updateMin(S2MinDistance(cell.getDistance(p)))
 
-    override fun updateMinDistance(v0: S2Point, v1: S2Point, min_dist: S2MinDistance): Boolean = min_dist.updateMin(S2MinDistance(cell.getDistance(v0, v1)))
+    override fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: S2MinDistance): Boolean = minDist.updateMin(S2MinDistance(cell.getDistance(v0, v1)))
 
-    override fun updateMinDistance(cell: S2Cell, min_dist: S2MinDistance): Boolean = min_dist.updateMin(S2MinDistance(cell.getDistance(cell)))
+    override fun updateMinDistance(cell: S2Cell, minDist: S2MinDistance): Boolean = minDist.updateMin(S2MinDistance(cell.getDistance(cell)))
 
     override fun visitContainingShapes(query_index: S2ShapeIndex, visitor: S2DistanceTarget.ShapeVisitor): Boolean {
         // The simplest approach is simply to return the polygons that contain the
@@ -139,10 +142,10 @@ class S2MinDistanceCellTarget(val cell: S2Cell) : S2MinDistanceTarget {
     }
 
 }
-/*
+
 // An S2DistanceTarget subtype for computing the minimum distance to an
 // S2CellUnion (including the interior of all cells).
-class S2MinDistanceCellUnionTarget(val cellUnion: S2CellUnion) : S2MinDistanceTarget {
+open class S2MinDistanceCellUnionTarget(val cellUnion: S2CellUnion) : S2MinDistanceTarget {
 
     private val index: S2CellIndex = S2CellIndex()
     private val query: S2ClosestCellQuery
@@ -157,7 +160,9 @@ class S2MinDistanceCellUnionTarget(val cellUnion: S2CellUnion) : S2MinDistanceTa
     //
     // DEFAULT: false
     fun useBruteForce(): Boolean = query.options.useBruteForce
-    fun setUseBruteForce(useBruteForce: Boolean): Unit = query.options.useBruteForce = useBruteForce
+    fun setUseBruteForce(useBruteForce: Boolean) {
+        query.options.useBruteForce = useBruteForce
+    }
 
     // Note that set_max_error() should not be called directly by clients; it is
     // used internally by the S2Closest*Query implementations.
@@ -195,11 +200,10 @@ class S2MinDistanceCellUnionTarget(val cellUnion: S2CellUnion) : S2MinDistanceTa
     }
 
     private fun updateMinDistance (target: S2MinDistanceTarget, min_dist: S2MinDistance): Boolean {
-        query.options.maxDistance = min_dist.value
-        val r = query.findClosestCell(target)
-        if (r.isEmpty()) return false
-        min_dist.value.length2 = r.distance().length2
-        return true;
+        query.options.maxDistance = min_dist
+        val r = query.findClosestCell(target) ?: return false
+        min_dist.value.length2 = r.distance.value.length2
+        return true
     }
 
 }
@@ -238,7 +242,7 @@ class S2MinDistanceCellUnionTarget(val cellUnion: S2CellUnion) : S2MinDistanceTa
 //         ... do something with "target_point" ...
 //         return false;  // Terminate search
 //       }));
-class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarget {
+open class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarget {
 
     private val query: S2ClosestEdgeQuery = S2ClosestEdgeQuery(index)
 
@@ -247,14 +251,18 @@ class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarg
     //
     // DEFAULT: true
     fun includeInteriors(): Boolean = query.options.includeInteriors
-    fun setIncludeInteriors(include_interiors: Boolean): Unit = query.options.includeInteriors = include_interiors
+    fun setIncludeInteriors(include_interiors: Boolean): Unit {
+        query.options.includeInteriors = include_interiors
+    }
 
     // Specifies that the distances should be computed by examining every edge
     // in the S2ShapeIndex (for testing and debugging purposes).
     //
     // DEFAULT: false
     fun useBruteForce(): Boolean = query.options.useBruteForce
-    fun setUseBruteForce(useBruteForce: Boolean): Unit = query.options.useBruteForce = useBruteForce
+    fun setUseBruteForce(useBruteForce: Boolean): Unit {
+        query.options.useBruteForce = useBruteForce
+    }
 
     // Note that set_max_error() should not be called directly by clients; it is
     // used internally by the S2Closest*Query implementations.
@@ -263,7 +271,7 @@ class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarg
         return true  // Indicates that we may return suboptimal results.
     }
 
-    override fun getCapBound(): S2Cap = makeS2ShapeIndexRegion(index).getCapBound()
+    override fun getCapBound(): S2Cap = makeS2ShapeIndexRegion(index).capBound
 
     override fun updateMinDistance(p: S2Point, min_dist: S2MinDistance): Boolean {
         val target = S2ClosestEdgeQuery.PointTarget(p)
@@ -275,9 +283,9 @@ class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarg
         return updateMinDistance(target, min_dist)
     }
 
-    override fun updateMinDistance(cell: S2Cell, min_dist: Distance<S2MinDistance>): Boolean {
+    override fun updateMinDistance(cell: S2Cell, minDist: S2MinDistance): Boolean {
         val target = S2ClosestEdgeQuery.CellTarget(cell)
-        return updateMinDistance(target, min_dist)
+        return updateMinDistance(target, minDist)
     }
 
     override fun visitContainingShapes(query_index: S2ShapeIndex, visitor: S2DistanceTarget.ShapeVisitor): Boolean {
@@ -305,7 +313,7 @@ class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarg
         }
             if (!tested_point) {
                 // Special case to handle full polygons.
-                val ref = S2Shape.ReferencePoint(shape.getReferencePoint())
+                val ref = shape.getReferencePoint()
                 if (!ref.contained) continue
                 val target= S2MinDistancePointTarget(ref.point)
                 if (!target.visitContainingShapes(query_index, visitor)) {
@@ -317,11 +325,11 @@ class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanceTarg
     }
 
     private fun updateMinDistance (target: S2MinDistanceTarget, min_dist: S2MinDistance): Boolean {
-        query.options.maxDistance = min_dist.value
+        query.options.maxDistance = min_dist
         val r = query.findClosestEdge(target)
         if (r.isEmpty()) return false
-        min_dist = r.distance()
+        min_dist.value.length2 = r.distance.value.length2
         return true
     }
 }
- */
+

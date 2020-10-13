@@ -85,6 +85,7 @@ interface DistanceFactory<T: Distance<T>> {
 
    // Factory methods:
     fun distance(length2: Double): T
+    fun distance(other: T): T
     fun zero(): T      // Returns a zero distance.
     fun infinity(): T  // Larger than any valid distance.
     fun negative(): T  // Smaller than any valid distance.
@@ -100,16 +101,16 @@ interface S2DistanceTarget<T: Distance<T>> {
 
   // If the distance to the point "p" "min_dist", then updates "min_dist" and
   // returns true.  Otherwise returns false.
-  fun updateMinDistance(p: S2Point, min_dist: T): Boolean
+  fun updateMinDistance(p: S2Point, minDist: T): Boolean
 
   // If the distance to the edge (v0, v1) is less than "min_dist", then
   // updates "min_dist" and returns true.  Otherwise returns false.
-  fun updateMinDistance(v0: S2Point, v1: S2Point, min_dist: T): Boolean
+  fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: T): Boolean
 
   // If the distance to the given S2Cell (including its interior) is less
   // than "min_dist", then updates "min_dist" and returns true.  Otherwise
   // returns false.
-  fun updateMinDistance(cell: S2Cell, min_dist: T): Boolean
+  fun updateMinDistance(cell: S2Cell, minDist: T): Boolean
 
   // Finds all polygons in the given "query_index" that completely contain a
   // connected component of the target geometry.  (For example, if the

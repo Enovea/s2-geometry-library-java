@@ -151,14 +151,6 @@ bool S2MaxDistanceCellTarget::VisitContainingShapes(
 
 //////////////////   Index Target   ////////////////////
 
-S2MaxDistanceShapeIndexTarget::S2MaxDistanceShapeIndexTarget(
-    const S2ShapeIndex* index)
-    : index_(index), query_(absl::make_unique<S2FurthestEdgeQuery>(index)) {
-}
-
-S2MaxDistanceShapeIndexTarget::~S2MaxDistanceShapeIndexTarget() {
-}
-
 bool S2MaxDistanceShapeIndexTarget::include_interiors() const {
   return query_->options().include_interiors();
 }

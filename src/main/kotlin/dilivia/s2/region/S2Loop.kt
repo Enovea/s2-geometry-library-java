@@ -43,10 +43,10 @@ import dilivia.s2.coords.S2XYZFaceSiTi
 import dilivia.s2.index.S2CrossingEdgePairsScanner
 import dilivia.s2.index.S2CrossingEdgeQuery
 import dilivia.s2.index.MutableS2ShapeIndex
-import dilivia.s2.index.RangeIterator
 import dilivia.s2.shape.S2ClippedShape
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.index.S2ShapeIndex
+import dilivia.s2.index.S2ShapeIndex.RangeIterator
 import dilivia.s2.index.S2ShapeIndexCell
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.TypeTag

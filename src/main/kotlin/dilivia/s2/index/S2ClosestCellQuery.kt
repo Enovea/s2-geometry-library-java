@@ -1,6 +1,13 @@
 package dilivia.s2.index
 
-/*
+import dilivia.s2.S1Angle
+import dilivia.s2.S1ChordAngle
+import dilivia.s2.S2EdgeDistances
+import dilivia.s2.S2Point
+import dilivia.s2.index.S2ClosestCellQueryBase.Result
+import dilivia.s2.region.S2Cell
+import dilivia.s2.region.S2CellUnion
+
 
 // S2ClosestCellQuery is a helper class for finding the closest cell(s) to a
 // given point, edge, S2Cell, S2CellUnion, or geometry collection.  A typical
@@ -56,286 +63,259 @@ package dilivia.s2.index
 // The implementation is designed to be fast for both simple and complex
 // geometric objects.
 class S2ClosestCellQuery {
-  // See S2ClosestCellQueryBase for full documentation.
+    // See S2ClosestCellQueryBase for full documentation.
 
-  // Options that control the set of cells returned.  Note that by default
-  // *all* cells are returned, so you will always want to set either the
-  // max_results() option or the max_distance() option (or both).
-  class Options : public Base::Options {
-   public:
-    // See S2ClosestCellQueryBase::Options for the full set of options.
-
-    // Specifies that only cells whose distance to the target is less than
-    // "max_distance" should be returned.
+    // Convenience constructor that calls Init().  Options may be specified here
+    // or changed at any time using the mutable_options() accessor method.
     //
-    // Note that cells whose distance is exactly equal to "max_distance" are
-    // not returned.  Normally this doesn't matter, because distances are not
-    // computed exactly in the first place, but if such cells are needed then
-    // see set_inclusive_max_distance() below.
+    // REQUIRES: "index" must persist for the lifetime of this object.
+    // REQUIRES: ReInit() must be called if "index" is modified.
+    constructor(index: S2CellIndex, options: Options = Options()) {
+        init(index, options)
+    }
+
+    // Default constructor; requires Init() to be called.
+    constructor() {
+
+    }
+
+    lateinit var options: Options
+    private val base = S2ClosestCellQueryBase(distanceFactory = S2MinDistanceFactory)
+
+
+    // Initializes the query.  Options may be specified here or changed at any
+    // time using the mutable_options() accessor method.
     //
-    // DEFAULT: Distance::Infinity()
-    void set_max_distance(S1ChordAngle max_distance);
+    // REQUIRES: "index" must persist for the lifetime of this object.
+    // REQUIRES: ReInit() must be called if "index" is modified.
+    fun init(index: S2CellIndex, options: Options = Options()) {
+        this.options = options
+        base.init(index)
+    }
 
-    // Like set_max_distance(), except that cells whose distance is exactly
-    // equal to "max_distance" are also returned.  Equivalent to calling
-    // set_max_distance(max_distance.Successor()).
-    void set_inclusive_max_distance(S1ChordAngle max_distance);
+    // Reinitializes the query.  This method must be called if the underlying
+    // S2CellIndex is modified (by calling Clear() and Build() again).
+    fun reInit() {
+        base.reInit()
+    }
 
-    // Like set_inclusive_max_distance(), except that "max_distance" is also
-    // increased by the maximum error in the distance calculation.  This
-    // ensures that all cells whose true distance is less than or equal to
-    // "max_distance" will be returned (along with some cells whose true
-    // distance is slightly greater).
+    // Returns a reference to the underlying S2CellIndex.
+    fun index(): S2CellIndex = base.index()
+
+    // Returns the closest cells to the given target that satisfy the current
+    // options.  This method may be called multiple times.
+    fun findClosestCells(target: S2MinDistanceTarget): List<Result<S2MinDistance>> = base.findClosestCells(target, options)
+
+    // This version can be more efficient when this method is called many times,
+    // since it does not require allocating a new vector on each call.
+    fun findClosestCells(target: S2MinDistanceTarget, results: MutableList<Result<S2MinDistance>>) {
+        base.findClosestCells(target, options, results)
+    }
+
+    //////////////////////// Convenience Methods ////////////////////////
+
+    // Returns the closest cell to the target.  If no cell satisfies the search
+    // criteria, then the Result object will have distance == Infinity() and
+    // is_empty() == true.
+    fun findClosestCell(target: S2MinDistanceTarget): Result<S2MinDistance>? {
+        val tmpOptions = options.clone()
+        tmpOptions.setMaxResults(1)
+        return base.findClosestCell(target, tmpOptions)
+    }
+
+    // Returns the minimum distance to the target.  If the index or target is
+    // empty, returns S1ChordAngle::Infinity().
     //
-    // Algorithms that need to do exact distance comparisons can use this
-    // option to find a set of candidate cells that can then be filtered
-    // further (e.g., using s2pred::CompareDistance).
-    void set_conservative_max_distance(S1ChordAngle max_distance);
+    // Use IsDistanceLess() if you only want to compare the distance against a
+    // threshold value, since it is often much faster.
+    fun getDistance(target: S2MinDistanceTarget): S1ChordAngle? = findClosestCell(target)?.distance?.value
 
-    // Versions of set_max_distance that take an S1Angle argument.  (Note that
-    // these functions require a conversion, and that the S1ChordAngle versions
-    // are preferred.)
-    void set_max_distance(S1Angle max_distance);
-    void set_inclusive_max_distance(S1Angle max_distance);
-    void set_conservative_max_distance(S1Angle max_distance);
+    // Returns true if the distance to "target" is less than "limit".
+    //
+    // This method is usually much faster than GetDistance(), since it is much
+    // less work to determine whether the minimum distance is above or below a
+    // threshold than it is to calculate the actual minimum distance.
+    fun isDistanceLess(target: S2MinDistanceTarget, limit: S1ChordAngle): Boolean {
+        val tmpOptions = options.clone()
+        tmpOptions.setMaxResults(1)
+        tmpOptions.setMaxDistance(limit)
+        tmpOptions.maxError = S1ChordAngle.straight
+        return !base.findClosestCell(target, tmpOptions).isEmpty()
+    }
 
-    // See S2ClosestCellQueryBase::Options for documentation.
-    using Base::Options::set_max_error;     // S1Chordangle version
-    void set_max_error(S1Angle max_error);  // S1Angle version
+    // Like IsDistanceLess(), but also returns true if the distance to "target"
+    // is exactly equal to "limit".
+    fun isDistanceLessOrEqual(target: S2MinDistanceTarget, limit: S1ChordAngle): Boolean {
+        val tmpOptions = options.clone()
+        tmpOptions.setMaxResults(1)
+        tmpOptions.setInclusiveMaxDistance(limit)
+        tmpOptions.maxError = S1ChordAngle.straight
+        return !base.findClosestCell(target, tmpOptions).isEmpty()
+    }
 
-    // Inherited options (see s2closest_cell_query_base.h for details):
-    using Base::Options::set_max_results;
-    using Base::Options::set_region;
-    using Base::Options::set_use_brute_force;
-  };
+    // Like IsDistanceLessOrEqual(), except that "limit" is increased by the
+    // maximum error in the distance calculation.  This ensures that this
+    // function returns true whenever the true, exact distance is less than
+    // or equal to "limit".
+    fun isConservativeDistanceLessOrEqual(target: S2MinDistanceTarget, limit: S1ChordAngle): Boolean {
+        val tmpOptions = options.clone()
+        tmpOptions.setMaxResults(1)
+        tmpOptions.setConservativeMaxDistance(limit)
+        tmpOptions.maxError = S1ChordAngle.straight
+        return !base.findClosestCell(target, tmpOptions).isEmpty()
+    }
 
-  // "Target" represents the geometry to which the distance is measured.
-  // There are subtypes for measuring the distance to a point, an edge, an
-  // S2Cell, or an S2ShapeIndex (an arbitrary collection of geometry).
-  using Target = S2MinDistanceTarget;
+    // Options that control the set of cells returned.  Note that by default
+    // *all* cells are returned, so you will always want to set either the
+    // max_results() option or the max_distance() option (or both).
+    class Options : S2ClosestCellQueryBase.Options<S2MinDistance>(distanceFactory = S2MinDistanceFactory) {
+        // See S2ClosestCellQueryBase::Options for the full set of options.
 
-  // Target subtype that computes the closest distance to a point.
-  class PointTarget final : public S2MinDistancePointTarget {
-   public:
-    explicit PointTarget(const S2Point& point);
-    int max_brute_force_index_size() const override;
-  };
+        // Specifies that only cells whose distance to the target is less than
+        // "max_distance" should be returned.
+        //
+        // Note that cells whose distance is exactly equal to "max_distance" are
+        // not returned.  Normally this doesn't matter, because distances are not
+        // computed exactly in the first place, but if such cells are needed then
+        // see set_inclusive_max_distance() below.
+        //
+        // DEFAULT: Distance::Infinity()
+        fun setMaxDistance(maxDistance: S1ChordAngle) {
+            this.maxDistance = S2MinDistance(maxDistance)
+        }
 
-  // Target subtype that computes the closest distance to an edge.
-  class EdgeTarget final : public S2MinDistanceEdgeTarget {
-   public:
-    explicit EdgeTarget(const S2Point& a, const S2Point& b);
-    int max_brute_force_index_size() const override;
-  };
+        // Like set_max_distance(), except that cells whose distance is exactly
+        // equal to "max_distance" are also returned.  Equivalent to calling
+        // set_max_distance(max_distance.Successor()).
+        fun setInclusiveMaxDistance(maxDistance: S1ChordAngle) {
+            setMaxDistance(maxDistance.successor())
+        }
 
-  // Target subtype that computes the closest distance to an S2Cell
-  // (including the interior of the cell).
-  class CellTarget final : public S2MinDistanceCellTarget {
-   public:
-    explicit CellTarget(const S2Cell& cell);
-    int max_brute_force_index_size() const override;
-  };
+        // Like set_inclusive_max_distance(), except that "max_distance" is also
+        // increased by the maximum error in the distance calculation.  This
+        // ensures that all cells whose true distance is less than or equal to
+        // "max_distance" will be returned (along with some cells whose true
+        // distance is slightly greater).
+        //
+        // Algorithms that need to do exact distance comparisons can use this
+        // option to find a set of candidate cells that can then be filtered
+        // further (e.g., using s2pred::CompareDistance).
+        fun setConservativeMaxDistance(maxDistance: S1ChordAngle) {
+            this.maxDistance = S2MinDistance(maxDistance.plusError(
+                    S2EdgeDistances.getUpdateMinDistanceMaxError(maxDistance)).successor())
+        }
 
-  // Target subtype that computes the closest distance to an S2CellUnion.
-  class CellUnionTarget final : public S2MinDistanceCellUnionTarget {
-   public:
-    explicit CellUnionTarget(S2CellUnion cell_union);
-    int max_brute_force_index_size() const override;
-  };
+        // Versions of set_max_distance that take an S1Angle argument.  (Note that
+        // these functions require a conversion, and that the S1ChordAngle versions
+        // are preferred.)
+        fun setMaxDistance(maxDistance: S1Angle) {
+            this.maxDistance = S2MinDistance(maxDistance)
+        }
 
-  // Target subtype that computes the closest distance to an S2ShapeIndex
-  // (an arbitrary collection of points, polylines, and/or polygons).
-  //
-  // By default, distances are measured to the boundary and interior of
-  // polygons in the S2ShapeIndex rather than to polygon boundaries only.
-  // If you wish to change this behavior, you may call
-  //
-  //   target.set_include_interiors(false);
-  //
-  // (see S2MinDistanceShapeIndexTarget for details).
-  class ShapeIndexTarget final : public S2MinDistanceShapeIndexTarget {
-   public:
-    explicit ShapeIndexTarget(const S2ShapeIndex* index);
-    int max_brute_force_index_size() const override;
-  };
+        fun setInclusiveMaxDistance(maxDistance: S1Angle) {
+            setInclusiveMaxDistance(S1ChordAngle(maxDistance))
+        }
 
-  // Convenience constructor that calls Init().  Options may be specified here
-  // or changed at any time using the mutable_options() accessor method.
-  //
-  // REQUIRES: "index" must persist for the lifetime of this object.
-  // REQUIRES: ReInit() must be called if "index" is modified.
-  explicit S2ClosestCellQuery(const S2CellIndex* index,
-                              const Options& options = Options());
+        fun setConservativeMaxDistance(max_distance: S1Angle) {
+            setConservativeMaxDistance(S1ChordAngle(max_distance))
+        }
 
-  // Default constructor; requires Init() to be called.
-  S2ClosestCellQuery();
-  ~S2ClosestCellQuery();
+        // See S2ClosestCellQueryBase::Options for documentation.
+        fun setMaxError(maxError: S1Angle) {
+            this.maxError = S1ChordAngle(maxError)
+        }
 
-  // Initializes the query.  Options may be specified here or changed at any
-  // time using the mutable_options() accessor method.
-  //
-  // REQUIRES: "index" must persist for the lifetime of this object.
-  // REQUIRES: ReInit() must be called if "index" is modified.
-  void Init(const S2CellIndex* index, const Options& options = Options());
+        public override fun clone(): Options {
+            val clone = Options()
+            clone.setMaxResults(getMaxResults())
+            clone.maxDistance = maxDistance
+            clone.maxError = maxError
+            clone.region = region
+            clone.useBruteForce = useBruteForce
+            return clone
+        }
 
-  // Reinitializes the query.  This method must be called if the underlying
-  // S2CellIndex is modified (by calling Clear() and Build() again).
-  void ReInit();
+    }
 
-  // Returns a reference to the underlying S2CellIndex.
-  const S2CellIndex& index() const;
+    // The thresholds for using the brute force algorithm are generally tuned to
+    // optimize IsDistanceLess (which compares the distance against a threshold)
+    // rather than FindClosest (which actually computes the minimum distance).
+    // This is because the former operation is (1) more common, (2) inherently
+    // faster, and (3) closely related to finding all cells within a given
+    // distance, which is also very common.
 
-  // Returns the query options.  Options can be modified between queries.
-  const Options& options() const;
-  Options* mutable_options();
+    // Target subtype that computes the closest distance to a point.
+    class PointTarget(point: S2Point) : S2MinDistancePointTarget(point) {
 
-  // Returns the closest cells to the given target that satisfy the current
-  // options.  This method may be called multiple times.
-  std::vector<Result> FindClosestCells(Target* target);
+        override fun maxBruteForceIndexSize(): Int {
+            // Break-even points:                   Point cloud      Cap coverings
+            // BM_FindClosest                                18                 16
+            // BM_IsDistanceLess                              8                  9
+            return 9
+        }
 
-  // This version can be more efficient when this method is called many times,
-  // since it does not require allocating a new vector on each call.
-  void FindClosestCells(Target* target, std::vector<Result>* results);
+    }
 
-  //////////////////////// Convenience Methods ////////////////////////
+    // Target subtype that computes the closest distance to an edge.
+    class EdgeTarget(a: S2Point, b: S2Point) : S2MinDistanceEdgeTarget(a, b) {
 
-  // Returns the closest cell to the target.  If no cell satisfies the search
-  // criteria, then the Result object will have distance == Infinity() and
-  // is_empty() == true.
-  Result FindClosestCell(Target* target);
+        override fun maxBruteForceIndexSize(): Int {
+            // Break-even points:                   Point cloud      Cap coverings
+            // BM_FindClosestToLongEdge                      14                 16
+            // BM_IsDistanceLessToLongEdge                    5                  5
+            return 5
+        }
 
-  // Returns the minimum distance to the target.  If the index or target is
-  // empty, returns S1ChordAngle::Infinity().
-  //
-  // Use IsDistanceLess() if you only want to compare the distance against a
-  // threshold value, since it is often much faster.
-  S1ChordAngle GetDistance(Target* target);
+    }
 
-  // Returns true if the distance to "target" is less than "limit".
-  //
-  // This method is usually much faster than GetDistance(), since it is much
-  // less work to determine whether the minimum distance is above or below a
-  // threshold than it is to calculate the actual minimum distance.
-  bool IsDistanceLess(Target* target, S1ChordAngle limit);
+    // Target subtype that computes the closest distance to an S2Cell
+    // (including the interior of the cell).
+    class CellTarget(cell: S2Cell) : S2MinDistanceCellTarget(cell) {
 
-  // Like IsDistanceLess(), but also returns true if the distance to "target"
-  // is exactly equal to "limit".
-  bool IsDistanceLessOrEqual(Target* target, S1ChordAngle limit);
+        override fun maxBruteForceIndexSize(): Int {
+            // Break-even points:                   Point cloud      Cap coverings
+            // BM_FindClosestToSmallCell                     12                 13
+            // BM_IsDistanceLessToSmallCell                   6                  6
+            //
+            // Note that the primary use of CellTarget is to implement CellUnionTarget,
+            // and therefore it is very important to optimize for the case where a
+            // distance limit has been specified.
+            return 6
+        }
 
-  // Like IsDistanceLessOrEqual(), except that "limit" is increased by the
-  // maximum error in the distance calculation.  This ensures that this
-  // function returns true whenever the true, exact distance is less than
-  // or equal to "limit".
-  bool IsConservativeDistanceLessOrEqual(Target* target, S1ChordAngle limit);
+    }
 
- private:
-  Options options_;
-  Base base_;
+    // Target subtype that computes the closest distance to an S2CellUnion.
+    class CellUnionTarget(cellUnion: S2CellUnion) : S2MinDistanceCellUnionTarget(cellUnion) {
 
-  S2ClosestCellQuery(const S2ClosestCellQuery&) = delete;
-  void operator=(const S2ClosestCellQuery&) = delete;
-};
+        override fun maxBruteForceIndexSize(): Int {
+            // Break-even points:                   Point cloud      Cap coverings
+            // BM_FindClosestToSmallCoarseCellUnion          12                 10
+            // BM_IsDistanceLessToSmallCoarseCellUnion        7                  6
+            return 8
+        }
 
+    }
 
-//////////////////   Implementation details follow   ////////////////////
+    // Target subtype that computes the closest distance to an S2ShapeIndex
+    // (an arbitrary collection of points, polylines, and/or polygons).
+    //
+    // By default, distances are measured to the boundary and interior of
+    // polygons in the S2ShapeIndex rather than to polygon boundaries only.
+    // If you wish to change this behavior, you may call
+    //
+    //   target.set_include_interiors(false);
+    //
+    // (see S2MinDistanceShapeIndexTarget for details).
+    class ShapeIndexTarget(index: S2ShapeIndex) : S2MinDistanceShapeIndexTarget(index) {
 
+        override fun maxBruteForceIndexSize(): Int {
+            // Break-even points:                   Point cloud      Cap coverings
+            // BM_FindClosestToSmallCoarseShapeIndex         10                  8
+            // BM_IsDistanceLessToSmallCoarseShapeIndex       7                  6
+            return 7
+        }
 
-inline void S2ClosestCellQuery::Options::set_max_distance(
-    S1ChordAngle max_distance) {
-  Base::Options::set_max_distance(Distance(max_distance));
+    }
+
 }
-
-inline void S2ClosestCellQuery::Options::set_max_distance(
-    S1Angle max_distance) {
-  Base::Options::set_max_distance(Distance(max_distance));
-}
-
-inline void S2ClosestCellQuery::Options::set_inclusive_max_distance(
-    S1ChordAngle max_distance) {
-  set_max_distance(max_distance.Successor());
-}
-
-inline void S2ClosestCellQuery::Options::set_inclusive_max_distance(
-    S1Angle max_distance) {
-  set_inclusive_max_distance(S1ChordAngle(max_distance));
-}
-
-inline void S2ClosestCellQuery::Options::set_max_error(S1Angle max_error) {
-  Base::Options::set_max_error(S1ChordAngle(max_error));
-}
-
-inline S2ClosestCellQuery::PointTarget::PointTarget(const S2Point& point)
-    : S2MinDistancePointTarget(point) {
-}
-
-inline S2ClosestCellQuery::EdgeTarget::EdgeTarget(const S2Point& a,
-                                                  const S2Point& b)
-    : S2MinDistanceEdgeTarget(a, b) {
-}
-
-inline S2ClosestCellQuery::CellTarget::CellTarget(const S2Cell& cell)
-    : S2MinDistanceCellTarget(cell) {
-}
-
-inline S2ClosestCellQuery::CellUnionTarget::CellUnionTarget(
-    S2CellUnion cell_union)
-    : S2MinDistanceCellUnionTarget(std::move(cell_union)) {
-}
-
-inline S2ClosestCellQuery::ShapeIndexTarget::ShapeIndexTarget(
-    const S2ShapeIndex* index)
-    : S2MinDistanceShapeIndexTarget(index) {
-}
-
-inline S2ClosestCellQuery::S2ClosestCellQuery(const S2CellIndex* index,
-                                              const Options& options) {
-  Init(index, options);
-}
-
-inline void S2ClosestCellQuery::Init(const S2CellIndex* index,
-                                     const Options& options) {
-  options_ = options;
-  base_.Init(index);
-}
-
-inline void S2ClosestCellQuery::ReInit() {
-  base_.ReInit();
-}
-
-inline const S2CellIndex& S2ClosestCellQuery::index() const {
-  return base_.index();
-}
-
-inline const S2ClosestCellQuery::Options& S2ClosestCellQuery::options() const {
-  return options_;
-}
-
-inline S2ClosestCellQuery::Options* S2ClosestCellQuery::mutable_options() {
-  return &options_;
-}
-
-inline std::vector<S2ClosestCellQuery::Result>
-S2ClosestCellQuery::FindClosestCells(Target* target) {
-  return base_.FindClosestCells(target, options_);
-}
-
-inline void S2ClosestCellQuery::FindClosestCells(Target* target,
-                                                 std::vector<Result>* results) {
-  base_.FindClosestCells(target, options_, results);
-}
-
-inline S2ClosestCellQuery::Result S2ClosestCellQuery::FindClosestCell(
-    Target* target) {
-  static_assert(sizeof(Options) <= 32, "Consider not copying Options here");
-  Options tmp_options = options_;
-  tmp_options.set_max_results(1);
-  return base_.FindClosestCell(target, tmp_options);
-}
-
-inline S1ChordAngle S2ClosestCellQuery::GetDistance(Target* target) {
-  return FindClosestCell(target).distance();
-}
-
-#endif  // S2_S2CLOSEST_CELL_QUERY_H_
-
-*/

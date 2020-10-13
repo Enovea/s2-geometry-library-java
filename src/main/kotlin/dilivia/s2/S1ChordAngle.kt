@@ -82,6 +82,8 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         }
     })
 
+    constructor(distance: S1ChordAngle): this(distance.length2)
+
     // Converts to an S1Angle.  Can be used just like an S1Angle constructor:
     //
     //   S1ChordAngle x = ...;

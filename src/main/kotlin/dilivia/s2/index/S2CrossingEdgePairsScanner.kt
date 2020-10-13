@@ -25,6 +25,7 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2PaddedCell
 import dilivia.s2.S2WedgeRelations
 import dilivia.s2.index.S2CrossingEdgePairsScanner.getShapeEdges
+import dilivia.s2.index.S2ShapeIndex.RangeIterator
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdge
 import mu.KotlinLogging

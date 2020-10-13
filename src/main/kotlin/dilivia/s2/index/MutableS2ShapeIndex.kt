@@ -288,14 +288,24 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     //
     //   for (MutableS2ShapeIndex::Iterator it(&index, S2ShapeIndex::BEGIN)
     //        !it.done(); it.Next()) { ... }
-    inner class Iterator(pos: InitialPosition = InitialPosition.UNPOSITIONED) : S2ShapeIndexIteratorBase() {
+    inner class Iterator private constructor() : S2ShapeIndexIteratorBase() {
 
         private lateinit var end: S2CellId
         private lateinit var keySet: NavigableSet<S2CellId>
         private var currentCellId: S2CellId = S2CellId.sentinel()
 
-        init {
+        constructor(pos: InitialPosition = InitialPosition.UNPOSITIONED): this() {
             init(pos)
+        }
+
+        override fun clone(): Iterator {
+            val clone = Iterator()
+            clone.id = this.id()
+            clone.cell.set(this.cell())
+            clone.end = this.end
+            clone.keySet = this.keySet
+            clone.currentCellId = this.currentCellId
+            return clone
         }
 
         // Initializes an iterator for the given MutableS2ShapeIndex.  This method
@@ -334,30 +344,30 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         }
 
         override fun finish() {
-            currentCellId = keySet.last()
+            currentCellId = S2CellId.sentinel()
             refresh()
         }
 
         override fun next() {
             Assertions.assert { !done() }
-            currentCellId = keySet.higher(currentCellId) ?: keySet.last()
+            currentCellId = keySet.higher(currentCellId) ?: S2CellId.sentinel()
             refresh()
         }
 
         override fun prev(): Boolean {
-            if (currentCellId == keySet.first()) return false
-            currentCellId = keySet.lower(currentCellId) ?: keySet.first()
+            if (keySet.isNotEmpty() && currentCellId == keySet.first()) return false
+            currentCellId = keySet.lower(currentCellId) ?: keySet.firstOrNull() ?: S2CellId.sentinel()
             refresh()
             return true
         }
 
         override fun seek(target: S2CellId) {
-            currentCellId = keySet.ceiling(target) ?: keySet.first()
+            currentCellId = keySet.ceiling(target) ?: keySet.firstOrNull() ?: S2CellId.sentinel()
             refresh()
         }
 
         private fun refresh() {
-            if (currentCellId == end) {
+            if (currentCellId == S2CellId.sentinel()) {
                 setFinished()
             } else {
                 setState(currentCellId, cellMap.getValue(currentCellId))
