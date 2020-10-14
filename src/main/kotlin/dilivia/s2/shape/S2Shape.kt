@@ -186,7 +186,7 @@ abstract class S2Shape(var id: Int = -1) {
 
     // Returns an integer that can be used to identify the type of an encoded
     // S2Shape (see TypeTag above).
-    abstract val typeTag: TypeTag
+    open val typeTag: TypeTag = kNoTypeTag
 
     // Virtual methods that return pointers of your choice.  These methods are
     // intended to help with the problem of attaching additional data to S2Shape

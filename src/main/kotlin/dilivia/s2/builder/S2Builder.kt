@@ -1,13 +1,27 @@
 package dilivia.s2.builder
 
-
+import com.google.common.geometry.S2
+import com.google.common.geometry.S2.DBL_EPSILON
+import dilivia.s2.Assertions.assertGE
+import dilivia.s2.Assertions.assertLE
 import dilivia.s2.S1Angle
+import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2CellId
+import dilivia.s2.S2EdgeCrossings
+import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Error
+import dilivia.s2.S2Point
+import dilivia.s2.assign
+import dilivia.s2.builder.layers.Layer
+import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.S2PointIndex
+import dilivia.s2.region.S2Loop
+import dilivia.s2.region.S2Polygon
+import dilivia.s2.region.S2Polyline
+import dilivia.s2.shape.S2Shape
+import dilivia.s2.sin
+import kotlin.math.acos
 
-//
-// This class is a replacement for S2PolygonBuilder.  Once all clients have
-// been updated to use this class, S2PolygonBuilder will be removed.
 
 //////////////////////  Input Types  /////////////////////////
 // All types associated with the S2Builder inputs are prefixed with "Input".
@@ -74,6 +88,86 @@ typealias Label = Int
 // labels attached to that edge.  This vector is populated only if at least
 // one label is used.
 typealias LabelSetId = Int;
+
+// For output layers that represent polygons, there is an ambiguity inherent
+// in spherical geometry that does not exist in planar geometry.  Namely, if
+// a polygon has no edges, does it represent the empty polygon (containing
+// no points) or the full polygon (containing all points)?  This ambiguity
+// also occurs for polygons that consist only of degeneracies, e.g. a
+// degenerate loop with only two edges could be either a degenerate shell in
+// the empty polygon or a degenerate hole in the full polygon.
+//
+// To resolve this ambiguity, an IsFullPolygonPredicate may be specified for
+// each output layer (see AddIsFullPolygonPredicate below).  If the output
+// after snapping consists only of degenerate edges and/or sibling pairs
+// (including the case where there are no edges at all), then the layer
+// implementation calls the given predicate to determine whether the polygon
+// is empty or full except for those degeneracies.  The predicate is given
+// an S2Builder::Graph containing the output edges, but note that in general
+// the predicate must also have knowledge of the input geometry in order to
+// determine the correct result.
+//
+// This predicate is only needed by layers that are assembled into polygons.
+// It is not used by other layer types.
+interface IsFullPolygonPredicate {
+    fun test(g: Graph, error: S2Error): Boolean
+}
+
+// Indicates whether the input edges are undirected.  Typically this is
+// specified for each output layer (e.g., s2builderutil::S2PolygonLayer).
+//
+// Directed edges are preferred, since otherwise the output is ambiguous.
+// For example, output polygons may be the *inverse* of the intended result
+// (e.g., a polygon intended to represent the world's oceans may instead
+// represent the world's land masses).  Directed edges are also somewhat
+// more efficient.
+//
+// However even with undirected edges, most S2Builder layer types try to
+// preserve the input edge direction whenever possible.  Generally, edges
+// are reversed only when it would yield a simpler output.  For example,
+// S2PolygonLayer assumes that polygons created from undirected edges should
+// cover at most half of the sphere.  Similarly, S2PolylineVectorLayer
+// assembles edges into as few polylines as possible, even if this means
+// reversing some of the "undirected" input edges.
+//
+// For shapes with interiors, directed edges should be oriented so that the
+// interior is to the left of all edges.  This means that for a polygon with
+// holes, the outer loops ("shells") should be directed counter-clockwise
+// while the inner loops ("holes") should be directed clockwise.  Note that
+// S2Builder::AddPolygon() follows this convention automatically.
+enum class EdgeType { DIRECTED, UNDIRECTED }
+
+// An S2Shape used to represent the entire collection of S2Builder input edges.
+// Vertices are specified as indices into a vertex vector to save space.
+// Requires that "edges" is constant for the lifetime of this object.
+class VertexIdEdgeVectorShape(private val edges: List<Pair<Int, Int>>, private val vertices: List<S2Point>) : S2Shape() {
+
+    fun vertex0(e: Int): S2Point = vertex(edges[e].first)
+    fun vertex1(e: Int): S2Point = vertex(edges[e].second)
+
+    // S2Shape interface:
+
+    override val dimension: Int = 1
+    override val numEdges: Int = edges.size
+    override fun edge(edgeId: Int): dilivia.s2.shape.Edge = dilivia.s2.shape.Edge(vertices[edges[edgeId].first], vertices[edges[edgeId].second])
+
+    override fun getReferencePoint(): ReferencePoint = ReferencePoint(contained = false)
+
+    override val numChains: Int = edges.size
+    override fun chain(chain_id: Int): Chain = Chain(chain_id, 1)
+    override fun chainEdge(chainId: Int, offset: Int): dilivia.s2.shape.Edge = edge(chainId)
+
+    override fun chainPosition(edgeId: Int): ChainPosition = ChainPosition(edgeId, 0)
+
+    private fun vertex(i: Int): S2Point = vertices[i]
+
+}
+
+
+//
+// This class is a replacement for S2PolygonBuilder.  Once all clients have
+// been updated to use this class, S2PolygonBuilder will be removed.
+
 
 // S2Builder is a tool for assembling polygonal geometry from edges.  Here are
 // some of the things it is designed for:
@@ -166,7 +260,7 @@ typealias LabelSetId = Int;
 //    ...
 //  }
 class S2Builder(val options: Options = Options()) {
-    /*
+
         //////////// Parameters
 
         // The maximum distance (inclusive) that a vertex can move when snapped,
@@ -224,7 +318,7 @@ class S2Builder(val options: Options = Options()) {
         private var layerIsFullPolygonPredicates: MutableList<IsFullPolygonPredicate> = mutableListOf()
 
         private var labelSetIds: MutableList<LabelSetId> = mutableListOf()
-        private var label_set_lexicon: IdSetLexicon
+        private var label_set_lexicon: IdSetLexicon = IdSetLexicon()
 
         // The current set of labels (represented as a stack).
         private var labelSet: MutableList<Label> = mutableListOf()
@@ -237,10 +331,10 @@ class S2Builder(val options: Options = Options()) {
 
         // The number of sites specified using ForceVertex().  These sites are
         // always at the beginning of the sites_ vector.
-        private var num_forced_sites: SiteId
+        private var num_forced_sites: SiteId = -1
 
         // The set of snapped vertex locations ("sites").
-        private var sites: MutableList<S2Point>
+        private var sites: MutableList<S2Point> = mutableListOf()
 
         // A map from each input edge to the set of sites "nearby" that edge,
         // defined as the set of sites that are candidates for snapping and/or
@@ -257,7 +351,7 @@ class S2Builder(val options: Options = Options()) {
         // Initializes an S2Builder with the given options.
         init {
             val snapFunction = options.snapFunction
-            val snapRadius = snapFunction.snapRadius()
+            val snapRadius = snapFunction.snapRadius
             assertLE(snapRadius, SnapFunction.kMaxSnapRadius)
 
             // Convert the snap radius to an S1ChordAngle.  This is the "true snap
@@ -302,7 +396,7 @@ class S2Builder(val options: Options = Options()) {
             // Currently max_edge_deviation() is at most 1.1 * snap_radius(), whereas
             // min_edge_vertex_separation() is at least 0.219 * snap_radius() (based on
             // S2CellIdSnapFunction, which is currently the worst case).
-            assertLE(snapFunction.maxEdgeDeviation(),snapFunction.snapRadius() + snapFunction.minEdgeVertexSeparation())
+            assertLE(snapFunction.maxEdgeDeviation(),snapFunction.snapRadius + snapFunction.minEdgeVertexSeparation())
 
             // To implement idempotency, we check whether the input geometry could
             // possibly be the output of a previous S2Builder invocation.  This involves
@@ -331,7 +425,7 @@ class S2Builder(val options: Options = Options()) {
             edgeSnapRadiusSin2 += ((9.5 * d + 2.5 + 2 * S2.M_SQRT3) * d + 9 * DBL_EPSILON) * DBL_EPSILON
 
             // Initialize the current label set.
-            labelSetId = label_set_lexicon.EmptySetId();
+            labelSetId = IdSetLexicon.emptySetId()
             labelSetModified = false
 
             // If snapping was requested, we try to determine whether the input geometry
@@ -340,30 +434,6 @@ class S2Builder(val options: Options = Options()) {
             // input geometry needs to be modified, snapping_needed_ is set to true.
             snappingNeeded = false;
         }
-    */
-    // Indicates whether the input edges are undirected.  Typically this is
-    // specified for each output layer (e.g., s2builderutil::S2PolygonLayer).
-    //
-    // Directed edges are preferred, since otherwise the output is ambiguous.
-    // For example, output polygons may be the *inverse* of the intended result
-    // (e.g., a polygon intended to represent the world's oceans may instead
-    // represent the world's land masses).  Directed edges are also somewhat
-    // more efficient.
-    //
-    // However even with undirected edges, most S2Builder layer types try to
-    // preserve the input edge direction whenever possible.  Generally, edges
-    // are reversed only when it would yield a simpler output.  For example,
-    // S2PolygonLayer assumes that polygons created from undirected edges should
-    // cover at most half of the sphere.  Similarly, S2PolylineVectorLayer
-    // assembles edges into as few polylines as possible, even if this means
-    // reversing some of the "undirected" input edges.
-    //
-    // For shapes with interiors, directed edges should be oriented so that the
-    // interior is to the left of all edges.  This means that for a polygon with
-    // holes, the outer loops ("shells") should be directed counter-clockwise
-    // while the inner loops ("holes") should be directed clockwise.  Note that
-    // S2Builder::AddPolygon() follows this convention automatically.
-    enum class EdgeType { DIRECTED, UNDIRECTED };
 
     data class Options(
 
@@ -467,30 +537,7 @@ class S2Builder(val options: Options = Options()) {
             val idempotent: Boolean = true
     )
 
-  // For output layers that represent polygons, there is an ambiguity inherent
-  // in spherical geometry that does not exist in planar geometry.  Namely, if
-  // a polygon has no edges, does it represent the empty polygon (containing
-  // no points) or the full polygon (containing all points)?  This ambiguity
-  // also occurs for polygons that consist only of degeneracies, e.g. a
-  // degenerate loop with only two edges could be either a degenerate shell in
-  // the empty polygon or a degenerate hole in the full polygon.
-  //
-  // To resolve this ambiguity, an IsFullPolygonPredicate may be specified for
-  // each output layer (see AddIsFullPolygonPredicate below).  If the output
-  // after snapping consists only of degenerate edges and/or sibling pairs
-  // (including the case where there are no edges at all), then the layer
-  // implementation calls the given predicate to determine whether the polygon
-  // is empty or full except for those degeneracies.  The predicate is given
-  // an S2Builder::Graph containing the output edges, but note that in general
-  // the predicate must also have knowledge of the input geometry in order to
-  // determine the correct result.
-  //
-  // This predicate is only needed by layers that are assembled into polygons.
-  // It is not used by other layer types.
-  interface IsFullPolygonPredicate {
-      fun test(g: Graph, error: S2Error): Boolean
-  }
-/*
+
   // Starts a new output layer.  This method must be called before adding any
   // edges to the S2Builder.  You may call this method multiple times to build
   // multiple geometric objects that are snapped to the same set of sites.
@@ -733,7 +780,7 @@ class S2Builder(val options: Options = Options()) {
       layerBegins.clear()
       layerIsFullPolygonPredicates.clear()
       labelSetIds.clear()
-      label_set_lexicon.Clear()
+      label_set_lexicon.clear()
       labelSet.clear()
       labelSetModified = false
       sites.clear()
@@ -780,7 +827,9 @@ class S2Builder(val options: Options = Options()) {
       val sorted = sortInputVertices()
       val vmap = mutableListOf<InputVertexId>()
       sites.clear()
-      sites_.reserve(input_vertices_.size());
+      if (sites is ArrayList) {
+          (sites as ArrayList<S2Point>).ensureCapacity(inputVertices.size)
+      }
       var i = 0
       while (i < sorted.size) {
           val site = inputVertices[sorted[i].second]
@@ -791,9 +840,10 @@ class S2Builder(val options: Options = Options()) {
           sites.add(site)
       }
       inputVertices = sites
-      for (e in inputEdges) {
-          e.first = vmap[e.first];
-          e.second = vmap[e.second];
+
+      for (e in inputEdges.indices) {
+          val edge = inputEdges[e]
+          inputEdges[e] = Pair(vmap[edge.first], vmap[edge.second])
       }
   }
 
@@ -808,7 +858,7 @@ class S2Builder(val options: Options = Options()) {
   private fun addExtraSites(input_edge_index: MutableS2ShapeIndex): Unit = TODO()
   private fun maybeAddExtraSites(edge_id: InputEdgeId, max_edge_id: InputEdgeId, chain: List<SiteId>, 
                                  input_edge_index: MutableS2ShapeIndex, snap_queue: MutableList<InputEdgeId>): Unit = TODO()
-  private fun addExtraSite(new_site: S2Point, max_edge_id: InputEdgeId, input_edge_index: MutableS2ShapeIndex, 
+  private fun addExtraSite(new_site: S2Point, max_edge_id: InputEdgeId, input_edge_index: MutableS2ShapeIndex,
                            snap_queue: MutableList<InputEdgeId>): Unit = TODO()
   private fun getSeparationSite(site_to_avoid: S2Point, v0: S2Point, v1: S2Point, input_edge_id: InputEdgeId): S2Point = TODO()
   private fun getCoverageEndpoint(p: S2Point, x: S2Point, y: S2Point, n: S2Point): S2Point = TODO()
@@ -850,6 +900,7 @@ class S2Builder(val options: Options = Options()) {
             return ca.plusError(S2EdgeDistances.getUpdateMinDistanceMaxError(ca))
         }
     }
-*/
+
 }
+
 

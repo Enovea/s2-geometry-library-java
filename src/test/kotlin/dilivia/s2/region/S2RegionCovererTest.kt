@@ -442,7 +442,7 @@ class S2RegionCovererTest : S2GeometryTestCase() {
     }
 
     fun testJavaCcConsistencyCheckCovering() {
-        val points = listOf(
+        val points = mutableListOf(
             S2LatLng.fromDegrees(-33.8663457, 151.1960891).toPoint(),
             S2LatLng.fromDegrees(-33.866094000000004, 151.19517439999998).toPoint()
         )

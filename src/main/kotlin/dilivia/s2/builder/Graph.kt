@@ -8,8 +8,8 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2Point
 import dilivia.s2.S2Predicates
 import dilivia.s2.assign
-import dilivia.s2.builder.S2Builder.IsFullPolygonPredicate
 import dilivia.s2.remove
+import dilivia.s2.sortAndRemoveDuplicates
 
 // Identifies a vertex in the graph.  Vertices are numbered sequentially
 // starting from zero.
@@ -19,20 +19,27 @@ typealias VertexId = Int
 typealias EdgeLoop = List<EdgeId>
 
 typealias DirectedComponent = List<EdgeLoop>
+
 typealias UndirectedComponent = Pair<List<EdgeLoop>, List<EdgeLoop>>
+operator fun UndirectedComponent.get(i: Int): List<EdgeLoop> = when(i) {
+    0 -> this.first
+    1 -> this.second
+    else -> throw IllegalArgumentException("i out of range 0..1")
+}
+
 typealias EdgePolyline = List<EdgeId>
 
 // A struct for sorting the incoming and outgoing edges around a vertex "v0".
 data class VertexEdge(
-    val incoming: Boolean,       // Is this an incoming edge to "v0"?
-    val index: EdgeId,           // Index of this edge in "edges_" or "in_edge_ids"
-    val endpoint: VertexId,      // The other (not "v0") endpoint of this edge
-    val rank: Int                // Secondary key for edges with the same endpoint
+        val incoming: Boolean,       // Is this an incoming edge to "v0"?
+        val index: EdgeId,           // Index of this edge in "edges_" or "in_edge_ids"
+        val endpoint: VertexId,      // The other (not "v0") endpoint of this edge
+        val rank: Int                // Secondary key for edges with the same endpoint
 )
 
 // An S2Builder::Graph represents a collection of snapped edges that is passed
 // to a Layer for assembly.  (Example layers include polygons, polylines, and
-// polygon meshes.)  The Graph object does not own any of its underlying data;
+// polygon meshes.)  The Graph object does not own any of its underlying data
 // it is simply a view of data that is stored elsewhere.  You will only
 // need this interface if you want to implement a new Layer subtype.
 //
@@ -95,7 +102,7 @@ class Graph(
 
 ) {
 
-    private var numVertices: Int = -1;  // Cached to avoid division by 24.
+    private var numVertices: Int = -1  // Cached to avoid division by 24.
 
     // Returns the number of vertices in the graph.
     fun numVertices(): VertexId = numVertices
@@ -140,14 +147,14 @@ class Graph(
     // except unless undirected degenerate edges are present, in which case such
     // edges are grouped together in pairs to satisfy the requirement that every
     // edge must have a sibling edge.)
-    fun makeSiblingMap(in_edge_ids: MutableList<EdgeId>): Unit {
+    fun makeSiblingMap(in_edge_ids: MutableList<EdgeId>) {
         Assertions.assert {
             (options.sibling_pairs == SiblingPairs.REQUIRE ||
                     options.sibling_pairs == SiblingPairs.CREATE ||
-                    options.edge_type == S2Builder.EdgeType.UNDIRECTED)
+                    options.edge_type == EdgeType.UNDIRECTED)
         }
         repeat(numEdges()) { e -> Assertions.assert { (edge(e) == reverse(edge(in_edge_ids[e]))) } }
-        if (options.edge_type == S2Builder.EdgeType.DIRECTED) return
+        if (options.edge_type == EdgeType.DIRECTED) return
         if (options.degenerate_edges == DegenerateEdges.DISCARD) return
 
         var e = 0
@@ -220,7 +227,7 @@ class Graph(
             if (min_input_edge_ids[a] == min_input_edge_ids[b]) a.compareTo(b)
             else min_input_edge_ids[a].compareTo(min_input_edge_ids[b])
         }
-        return order;
+        return order
     }
 
     // Returns the set of labels associated with a given input edge.  Example:
@@ -258,7 +265,7 @@ class Graph(
     fun getDirectedLoops(loop_type: LoopType, loops: MutableList<EdgeLoop>, error: S2Error): Boolean {
         assertTrue(options.degenerate_edges == DegenerateEdges.DISCARD ||
                 options.degenerate_edges == DegenerateEdges.DISCARD_EXCESS)
-        assertTrue(options.edge_type == S2Builder.EdgeType.DIRECTED)
+        assertTrue(options.edge_type == EdgeType.DIRECTED)
 
         val leftTurnMap = mutableListOf<EdgeId>()
         if (!getLeftTurnMap(getInEdgeIds(), leftTurnMap, error)) return false
@@ -284,8 +291,8 @@ class Graph(
             var next: EdgeId
             while (leftTurnMap[e] >= 0) {
                 path.add(e)
-                next = leftTurnMap[e];
-                leftTurnMap[e] = -1;
+                next = leftTurnMap[e]
+                leftTurnMap[e] = -1
                 if (loop_type == LoopType.SIMPLE) {
                     path_index[edge(e).first] = path.size - 1
                     val loop_start = path_index[edge(e).second]
@@ -370,10 +377,10 @@ class Graph(
                 val out_begin = out
                 var in_begin = input
                 while (out_edge == min_edge) {
-                out_edge = if(++out == numEdges()) sentinel else edge(out)
-            }
+                    out_edge = if (++out == numEdges()) sentinel else edge(out)
+                }
                 while (reverse(in_edge) == min_edge) {
-                    in_edge = if(++input == numEdges()) sentinel else edge(in_edge_ids[input])
+                    in_edge = if (++input == numEdges()) sentinel else edge(in_edge_ids[input])
                 }
                 if (v0 != v1) {
                     addVertexEdges(out_begin, out, in_begin, input, v1, v0_edges)
@@ -395,7 +402,7 @@ class Graph(
             val v0VertexEdge = v0_edges.removeFirst()
             v0_edges.sortWith { a: VertexEdge, b: VertexEdge ->
                 when {
-                    a.endpoint == b.endpoint -> if(a.rank < b.rank) -1 else 1
+                    a.endpoint == b.endpoint -> if (a.rank < b.rank) -1 else 1
                     a.endpoint == min_endpoint -> -1
                     b.endpoint == min_endpoint -> 1
                     !S2Predicates.orderedCCW(vertex(a.endpoint), vertex(b.endpoint), vertex(min_endpoint), vertex(v0)) -> -1
@@ -415,7 +422,7 @@ class Graph(
                         left_turn_map[e_in.last()] = e.index
                         e_in.removeLast()
                     }
-                    else ->  e_out.add(e.index)  // Matched below.
+                    else -> e_out.add(e.index)  // Matched below.
                 }
             }
             // Pair up additional edges using the fact that the ordering is circular.
@@ -500,7 +507,7 @@ class Graph(
         // times (e.g. to extract the vertices for different layers), since the
         // incremental running time for each layer becomes O(edges.size()) rather
         // than O(vertices.size() + edges.size()).
-        fun FilterVertices(vertices: List<S2Point>, edges: List<Edge>, tmp: List<VertexId>): List<S2Point> = TODO()
+        fun filterVertices(vertices: List<S2Point>, edges: List<Edge>, tmp: List<VertexId>): List<S2Point> = TODO()
 
         // A comparison function that allows stable sorting with std::sort (which is
         // fast but not stable).  It breaks ties between equal edges by comparing
@@ -508,7 +515,7 @@ class Graph(
         fun stableLessThan(a: Edge, b: Edge, ai: EdgeId, bi: EdgeId): Boolean {
             // The following is simpler but the compiler (2016) doesn't optimize it as
             // well as it should:
-            //   return make_pair(a, ai) < make_pair(b, bi);
+            //   return make_pair(a, ai) < make_pair(b, bi)
             if (a.first < b.first) return true
             if (b.first < a.first) return false
             if (a.second < b.second) return true
@@ -565,53 +572,50 @@ class Graph(
         }
 
     }
-/*
+
     // A helper class for VertexOutMap that represents the outgoing edge *ids*
     // from a given vertex.
-    class VertexOutEdgeIds
-        : public std::iterator<std::forward_iterator_tag, EdgeId>
-    {
-        public:
+    class VertexOutEdgeIds(val begin: EdgeId, val end: EdgeId) {
         // An iterator over a range of edge ids (like boost::counting_iterator).
-        class Iterator {
-            public :
-            explicit Iterator(EdgeId id) : id_(id)
-            {}
-            const EdgeId& operator *()
-            const { return id_; }
-            Iterator& operator ++()
-            { ++id_; return * this; }
-            Iterator operator ++(int)
-            { return Iterator(id_++); }
-            size_t operator -(const Iterator& x)
-            const { return id_ - x.id_; }
-            bool operator ==(const Iterator& x)
-            const { return id_ == x.id_; }
-            bool operator !=(const Iterator& x)
-            const { return id_ != x.id_; }
+        class Iterator(id: EdgeId) {
 
-            private :
-            EdgeId id_;
-        };
-        Iterator begin () const { return Iterator(begin_); }
-        Iterator end () const { return Iterator(end_); }
-        size_t size () const { return end_ - begin_; }
+            private var id: EdgeId = id
 
-        private:
-        friend class VertexOutMap;
-        VertexOutEdgeIds(EdgeId begin, EdgeId end);
-        EdgeId begin_, end_;
-    };
+            operator fun inc() = Iterator(id++)
 
+            operator fun minus(x: Iterator): Int = id - x.id
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (javaClass != other?.javaClass) return false
+
+                other as Iterator
+
+                if (id != other.id) return false
+
+                return true
+            }
+
+            override fun hashCode(): Int {
+                return id
+            }
+
+        }
+
+        fun begin(): Iterator = Iterator(begin)
+        fun end(): Iterator = Iterator(end)
+        fun size(): Int = end - begin
+
+    }
 
 
     // A class that maps vertices to their outgoing edge ids.  Example usage:
-    //   VertexOutMap out(g);
+    //   VertexOutMap out(g)
     //   for (Graph::EdgeId e : out.edge_ids(v)) { ... }
     //   for (const Graph::Edge& edge : out.edges(v)) { ... }
     inner class VertexOutMap() {
 
-        private val edgeBegins: List<EdgeId>
+        private val edgeBegins: List<EdgeId> = listOf()
 
         // Return the edges (or edge ids) between a specific pair of vertices.
         fun edges(v: VertexId): VertexOutEdges {
@@ -622,73 +626,55 @@ class Graph(
             TODO()
             // auto range = std ::equal_range(edges_->data()+edge_begins_[v0],
             //        edges_->data()+edge_begins_[v0+1],
-            //        Edge(v0, v1));
-            //        return VertexOutEdges(range.first, range.second);
+            //        Edge(v0, v1))
+            //        return VertexOutEdges(range.first, range.second)
         }
 
         fun edge_ids(v0: VertexId, v1: VertexId): VertexOutEdgeIds {
             TODO()
 //            auto range = std ::equal_range(edges_->data()+edge_begins_[v0],
 //            edges_->data()+edge_begins_[v0+1],
-//            Edge(v0, v1));
+//            Edge(v0, v1))
 //            return VertexOutEdgeIds(
 //                    static_cast < S2Builder::Graph::EdgeId > (range.first - edges_->data()),
-//            static_cast < S2Builder::Graph::EdgeId > (range.second - edges_->data()));
+//            static_cast < S2Builder::Graph::EdgeId > (range.second - edges_->data()))
         }
 
         fun degree(v: VertexId): Int = edge_ids(v).size()
 
         fun edge_ids(v: VertexId): VertexOutEdgeIds = VertexOutEdgeIds(edgeBegins[v], edgeBegins[v + 1])
-
-
-        private :
-        const std::vector<Edge>* edges_;
-        std::vector<EdgeId> edge_begins_;
     }
 
     // A helper class for VertexInMap that represents the incoming edge *ids*
     // to a given vertex.
-    class VertexInEdgeIds {
-        public :
-        const EdgeId* begin()
-        const { return begin_; }
-        const EdgeId* end()
-        const { return end_; }
-        size_t size()
-        const { return end_ - begin_; }
+    class VertexInEdgeIds(val begin: EdgeId, val end: EdgeId) {
+        fun size(): Int = end - begin
 
-        private :
-        friend
-        class VertexInMap;
-        VertexInEdgeIds(const EdgeId* begin, const EdgeId* end);
-        const EdgeId* begin_;
-        const EdgeId* end_;
-    };
-
-    // A class that maps vertices to their incoming edge ids.  Example usage:
-    //   VertexInMap in(g);
-    //   for (Graph::EdgeId e : in.edge_ids(v)) { ... }
-    class VertexInMap {
-        public :
-        VertexInMap() = default;
-        explicit VertexInMap(const Graph& g)
-        { Init(g); }
-        void Init(const Graph& g);
-
-        int degree(VertexId v) const ;
-        VertexInEdgeIds edge_ids(VertexId v) const ;
-
-        // Returns a sorted vector of all incoming edges (see GetInEdgeIds).
-        const std::vector<EdgeId>& in_edge_ids()
-        const { return in_edge_ids_; }
-
-        private :
-        std::vector<EdgeId> in_edge_ids_;
-        std::vector<EdgeId> in_edge_begins_;
-        VertexInMap(const VertexInMap&) = delete;
-        void operator =(const VertexInMap&) = delete;
     }
 
+    /*
+        // A class that maps vertices to their incoming edge ids.  Example usage:
+        //   VertexInMap in(g)
+        //   for (Graph::EdgeId e : in.edge_ids(v)) { ... }
+        class VertexInMap {
+            public :
+            VertexInMap() = default
+            explicit VertexInMap(const Graph& g)
+            { Init(g); }
+            void Init(const Graph& g)
+
+            int degree(VertexId v) const
+            VertexInEdgeIds edge_ids(VertexId v) const
+
+            // Returns a sorted vector of all incoming edges (see GetInEdgeIds).
+            const std::vector<EdgeId>& in_edge_ids()
+            const { return in_edge_ids_; }
+
+            private :
+            std::vector<EdgeId> in_edge_ids_
+            std::vector<EdgeId> in_edge_begins_
+        }
+    */
     // Convenience class to return the set of labels associated with a given
     // graph edge.  Note that due to snapping, one graph edge may correspond to
     // several different input edges and will have all of their labels.
@@ -698,18 +684,27 @@ class Graph(
     // undirected edges, we need to fetch the labels associated with both
     // siblings.  This is because only the original edge of the sibling pair has
     // labels; the automatically generated sibling edge does not.
-    class LabelFetcher {
-        public :
-        LabelFetcher() = default;
-        LabelFetcher(const Graph& g, EdgeType edge_type)
-        { Init(g, edge_type); }
+    class LabelFetcher() {
+
+        private lateinit var g: Graph
+        private lateinit var edge_type: EdgeType
+        private lateinit var sibling_map: List<EdgeId>
+
+
+        constructor(g: Graph, edge_type: EdgeType) : this() {
+            init(g, edge_type)
+        }
 
         // Prepares to fetch labels associated with the given edge type.  For
         // EdgeType::UNDIRECTED, labels associated with both edges of the sibling
         // pair will be returned.  "edge_type" is a parameter (rather than using
         // g.options().edge_type()) so that clients can explicitly control whether
         // labels from one or both siblings are returned.
-        void Init(const Graph& g, EdgeType edge_type);
+        fun init(g: Graph, edge_type: EdgeType) {
+            this.g = g
+            this.edge_type = edge_type
+            if (edge_type == EdgeType.UNDIRECTED) sibling_map = g.getSiblingMap()
+        }
 
         // Returns the set of labels associated with edge "e" (and also the labels
         // associated with the sibling of "e" if edge_type() is UNDIRECTED).
@@ -717,19 +712,32 @@ class Graph(
         //
         // This method uses an output parameter rather than returning by value in
         // order to avoid allocating a new vector on every call to this method.
-        void Fetch(EdgeId e, std::vector<S2Builder::Label>* labels);
+        fun fetch(e: EdgeId, labels: MutableList<Label>) {
+            labels.clear()
+            for (input_edge_id in g.inputEdgeIds(e)) {
+                for (label in g.labels(input_edge_id)) {
+                    labels.add(label)
+                }
+            }
+            if (edge_type == EdgeType.UNDIRECTED) {
+                for (input_edge_id in g.inputEdgeIds(sibling_map[e])) {
+                    for (label in g.labels(input_edge_id)) {
+                        labels.add(label)
+                    }
+                }
+            }
+            if (labels.size > 1) {
+                labels.sortAndRemoveDuplicates()
+            }
+        }
 
-        private :
-        const Graph* g_;
-        EdgeType edge_type_;
-        std::vector<EdgeId> sibling_map_;
-    };
- */
+    }
+
     // Indicates whether loops should be simple cycles (no repeated vertices) or
     // circuits (which allow repeated vertices but not repeated edges).  In
     // terms of how the loops are built, this corresponds to closing off a loop
     // at the first repeated vertex vs. the first repeated edge.
-    enum class LoopType { SIMPLE, CIRCUIT };
+    enum class LoopType { SIMPLE, CIRCUIT }
 
     // Builds loops from a set of directed edges, turning left at each vertex
     // until a repeated edge is found (i.e., LoopType::CIRCUIT).  The loops are
@@ -812,7 +820,7 @@ class Graph(
     // Indicates whether polylines should be "paths" (which don't allow
     // duplicate vertices, except possibly the first and last vertex) or
     // "walks" (which allow duplicate vertices and edges).
-    enum class PolylineType { PATH, WALK };
+    enum class PolylineType { PATH, WALK }
 
     // Builds polylines from a set of edges.  If "polyline_type" is PATH, then
     // only vertices of indegree and outdegree 1 (or degree 2 in the case of

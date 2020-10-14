@@ -51,11 +51,13 @@ import dilivia.s2.SequenceLexicon
 class IdSetLexicon {
 
     // This class represents a set of integers stored in the IdSetLexicon.
-    class IdSet(val values: List<Int> = emptyList()) {
+    class IdSet(val values: List<Int> = emptyList()): Iterable<Int> {
 
         constructor(v: Int): this(listOf(v))
 
         fun size(): Int = values.size
+
+        override fun iterator(): Iterator<Int> = values.iterator()
 
     }
 

@@ -126,7 +126,7 @@ abstract class S2GeometryTestCase : TestCase() {
         @JvmOverloads
         fun makePolyline(str: String, check: Boolean = true): S2Polyline {
             val vertices = parseVertices(str)
-            return S2Polyline(vertices, check)
+            return S2Polyline(vertices.toMutableList(), check)
         }
     }
 }

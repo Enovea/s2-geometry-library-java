@@ -150,3 +150,7 @@ fun <T : Comparable<T>> MutableList<T>.sortAndRemoveDuplicates() {
     }
 }
 
+fun <T> MutableList<T>.reverse(startIdx: Int, endIdx: Int) {
+    this.subList(startIdx, endIdx).reverse()
+}
+

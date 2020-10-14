@@ -110,4 +110,12 @@ data class S2Error(var code: Int = OK, var text: String = ""): Exception("S2Erro
 
   fun isOk(): Boolean = code == OK
 
+    fun init(code: Int, text: String): S2Error {
+        this.code = code
+        this.text = text
+        return this
+    }
+
+    fun init(error: S2Error): S2Error = init(error.code, error.text)
+
 }

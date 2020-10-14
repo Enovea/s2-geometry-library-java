@@ -19,30 +19,58 @@
 package dilivia.s2.region
 
 import com.google.common.geometry.S2.M_PI
-import dilivia.s2.*
+import dilivia.s2.Assertions
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLE
 import dilivia.s2.Assertions.assertLT
+import dilivia.s2.MutableS1Angle
+import dilivia.s2.S1Angle
+import dilivia.s2.S1Interval
+import dilivia.s2.S2Centroids
+import dilivia.s2.S2EdgeCrosser
+import dilivia.s2.S2EdgeDistances
+import dilivia.s2.S2Error
+import dilivia.s2.S2LatLng
+import dilivia.s2.S2LatLngRect
+import dilivia.s2.S2LatLngRectBounder
+import dilivia.s2.S2Point
+import dilivia.s2.S2Predicates
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.TypeTag
 import dilivia.s2.shape.TypeTags
+import dilivia.s2.times
 import mu.KotlinLogging
-import kotlin.math.*
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 
 // An S2Polyline represents a sequence of zero or more vertices connected by
 // straight edges (geodesics).  Edges of length 0 and 180 degrees are not
 // allowed, i.e. adjacent vertices should not be identical or antipodal.
-class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolean) : S2Region {
+class S2Polyline internal constructor(val vertices: MutableList<S2Point>, check: Boolean) : S2Region {
 
     // Creates an empty S2Polyline that should be initialized by calling Init()
     // or Decode().
-    constructor() : this(emptyList(), true)
+    constructor() : this(mutableListOf<S2Point>(), true)
 
-    constructor(vertices: List<S2Point>) : this(vertices, true)
+    constructor(vertices: MutableList<S2Point>) : this(vertices, true)
 
     init {
+        if (check) {
+            assert { isValid() }
+        }
+    }
+
+    fun init(vertices: MutableList<S2Point>, check: Boolean = true) {
+        this.vertices.clear()
+        if (this.vertices is ArrayList) {
+            this.vertices.ensureCapacity(vertices.size)
+        }
+        this.vertices.addAll(vertices)
         if (check) {
             assert { isValid() }
         }
@@ -63,22 +91,31 @@ class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolea
     //
     // REQUIRES: error != nullptr
     fun findValidationError(): S2Error {
+        val error = S2Error()
+        findValidationError(error)
+        return error
+    }
+
+    fun findValidationError(error: S2Error): Boolean {
         // All vertices must be unit length.
         for (i in 0 until numVertices()) {
             if (!S2Point.isUnitLength(vertex(i))) {
-                return S2Error(code = S2Error.NOT_UNIT_LENGTH, "Vertex %d is not unit length".format(i))
+                error.init(code = S2Error.NOT_UNIT_LENGTH, "Vertex %d is not unit length".format(i))
+                return false
             }
         }
         // Adjacent vertices must not be identical or antipodal.
         for (i in 1 until numVertices()) {
             if (vertex(i - 1) == vertex(i)) {
-                return S2Error(code = S2Error.DUPLICATE_VERTICES, "Vertices %d and %d are identical".format(i - 1, i))
+                error.init(code = S2Error.DUPLICATE_VERTICES, "Vertices %d and %d are identical".format(i - 1, i))
+                return false
             }
             if (vertex(i - 1) == -vertex(i)) {
-                return S2Error(code = S2Error.ANTIPODAL_VERTICES, "Vertices %d and %d are antipodal".format(i - 1, i))
+                error.init(code = S2Error.ANTIPODAL_VERTICES, "Vertices %d and %d are antipodal".format(i - 1, i))
+                return false
             }
         }
-        return S2Error()
+        return true
     }
 
     fun numVertices(): Int = vertices.size
@@ -274,7 +311,7 @@ class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolea
     }
 
     // Reverse the order of the polyline vertices.
-    fun reversed(): S2Polyline = S2Polyline(vertices.reversed())
+    fun reversed(): S2Polyline = S2Polyline(vertices.asReversed().toMutableList())
 
     // Return a subsequence of vertex indices such that the polyline connecting
     // these vertices is never further than "tolerance" from the original
@@ -512,7 +549,7 @@ class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolea
     // S2Region interface (see s2region.h for details):
 
     override fun clone(): S2Polyline {
-        return S2Polyline(vertices.toList())
+        return S2Polyline(vertices.toMutableList())
     }
 
     override val capBound: S2Cap
@@ -602,7 +639,7 @@ class S2Polyline internal constructor(val vertices: List<S2Point>, check: Boolea
 
         private val logger = KotlinLogging.logger(S2Polyline::class.java.name)
 
-        fun fromLatLng(vertices: List<S2LatLng>): S2Polyline = S2Polyline(vertices.map { it.toPoint() })
+        fun fromLatLng(vertices: List<S2LatLng>): S2Polyline = S2Polyline(vertices.asSequence().map { it.toPoint() }.toMutableList())
 
         // Returns the length of the polyline.  Returns zero for polylines with fewer
         // than two vertices.

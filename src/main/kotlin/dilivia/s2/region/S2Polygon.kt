@@ -363,36 +363,47 @@ class S2Polygon() : S2Region {
     // Note that in error messages, loops that represent holes have their edges
     // numbered in reverse order, starting from the last vertex of the loop.
     //
+
     fun findValidationError(): S2Error {
-        var error: S2Error
+        val error = S2Error()
+        findValidationError(error)
+        return error
+    }
+    fun findValidationError(error: S2Error): Boolean {
         for (i in 0 until numLoops()) {
             // Check for loop errors that don't require building an S2ShapeIndex.
-            error = loop(i).findValidationErrorNoIndex()
+            error.init(loop(i).findValidationErrorNoIndex())
             if (!error.isOk()) {
-                return S2Error(code = error.code, text = "Loop $i: ${error.text}")
+                error.init(code = error.code, text = "Loop $i: ${error.text}")
+                return false
             }
             // Check that no loop is empty, and that the full loop only appears in the
             // full polygon.
             if (loop(i).isEmpty()) {
-                return S2Error(code = S2Error.POLYGON_EMPTY_LOOP, text = "Loop $i: empty loops are not allowed")
+                error.init(code = S2Error.POLYGON_EMPTY_LOOP, text = "Loop $i: empty loops are not allowed")
+                return false
             }
             if (loop(i).isFull() && numLoops() > 1) {
-                return S2Error(code = S2Error.POLYGON_EXCESS_FULL_LOOP, text = "Loop $i: full loop appears in non-full polygon");
+                error.init(
+                        code = S2Error.POLYGON_EXCESS_FULL_LOOP,
+                        text = "Loop $i: full loop appears in non-full polygon"
+                );
+                return false
             }
         }
 
         // Check for loop self-intersections and loop pairs that cross
         // (including duplicate edges and vertices).
-        error = S2CrossingEdgePairsScanner.findSelfIntersection(index)
-        if (!error.isOk()) return error
+        error.init(S2CrossingEdgePairsScanner.findSelfIntersection(index))
+        if (!error.isOk()) return false
 
         // Check whether InitOriented detected inconsistent loop orientations.
         if (errorInconsistentLoopOrientations) {
-            return S2Error(code = S2Error.POLYGON_INCONSISTENT_LOOP_ORIENTATIONS, text = "Inconsistent loop orientations detected")
+            error.init(code = S2Error.POLYGON_INCONSISTENT_LOOP_ORIENTATIONS, text = "Inconsistent loop orientations detected")
         }
 
         // Finally, verify the loop nesting hierarchy.
-        return findLoopNestingError()
+        return error.init(findLoopNestingError()).isOk()
     }
 
     // Return true if this is the empty polygon (consisting of no loops).

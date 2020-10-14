@@ -25,7 +25,7 @@ data class GraphOptions(
         // changing edge_type() to DIRECTED.)
         //
         // DEFAULT: EdgeType::DIRECTED
-        var edge_type: S2Builder.EdgeType = S2Builder.EdgeType.DIRECTED,
+        var edge_type: EdgeType = EdgeType.DIRECTED,
 
         // Controls how degenerate edges (i.e., an edge from a vertex to itself) are
         // handled.  Such edges may be present in the input, or they may be created

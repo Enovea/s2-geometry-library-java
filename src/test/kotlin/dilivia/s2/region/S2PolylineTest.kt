@@ -28,7 +28,7 @@ class S2PolylineTest : S2GeometryTestCase() {
     private val logger = KotlinLogging.logger {}
     
     fun testBasic() {
-        val vertices = emptyList<S2Point>()
+        val vertices = emptyList<S2Point>().toMutableList()
         var empty = S2Polyline(vertices)
         assertEquals(S2LatLngRect.empty, empty.rectBound)
         empty = empty.reversed()
@@ -74,7 +74,7 @@ class S2PolylineTest : S2GeometryTestCase() {
     }
 
     fun testMayIntersect() {
-        val vertices = listOf(
+        val vertices = mutableListOf(
                 S2Point(1.0, -1.1, 0.8).normalize(),
                 S2Point(1.0, -0.8, 1.1).normalize()
         )
@@ -86,7 +86,7 @@ class S2PolylineTest : S2GeometryTestCase() {
     }
 
     fun testInterpolate() {
-        var vertices = listOf(
+        var vertices = mutableListOf(
                 S2Point(1, 0, 0),
                 S2Point(0, 1, 0),
                 S2Point(0, 1, 1).normalize(),
@@ -110,7 +110,7 @@ class S2PolylineTest : S2GeometryTestCase() {
 
         // Check the case where the interpolation fraction is so close to 1 that
         // the interpolated point is identical to the last vertex.
-        vertices = listOf(
+        vertices = mutableListOf(
             S2Point(1, 1, 1).normalize(),
             S2Point(1.0, 1.0, 1 + 1e-15).normalize(),
             S2Point(1.0, 1.0, 1 + 2e-15).normalize()

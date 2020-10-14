@@ -1,8 +1,10 @@
-package dilivia.s2.builder
+package dilivia.s2.builder.layers
 
 import dilivia.s2.S2Error
+import dilivia.s2.builder.Graph
+import dilivia.s2.builder.GraphOptions
 
-/*
+
 // This class is not needed by ordinary S2Builder clients.  It is only
 // necessary if you wish to implement a new S2Builder::Layer subtype.
 abstract class Layer {
@@ -18,9 +20,7 @@ abstract class Layer {
   // This makes it easier to write algorithms that gather the output graphs
   // from several layers and process them all at once (such as
   // s2builderutil::ClosedSetNormalizer).
-  abstract fun build(g: Graph): S2Error
+  abstract fun build(g: Graph, error: S2Error)
 
 }
 
-
- */
