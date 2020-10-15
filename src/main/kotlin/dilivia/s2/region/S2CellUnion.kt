@@ -23,6 +23,9 @@ import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLE
 import dilivia.s2.Assertions.assertNE
+import dilivia.s2.collections.Container
+import dilivia.s2.collections.isSorted
+import dilivia.s2.collections.lowerBound
 import mu.KotlinLogging
 import kotlin.math.max
 import kotlin.math.min
@@ -41,7 +44,7 @@ import kotlin.math.min
 // return different results if they are not (e.g., Contains(S2CellUnion).)
 //
 
-class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>, verbatim: Boolean) : S2Region, Iterable<S2CellId> by cellIds, ListIterable<S2CellId> {
+class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>, verbatim: Boolean) : S2Region, Iterable<S2CellId> by cellIds, Container<S2CellId> {
 
     private val logger = KotlinLogging.logger {  }
 
@@ -72,6 +75,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
         cellIds.clear()
     }
 
+    override fun size(): Int = numCells()
     fun numCells(): Int = cellIds.size
 
     fun cellId(i: Int): S2CellId = cellIds[i]
@@ -389,9 +393,9 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     fun cellIds(): List<S2CellId> = cellIds.toList()
 
-    override fun listIterator(): ListIterator<S2CellId> = cellIds.listIterator()
+    fun listIterator(): ListIterator<S2CellId> = cellIds.listIterator()
 
-    override fun listIterator(index: Int): ListIterator<S2CellId> = cellIds.listIterator(index)
+    fun listIterator(index: Int): ListIterator<S2CellId> = cellIds.listIterator(index)
 
     fun begin(): S2CellId = cellIds.first()
 
@@ -462,7 +466,7 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     fun isEmpty(): Boolean = cellIds.isEmpty()
 
-    operator fun get(i: Int): S2CellId = cellId(i)
+    override operator fun get(i: Int): S2CellId = cellId(i)
     override fun toString(): String {
         return "S2CellUnion(cellIds=${cellIds.joinToString("\n", prefix = "\n", postfix = "\n")})"
     }

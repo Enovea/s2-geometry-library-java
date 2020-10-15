@@ -1,8 +1,6 @@
 package dilivia.s2.region
 
-import com.google.common.geometry.S2.M_PI
 import dilivia.s2.Assertions
-import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.Assertions.assertTrue
@@ -26,7 +24,7 @@ import dilivia.s2.shape.Edge
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.TypeTag
 import dilivia.s2.shape.TypeTags
-import dilivia.s2.upperBound
+import dilivia.s2.collections.upperBound
 import mu.KotlinLogging
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger

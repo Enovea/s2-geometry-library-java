@@ -18,7 +18,7 @@ import dilivia.s2.builder.get
 import dilivia.s2.index.MutableS2ShapeIndex
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
-import dilivia.s2.reverse
+import dilivia.s2.collections.reverse
 
 //
 // Note that there are two supported output types for polygons: S2Polygon and

@@ -23,6 +23,9 @@ import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.Assertions.assertLE
 import dilivia.s2.Assertions.assertNE
+import dilivia.s2.collections.isSorted
+import dilivia.s2.collections.lowerBound
+import dilivia.s2.collections.upperBound
 import mu.KotlinLogging
 import java.util.*
 import kotlin.math.max

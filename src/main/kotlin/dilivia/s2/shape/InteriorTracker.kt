@@ -19,6 +19,7 @@
 package dilivia.s2.shape
 
 import dilivia.s2.*
+import dilivia.s2.collections.lowerBound
 import dilivia.s2.coords.S2Coords
 
 

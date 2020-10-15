@@ -11,7 +11,7 @@ import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Error
 import dilivia.s2.S2Point
-import dilivia.s2.assign
+import dilivia.s2.collections.assign
 import dilivia.s2.builder.layers.Layer
 import dilivia.s2.index.MutableS2ShapeIndex
 import dilivia.s2.index.S2PointIndex

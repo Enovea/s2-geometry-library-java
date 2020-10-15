@@ -7,9 +7,9 @@ import dilivia.s2.Assertions.assertTrue
 import dilivia.s2.S2Error
 import dilivia.s2.S2Point
 import dilivia.s2.S2Predicates
-import dilivia.s2.assign
-import dilivia.s2.remove
-import dilivia.s2.sortAndRemoveDuplicates
+import dilivia.s2.collections.assign
+import dilivia.s2.collections.remove
+import dilivia.s2.collections.sortAndRemoveDuplicates
 
 // Identifies a vertex in the graph.  Vertices are numbered sequentially
 // starting from zero.

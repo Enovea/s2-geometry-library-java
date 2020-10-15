@@ -24,7 +24,7 @@ import dilivia.s2.S2TextParser
 import dilivia.s2.region.S2Loop
 
 
-class S2ShapeContainsBruteForceTest : S2GeometryTestCase() {
+class  S2ShapeContainsBruteForceTest : S2GeometryTestCase() {
 
     fun testContainsBruteForceNoInterior() {
         // Defines a polyline that almost entirely encloses the point 0:0.

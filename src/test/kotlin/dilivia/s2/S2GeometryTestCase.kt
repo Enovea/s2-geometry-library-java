@@ -21,12 +21,13 @@ package dilivia.s2
 import com.google.common.base.Splitter
 import com.google.common.collect.Iterables
 import com.google.common.collect.Lists
-import com.google.common.geometry.S2Loop
 import com.google.common.geometry.S2Polygon
 import dilivia.s2.S1Angle.Companion.radians
 import dilivia.s2.S2LatLng.Companion.fromDegrees
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
+import dilivia.s2.region.S2Loop
+import dilivia.s2.region.S2Loop.Companion.makeRegularLoop
 import dilivia.s2.region.S2Polyline
 import dilivia.s2.region.S2Region
 import junit.framework.TestCase
@@ -112,10 +113,16 @@ abstract class S2GeometryTestCase : TestCase() {
         }
 
         @JvmStatic
+        fun makeOldLoop(str: String): com.google.common.geometry.S2Loop {
+            val vertices = parseVertices(str)
+            return com.google.common.geometry.S2Loop(vertices)
+        }
+
+        @JvmStatic
         fun makePolygon(str: String): S2Polygon {
-            val loops: MutableList<S2Loop> = Lists.newArrayList()
+            val loops: MutableList<com.google.common.geometry.S2Loop> = Lists.newArrayList()
             for (token in Splitter.on(';').omitEmptyStrings().split(str)) {
-                val loop = makeLoop(token)
+                val loop = makeOldLoop(token)
                 loop.normalize()
                 loops.add(loop)
             }
@@ -127,6 +134,16 @@ abstract class S2GeometryTestCase : TestCase() {
         fun makePolyline(str: String, check: Boolean = true): S2Polyline {
             val vertices = parseVertices(str)
             return S2Polyline(vertices.toMutableList(), check)
+        }
+
+        @JvmStatic
+        fun makeRegularPoints(center: S2Point, radius: S1Angle, num_vertices: Int): List<S2Point> {
+            val loop = makeRegularLoop(center, radius, num_vertices)
+            val points = ArrayList<S2Point>(loop.numVertices())
+            for (i in 0 until loop.numVertices()) {
+                points.add(loop.vertex(i))
+            }
+            return points;
         }
     }
 }

@@ -3,8 +3,8 @@ package dilivia.s2.index
 import com.google.common.collect.ComparisonChain
 import dilivia.s2.S2CellId
 import dilivia.s2.region.S2CellUnion
-import dilivia.s2.sortAndRemoveDuplicates
-import dilivia.s2.upperBound
+import dilivia.s2.collections.sortAndRemoveDuplicates
+import dilivia.s2.collections.upperBound
 import mu.KotlinLogging
 
 /**
