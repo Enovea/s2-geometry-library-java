@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.Assertions
 import dilivia.s2.MutableR2Rect
@@ -26,12 +26,13 @@ import dilivia.s2.S2CellId
 import dilivia.s2.S2CellMetrics
 import dilivia.s2.S2EdgeClipping
 import dilivia.s2.S2PaddedCell
+import dilivia.s2.S2Point
 import dilivia.s2.coords.S2Coords
+import dilivia.s2.index.shape.InitialPosition.*
 import dilivia.s2.math.R2Point
 import dilivia.s2.region.S2CellUnion
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.InteriorTracker
-import dilivia.s2.shape.S2ClippedShape
 import dilivia.s2.shape.S2Shape
 import mu.KotlinLogging
 import java.util.*
@@ -44,371 +45,301 @@ import kotlin.math.pow
 
 typealias CellMap = TreeMap<S2CellId, S2ShapeIndexCell>
 
-// MutableS2ShapeIndex is a class for in-memory indexing of polygonal geometry.
-// The objects in the index are known as "shapes", and may consist of points,
-// polylines, and/or polygons, possibly overlapping.  The index makes it very
-// fast to answer queries such as finding nearby shapes, measuring distances,
-// testing for intersection and containment, etc.
-//
-// MutableS2ShapeIndex allows not only building an index, but also updating it
-// incrementally by adding or removing shapes (hence its name).  It is one of
-// several implementations of the S2ShapeIndex interface.  MutableS2ShapeIndex
-// is designed to be compact; usually it is smaller than the underlying
-// geometry being indexed.  It is capable of indexing up to hundreds of
-// millions of edges.  The index is also fast to construct.
-//
-// There are a number of built-in classes that work with S2ShapeIndex objects.
-// Generally these classes accept any collection of geometry that can be
-// represented by an S2ShapeIndex, i.e. any combination of points, polylines,
-// and polygons.  Such classes include:
-//
-// - S2ContainsPointQuery: returns the shape(s) that contain a given point.
-//
-// - S2ClosestEdgeQuery: returns the closest edge(s) to a given point, edge,
-//                       S2CellId, or S2ShapeIndex.
-//
-// - S2CrossingEdgeQuery: returns the edge(s) that cross a given edge.
-//
-// - S2BooleanOperation: computes boolean operations such as union,
-//                       and boolean predicates such as containment.
-//
-// - S2ShapeIndexRegion: computes approximations for a collection of geometry.
-//
-// - S2ShapeIndexBufferedRegion: computes approximations that have been
-//                               expanded by a given radius.
-//
-// Here is an example showing how to build an index for a set of polygons, and
-// then then determine which polygon(s) contain each of a set of query points:
-//
-//   void TestContainment(const vector<S2Point>& points,
-//                        const vector<S2Polygon*>& polygons) {
-//     MutableS2ShapeIndex index
-//     for (auto polygon : polygons) {
-//       index.Add(absl::make_unique<S2Polygon::Shape>(polygon))
-//     }
-//     auto query = MakeS2ContainsPointQuery(&index)
-//     for (const auto& point : points) {
-//       for (S2Shape* shape : query.GetContainingShapes(point)) {
-//         S2Polygon* polygon = polygons[shape->id()]
-//         ... do something with (point, polygon) ...
-//       }
-//     }
-//   }
-//
-// This example uses S2Polygon::Shape, which is one example of an S2Shape
-// object.  S2Polyline and S2Loop also have nested Shape classes, and there are
-// additional S2Shape types defined in *_shape.h.
-//
-// Internally, MutableS2ShapeIndex is essentially a map from S2CellIds to the
-// set of shapes that intersect each S2CellId.  It is adaptively refined to
-// ensure that no cell contains more than a small number of edges.
-//
-// For efficiency, updates are batched together and applied lazily on the
-// first subsequent query.  Locking is used to ensure that MutableS2ShapeIndex
-// has the same thread-safety properties as "vector": const methods are
-// thread-safe, while non-const methods are not thread-safe.  This means that
-// if one thread updates the index, you must ensure that no other thread is
-// reading or updating the index at the same time.
-//
-// TODO(ericv): MutableS2ShapeIndex has an Encode() method that allows the
-// index to be serialized.  An encoded S2ShapeIndex can be decoded either into
-// its original form (MutableS2ShapeIndex) or into an EncodedS2ShapeIndex.
-// The key property of EncodedS2ShapeIndex is that it can be constructed
-// instantaneously, since the index is kept in its original encoded form.
-// Data is decoded only when an operation needs it.  For example, to determine
-// which shapes(s) contain a given query point only requires decoding the data
-// in the S2ShapeIndexCell that contains that point.
-// @constructor
-// Create a MutableS2ShapeIndex with the given options.
-// Creates a MutableS2ShapeIndex that uses the default option settings.
-// Option values may be changed by calling Init().
-// @property otions
-// The options supplied for this index.
-class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
+/**
+ * MutableS2ShapeIndex is a class for in-memory indexing of polygonal geometry. The objects in the index are known as
+ * "shapes", and may consist of points, polylines, and/or polygons, possibly overlapping. The index makes it very
+ * fast to answer queries such as finding nearby shapes, measuring distances, testing for intersection and
+ * containment, etc.
+ *
+ * Internally, MutableS2ShapeIndex is essentially a map from S2CellIds to the set of shapes that intersect each
+ * S2CellId.  It is adaptively refined to ensure that no cell contains more than a small number of edges.
+ *
+ * For efficiency, updates are batched together and applied lazily on the first subsequent query. Locking is used to
+ * ensure that MutableS2ShapeIndex is not completely thread-safe. This means that if one thread updates the index,
+ * you must ensure that no other thread is reading or updating the index at the same time.
+ *
+ * @property options The index options.
+ * @constructor Create a MutableS2ShapeIndex with the given options. Option values may be changed by calling Init().
+ * @param options The options supplied for this index.
+ *
+ * @author Google S2Geometry Project
+ * @author Fabien Meurisse (fabien.meurisse@enovea.net)
+ * @since 1.0
+ */
+class MutableS2ShapeIndex(options: Options = Options()) : S2ShapeIndex() {
 
-    // The representation of an edge that has been queued for removal.
-    data class RemovedShape(val shapeId: Int, val hasInterior: Boolean, val contains_tracker_origin: Boolean, val edges: List<Edge>)
+    private var options: Options = options
 
-    enum class IndexStatus {
-        STALE,     // There are pending updates.
-        UPDATING,  // Updates are currently being applied.
-        FRESH,     // There are no pending updates.
-    }
+    private var updateState: UpdateState? = null
 
-    // Options that affect construction of the MutableS2ShapeIndex.
-    // @property maxEdgesPerCell
-    // The maximum number of edges per cell.  If a cell has more than this
-    // many edges that are not considered "long" relative to the cell size,
-    // then it is subdivided.  (Whether an edge is considered "long" is
-    // controlled by --s2shape_index_cell_size_to_long_edge_ratio flag.)
-    //
-    // Values between 10 and 50 represent a reasonable balance between memory
-    // usage, construction time, and query time.  Small values make queries
-    // faster, while large values make construction faster and use less memory.
-    // Values higher than 50 do not save significant additional memory, and
-    // query times can increase substantially, especially for algorithms that
-    // visit all pairs of potentially intersecting edges (such as polygon
-    // validation), since this is quadratic in the number of edges per cell.
-    //
-    // Note that the *average* number of edges per cell is generally slightly
-    // less than half of the maximum value defined here.
-    //
-    // Defaults to value given by --s2shape_index_default_max_edges_per_cell.
-    data class Options(val maxEdgesPerCell: Int = 10)
-
-    // FaceEdge and ClippedEdge store temporary edge data while the index is being
-    // updated.  FaceEdge represents an edge that has been projected onto a given
-    // face, while ClippedEdge represents the portion of that edge that has been
-    // clipped to a given S2Cell.
-    //
-    // While it would be possible to combine all the edge information into one
-    // structure, there are two good reasons for separating it:
-    //
-    //  - Memory usage.  Separating the two classes means that we only need to
-    //    store one copy of the per-face data no matter how many times an edge is
-    //    subdivided, and it also lets us delay computing bounding boxes until
-    //    they are needed for processing each face (when the dataset spans
-    //    multiple faces).
-    //
-    //  - Performance.  UpdateEdges is significantly faster on large polygons when
-    //    the data is separated, because it often only needs to access the data in
-    //    ClippedEdge and this data is cached more successfully.
-
-    data class FaceEdge(
-            val shapeId: Int = -1,                  // The shape that this edge belongs to
-            var edgeId: Int = 0,                    // Edge id within that shape
-            var maxLevel: Int = 0,                  // Not desirable to subdivide this edge beyond this level
-            val hasInterior: Boolean = false,       // Belongs to a shape of dimension 2.
-            var a: R2Point = R2Point(),
-            var b: R2Point = R2Point(),             // The edge endpoints, clipped to a given face
-            var edge: Edge = Edge() // The edge endpoints
-    )
-
-    data class ClippedEdge(
-            val faceEdge: FaceEdge = FaceEdge(),     // The original unclipped edge
-            val bound: R2Rect = R2Rect()           // Bounding box for the clipped portion
-    )
-
-    // A BatchDescriptor represents a set of pending updates that will be applied
-    // at the same time.  The batch consists of all updates with shape ids between
-    // the current value of "ShapeIndex::pending_additions_begin_" (inclusive) and
-    // "additions_end" (exclusive).  The first batch to be processed also
-    // implicitly includes all shapes being removed.  "num_edges" is the total
-    // number of edges that will be added or removed in this batch.
-    data class BatchDescriptor(
-            var additionsEnd: Int,
-            val numEdges: Int
-    )
-
-    // UpdateState holds temporary data related to thread synchronization.  It
-    // is only allocated while updates are being applied.
-    class UpdateState(
-            // This mutex is used as a condition variable.  It is locked by the
-            // updating thread for the entire duration of the update; other threads
-            // lock it in order to wait until the update is finished.
-            val waitMutex: ReentrantLock = ReentrantLock(),
-
-            // The number of threads currently waiting on "wait_mutex_".  The
-            // UpdateState can only be freed when this number reaches zero.
-            //
-            // Reads and writes to this field are guarded by "lock_".
-            var numWaiting: Int = 0) {
-
-        fun destroy() {
-            Assertions.assertEQ(0, numWaiting)
-        }
-    }
-
-    private var updateState = UpdateState()
-
-    // The shapes in the index, accessed by their shape id.  Removed shapes are
-    // replaced by nullptr pointers.
+    /** The shapes in the index, accessed by their shape id. Removed shapes are replaced by null value. */
     private val shapes: MutableList<S2Shape?> = mutableListOf()
 
-    // A map from S2CellId to the set of clipped shapes that intersect that
-    // cell.  The cell ids cover a set of non-overlapping regions on the
-    // sphere.  Note that this field is updated lazily (see below).  Const
-    // methods *must* call MaybeApplyUpdates() before accessing this field.
-    // (The easiest way to achieve this is simply to use an Iterator.)
+    /** A map from S2CellId to the set of clipped shapes that intersect that cell. The cell ids cover a set of
+     * non-overlapping regions on the sphere. Note that this field is updated lazily (see below). */
     private val cellMap = CellMap()
 
-    // The id of the first shape that has been queued for addition but not
-    // processed yet.
+    /** The id of the first shape that has been queued for addition but not processed yet. */
     private var pendingAdditionsBegin = 0
 
-    // The set of shapes that have been queued for removal but not processed
-    // yet.  Note that we need to copy the edge data since the caller is free to
-    // destroy the shape once Release() has been called.  This field is present
-    // only when there are removed shapes to process (to save memory).
+    /** The set of shapes that have been queued for removal but not processed yet. */
     private val pendingRemovals = mutableListOf<RemovedShape>()
 
-    // Reads and writes to this field are guarded by "lock_".
-    private val indexStatus = AtomicReference(IndexStatus.FRESH)
+    /** The current index status. Reads and writes to this field are guarded by "lock". */
+    private val indexStatus = AtomicReference(S2ShapeIndexStatus.FRESH)
 
-    // Additions and removals are queued and processed on the first subsequent
-    // query.  There are several reasons to do this:
-    //
-    //  - It is significantly more efficient to process updates in batches.
-    //  - Often the index will never be queried, in which case we can save both
-    //    the time and memory required to build it.  Examples:
-    //     + S2Loops that are created simply to pass to an S2Polygon.  (We don't
-    //       need the S2Loop index, because S2Polygon builds its own index.)
-    //     + Applications that load a database of geometry and then query only
-    //       a small fraction of it.
-    //     + Applications that only read and write geometry (Decode/Encode).
-    //
-    // The main drawback is that we need to go to some extra work to ensure that
-    // "const" methods are still thread-safe.  Note that the goal is *not* to
-    // make this class thread-safe in general, but simply to hide the fact that
-    // we defer some of the indexing work until query time.
-    //
-    // The textbook approach to this problem would be to use a mutex and a
-    // condition variable.  Unfortunately pthread mutexes are huge (40 bytes).
-    // Instead we use spinlock (which is only 4 bytes) to guard a few small
-    // fields representing the current update status, and only create additional
-    // state while the update is actually occurring.
+    /**
+     * Additions and removals are queued and processed on the first subsequent query. There are several reasons to do
+     * this:
+     *
+     * - It is significantly more efficient to process updates in batches.
+     * - Often the index will never be queried, in which case we can save both the time and memory required to build it.
+     *   Examples:
+     *   + S2Loops that are created simply to pass to an S2Polygon. (We don't need the S2Loop index, because S2Polygon
+     *     builds its own index.)
+     *   + Applications that load a database of geometry and then query only a small fraction of it.
+     *   + Applications that only read and write geometry (Decode/Encode).
+     *
+     * The main drawback is that we need to go to some extra work to ensure that methods are still thread-safe. Note
+     * that the goal is *not* to make this class thread-safe in general, but simply to hide the fact that we defer some
+     * of the indexing work until query time.
+     */
     private val lock: ReentrantLock = ReentrantLock()
 
-    // The number of distinct shape ids that have been assigned.  This equals
-    // the number of shapes in the index provided that no shapes have ever been
-    // removed.  (Shape ids are not reused.)
+    /**
+     * Options that affect construction of the MutableS2ShapeIndex.
+     *
+     * @property maxEdgesPerCell The maximum number of edges per cell. If a cell has more than this many edges that are
+     * not considered "long" relative to the cell size, then it is subdivided.
+     *
+     * Values between 10 and 50 represent a reasonable balance between memory usage, construction time, and query time.
+     * Small values make queries faster, while large values make construction faster and use less memory.
+     * Values higher than 50 do not save significant additional memory, and query times can increase substantially,
+     * especially for algorithms that visit all pairs of potentially intersecting edges (such as polygon validation),
+     * since this is quadratic in the number of edges per cell.
+     *
+     * Note that the *average* number of edges per cell is generally slightly less than half of the maximum value
+     * defined here.
+     *
+     * Defaults = 10
+     */
+    data class Options(val maxEdgesPerCell: Int = kIndexDefaultMaxEdgesPerCell)
+
+    fun options(): Options = options
+
+    /**
+     * Initialize a MutableS2ShapeIndex with the given options.  This method may only be called when the index is empty
+     * (i.e. newly created or clear() has just been called).
+     *
+     * @param options The index options.
+     */
+    fun init(options: Options) {
+        check(shapes.isEmpty())
+        this.options = options
+    }
+
+    /**
+     * Gets the number of distinct shape ids that have been assigned. This equals the number of shapes in the index
+     * provided that no shapes have ever been removed. (Shape ids are not reused.)
+     *
+     * @return The number of already assigned shape id.
+     */
     override fun numShapeIds(): Int = shapes.size
 
-    // Returns a pointer to the shape with the given id, or nullptr if the shape
-    // has been removed from the index.
+    /**
+     * Gets the shape with the given id, or null if the shape has been removed from the index.
+     *
+     * @param id A shape id.
+     * @return The shape with the given id or null if it has been removed.
+     */
     override fun shape(id: Int): S2Shape? = shapes[id]
 
-    // @constructor
-    // Constructs an iterator positioned as specified.  By default iterators
-    // are unpositioned, since this avoids an extra seek in this situation
-    // where one of the seek methods (such as Locate) is immediately called.
-    //
-    // If you want to position the iterator at the beginning, e.g. in order to
-    // loop through the entire index, do this instead:
-    //
-    //   for (MutableS2ShapeIndex::Iterator it(&index, S2ShapeIndex::BEGIN)
-    //        !it.done(); it.Next()) { ... }
-    inner class Iterator private constructor() : S2ShapeIndexIteratorBase() {
+    /**
+     * Index cell iterator. Used by S2ShapeIndex class to provided a S2ShapeIndexCellIterator.
+     *
+     * @constructor  Default constructor; must be followed by a call to init().
+     */
+    class Iterator constructor() : IteratorBase() {
 
-        private lateinit var end: S2CellId
-        private lateinit var keySet: NavigableSet<S2CellId>
-        private var currentCellId: S2CellId = S2CellId.sentinel()
+        /** The iterate index. */
+        private var index: MutableS2ShapeIndex? = null
+        /** Navigable key set view of the index cell map. Use to iterate over the cell of the index. */
+        private var keySet: NavigableSet<S2CellId>? = null
+        /** Current iterator position. S2CellId.sentinel() means that the the iterator is at the end of the index. */
+        private var iter: S2CellId = S2CellId.sentinel()
 
-        constructor(pos: InitialPosition = InitialPosition.UNPOSITIONED): this() {
-            init(pos)
+        /**
+         * Constructs an iterator positioned as specified. By default iterators are unpositioned, since this avoids an
+         * extra seek in this situation where one of the seek methods (such as Locate) is immediately called.
+         *
+         * If you want to position the iterator at the beginning, e.g. in order to loop through the entire index,
+         * do this:
+         *
+         * <pre>
+         *     val iter = MutableS2ShapeIndex.Iterator(index, S2ShapeIndex.BEGIN)
+         *     while (!iter.done()) {
+         *          ...
+         *         iter.next()
+         *     }
+         * </pre>
+         *
+         * @param index The shape index to iterate.
+         * @param pos The inital position of the iterator. (default = UNPOSITIONED)
+         */
+        constructor(index: MutableS2ShapeIndex, pos: InitialPosition = UNPOSITIONED) : this() {
+            init(index, pos)
         }
 
-        override fun clone(): Iterator {
-            val clone = Iterator()
-            clone.id = this.id()
-            clone.cell.set(this.cell())
-            clone.end = this.end
-            clone.keySet = this.keySet
-            clone.currentCellId = this.currentCellId
-            return clone
+        /**
+         * Initializes an iterator for the given MutableS2ShapeIndex. This method may also be called in order to
+         * restore an iterator to a valid state after the underlying index has been updated (although it is usually
+         * easier just to declare a new iterator whenever required, since iterator construction is cheap).
+         *
+         * @param index The shape index to iterate.
+         * @param pos The inital position of the iterator. (default = UNPOSITIONED)
+        */
+        fun init(index: MutableS2ShapeIndex, pos: InitialPosition) {
+            index.maybeApplyUpdates()
+            initStale(index, pos)
         }
 
-        // Initializes an iterator for the given MutableS2ShapeIndex.  This method
-        // may also be called in order to restore an iterator to a valid state
-        // after the underlying index has been updated (although it is usually
-        // easier just to declare a new iterator whenever required, since iterator
-        // construction is cheap).
-        fun init(pos: InitialPosition) {
-            logger.trace { "Iterator.init(pos = $pos)" }
-            maybeApplyUpdates()
-            initStale(pos)
-        }
-
-        // Initialize an iterator for the given MutableS2ShapeIndex without
-        // applying any pending updates.  This can be used to observe the actual
-        // current state of the index without modifying it in any way.
-        fun initStale(pos: InitialPosition = InitialPosition.UNPOSITIONED) {
-            logger.trace { "InitStale(pos = $pos): cellMap size = ${cellMap.size}" }
-            end = if (cellMap.isEmpty()) S2CellId.sentinel() else cellMap.lastKey()
-            keySet = cellMap.navigableKeySet()
-            currentCellId = when {
-                cellMap.isEmpty() -> S2CellId.sentinel()
-                pos == InitialPosition.BEGIN -> keySet.first()
-                else -> keySet.last()
+        /**
+         * Initialize an iterator for the given MutableS2ShapeIndex without applying any pending updates.
+         * This can be used to observe the actual current state of the index without modifying it in any way.
+         *
+         * @param index The shape index to iterate.
+         * @param pos The initial position of the iterator. (default = UNPOSITIONED)
+        */
+        fun initStale(index: MutableS2ShapeIndex, pos: InitialPosition = UNPOSITIONED) {
+            this.index = index
+            val keySet = index.cellMap.navigableKeySet()
+            this.iter = when {
+                keySet.isEmpty() -> S2CellId.sentinel()
+                pos == BEGIN -> keySet.first()
+                else -> S2CellId.sentinel()
             }
-
-            logger.trace { "InitStale(pos = $pos): current = $currentCellId, end = $end" }
+            this.keySet = keySet
             refresh()
         }
 
+        override fun cell(): S2ShapeIndexCell {
+            // Since MutableS2ShapeIndex always sets the "cell" field, we can skip the logic in the base class that
+            // conditionally calls getCell()
+            val cell = rawCell()
+            check(cell != null)
+            return cell
+        }
+
         override fun begin() {
+            // Make sure that the iterator is initialized
+            val index = this.index ?: throw IllegalStateException("The iterator must be initialized before calling refresh.")
+            val keySet = this.keySet ?: throw IllegalStateException("The iterator must be initialized before calling refresh.")
             // Make sure that the index has not been modified since Init() was called.
-            Assertions.assert { isFresh() }
-            currentCellId = keySet.first()
+            check(index.isFresh())
+            // Position the iterator on the first cell id and refresh.
+            iter = if (keySet.isEmpty()) S2CellId.sentinel() else keySet.first()
             refresh()
         }
 
         override fun finish() {
-            currentCellId = S2CellId.sentinel()
+            iter = S2CellId.sentinel()
             refresh()
         }
 
         override fun next() {
             Assertions.assert { !done() }
-            currentCellId = keySet.higher(currentCellId) ?: S2CellId.sentinel()
+            // Make sure that the iterator is initialized
+            val keySet = this.keySet ?: throw IllegalStateException("The iterator must be initialized before calling refresh.")
+            // Position the iterator on the next cell. If we are on the last cell, position the iterator on the sentinel
+            // to indicate that we are at the end.
+            iter = keySet.higher(iter) ?: S2CellId.sentinel()
             refresh()
         }
 
         override fun prev(): Boolean {
-            if (keySet.isNotEmpty() && currentCellId == keySet.first()) return false
-            currentCellId = keySet.lower(currentCellId) ?: keySet.firstOrNull() ?: S2CellId.sentinel()
+            // Make sure that the iterator is initialized
+            val keySet = this.keySet ?: throw IllegalStateException("The iterator must be initialized before calling refresh.")
+            // If the index is empty or if we are on the begin of the index, do nothing and return false
+            if (keySet.isEmpty() || iter == keySet.first()) return false
+            // Position the iterator on the previous cell.
+            iter = keySet.lower(iter) ?: throw IllegalStateException("The iterator is already on the beginning of the index.")
             refresh()
             return true
         }
 
         override fun seek(target: S2CellId) {
-            currentCellId = keySet.ceiling(target) ?: keySet.firstOrNull() ?: S2CellId.sentinel()
+            // Make sure that the iterator is initialized
+            val keySet = this.keySet ?: throw IllegalStateException("The iterator must be initialized before calling refresh.")
+
+            iter = keySet.ceiling(target) ?: S2CellId.sentinel()
             refresh()
         }
 
+        override fun clone(): Iterator {
+            val clone = super.clone() as Iterator
+            clone.index = index
+            clone.keySet = this.keySet
+            clone.iter = this.iter
+            return clone
+        }
+
+        /**
+         * Updates the iterator base fields.
+         */
         private fun refresh() {
-            if (currentCellId == S2CellId.sentinel()) {
+            val index = this.index ?: throw IllegalStateException("The iterator must be initialized before calling refresh.")
+            if (iter == S2CellId.sentinel()) {
                 setFinished()
             } else {
-                setState(currentCellId, cellMap.getValue(currentCellId))
+                setState(iter, index.cellMap.getValue(iter))
             }
+        }
+
+        override fun getCell(): S2ShapeIndexCell? {
+            throw IllegalStateException("Should never be called.")
+        }
+
+        companion object {
+            private val logger = KotlinLogging.logger(Iterator::class.java.name)
         }
 
     }
 
-    override fun iterator(pos: InitialPosition): Iterator = Iterator(pos)
-
-    override fun begin(): ListIterator<S2Shape?> = shapes.listIterator(0)
-
-    override fun end(): ListIterator<S2Shape?> = shapes.listIterator(shapes.lastIndex)
-
-    // Takes ownership of the given shape and adds it to the index.  Also
-    // assigns a unique id to the shape (shape->id()) and returns that id.
-    // Shape ids are assigned sequentially starting from 0 in the order shapes
-    // are added.  Invalidates all iterators and their associated data.
+    /**
+     * Adds a shape to the index. Also assigns a unique id to the shape (shape.id) and returns that id. Shape ids are
+     * assigned sequentially starting from 0 in the order shapes are added.
+     * Invalidates all iterators and their associated data by setting the index status to STALE.
+     *
+     * @param shape The shape to add.
+     * @return The id affected to the shape.
+     */
+    @Synchronized
     fun add(shape: S2Shape): Int {
         // Additions are processed lazily by ApplyUpdates().
         shape.id = shapes.size
         shapes.add(shape)
-        indexStatus.set(IndexStatus.STALE)
+        indexStatus.set(S2ShapeIndexStatus.STALE)
         return shape.id
     }
 
-    // Removes the given shape from the index and return ownership to the caller.
-    // Invalidates all iterators and their associated data.
-    fun release(shapeId: Int): S2Shape {
-        // This class updates itself lazily, because it is much more efficient to
-        // process additions and removals in batches.  However this means that when
-        // a shape is removed, we need to make a copy of all its edges, since the
-        // client is free to delete "shape" once this call is finished.
-        Assertions.assert { shapes[shapeId] != null }
-        val shape = shapes.removeAt(shapeId)!!
+    /**
+     * Removes the given shape from the index and return the shape.
+     * Invalidates all iterators and their associated data by setting the index status to STALE.
+     *
+     * @param shapeId The identifier of the shape to remove.
+     * @return The removed shape.
+     */
+    @Synchronized
+    fun remove(shapeId: Int): S2Shape {
+        // This class updates itself lazily, because it is much more efficient to process additions and removals in
+        // batches.
+        val shape = shapes.removeAt(shapeId)
+        check(shape != null)
         if (shapeId >= pendingAdditionsBegin) {
             // We are removing a shape that has not yet been added to the index,
             // so there is nothing else to do.
         } else {
-            // We build the new RemovedShape in place, since it includes a potentially
-            // large vector of edges that might be expensive to copy.
+            // We build the new RemovedShape
             val numEdges = shape.numEdges
             val removedEdges = mutableListOf<Edge>()
             for (e in 0 until numEdges) {
@@ -417,101 +348,134 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             pendingRemovals.add(RemovedShape(
                     shapeId = shape.id,
                     hasInterior = shape.dimension == 2,
-                    contains_tracker_origin = S2Shape.containsBruteForce(shape, kInteriorTrackerOrigin()),
+                    containsTrackerOrigin = S2Shape.containsBruteForce(shape, kInteriorTrackerOrigin),
                     edges = removedEdges
             ))
         }
-        indexStatus.set(IndexStatus.STALE)
+        indexStatus.set(S2ShapeIndexStatus.STALE)
         return shape
     }
 
-    // Resets the index to its original state and returns ownership of all
-    // shapes to the caller.  This method is much more efficient than removing
-    // all shapes one at a time.
-    fun releaseAll(): List<S2Shape> {
+    /**
+     * Resets the index to its original state and returns all shapes to the caller. This method is much more efficient
+     * than removing all shapes one at a time.
+     *
+     * @return The removed shapes.
+     */
+    @Synchronized
+    fun removeAll(): List<S2Shape> {
         cellMap.clear()
         pendingAdditionsBegin = 0
         pendingRemovals.clear()
-        //Assertions.assert { updateState == null }
-        indexStatus.set(IndexStatus.FRESH)
-        val removeShapes = shapes.toList().filterNotNull()
+        check(updateState == null)
+        indexStatus.set(S2ShapeIndexStatus.FRESH)
+        val removeShapes = shapes.asSequence().filterNotNull().toList()
         shapes.clear()
         return removeShapes
     }
 
-    // Resets the index to its original state and deletes all shapes.  Any
-    // options specified via Init() are preserved.
-    fun clear() {
-        releaseAll()
-    }
-
-    // Calls to Add() and Release() are normally queued and processed on the
-    // first subsequent query (in a thread-safe way).  This has many advantages,
-    // the most important of which is that sometimes there *is* no subsequent
-    // query, which lets us avoid building the index completely.
-    //
-    // This method forces any pending updates to be applied immediately.
-    // Calling this method is rarely a good idea.  (One valid reason is to
-    // exclude the cost of building the index from benchmark results.)
+    /**
+     * Forces the index build. Calls to add() and remove() are normally queued and processed on the first subsequent
+     * query (in a thread-safe way). This has many advantages, the most important of which is that sometimes there *is*
+     * no subsequent query, which lets us avoid building the index completely.
+     *
+     * This method forces any pending updates to be applied immediately. Calling this method is rarely a good idea.
+     * (One valid reason is to exclude the cost of building the index from benchmark results.)
+     */
+    @Synchronized
     fun forceBuild() {
-        // No locks required because this is not a const method.  It is the client's
-        // responsibility to ensure correct thread synchronization.
-        if (indexStatus.get() != IndexStatus.FRESH) {
+        // No locks required because this is not a const method. It is the client's responsibility to ensure correct
+        // thread synchronization.
+        if (indexStatus.get() != S2ShapeIndexStatus.FRESH) {
             applyUpdatesInternal()
-            indexStatus.set(IndexStatus.FRESH)
+            indexStatus.set(S2ShapeIndexStatus.FRESH)
         }
     }
 
-    // Returns true if there are no pending updates that need to be applied.
-    // This can be useful to avoid building the index unnecessarily, or for
-    // choosing between two different algorithms depending on whether the index
-    // is available.
-    //
-    // The returned index status may be slightly out of date if the index was
-    // built in a different thread.  This is fine for the intended use (as an
-    // efficiency hint), but it should not be used by internal methods  (see
-    // MaybeApplyUpdates).
-    fun isFresh(): Boolean = indexStatus.get() == IndexStatus.FRESH
+    /**
+     * Indicates if there are no pending updates that need to be applied. This can be useful to avoid building the
+     * index unnecessarily, or for choosing between two different algorithms depending on whether the index is
+     * available.
+     *
+     * The returned index status may be slightly out of date if the index was built in a different thread. This is fine
+     * for the intended use (as an efficiency hint), but it should not be used by internal methods
+     * (see MaybeApplyUpdates).
+     *
+     * @return true if the index is fresh and false otherwise.
+     */
+    fun isFresh(): Boolean = indexStatus.get() == S2ShapeIndexStatus.FRESH
 
-    // Ensure that any pending updates have been applied.  This method must be
-    // called before accessing the cell_map_ field, even if the index_status_
-    // appears to be FRESH, because a memory barrier is required in order to
-    // ensure that all the index updates are visible if the updates were done in
-    // another thread.
+    /////////////////////////////////////////////////////////////////////
+    //                       Internal Methods                          //
+    /////////////////////////////////////////////////////////////////////
+
+    /**
+     * Constructs an iterator positioned as specified. By default iterators are unpositioned, since this avoids an
+     * extra seek in this situation where one of the seek methods (such as Locate) is immediately called.
+     *
+     * If you want to position the iterator at the beginning, e.g. in order to loop through the entire index, do this:
+     *
+     * <pre>
+     *     val iter = MutableS2ShapeIndex.Iterator(index, S2ShapeIndex.BEGIN)
+     *     while (!iter.done()) {
+     *          ...
+     *         iter.next()
+     *     }
+     * </pre>
+     *
+     * @param pos The initial position
+     * @return A new iterator instance.
+     */
+    override fun newIterator(pos: InitialPosition): IteratorBase = Iterator(this, pos)
+
+    /**
+     * Indicates if this is the first update to the index.
+     *
+     * @return true if it is the first update and false otherwise.
+     */
+    private fun isFirstUpdate(): Boolean {
+        // Note that it is not sufficient to check whether cellMap is empty, since entries are added during the update
+        // process.
+        return pendingAdditionsBegin == 0
+    }
+
+    /**
+     * Given that the given shape is being updated, indicates if it is being removed (as opposed to being added).
+     * NOTE: This method does not check if the shape is being updated.
+     *
+     * @param shapeId The shape identifier to check.
+     * @return true if the shape is being removed.
+    */
+    private fun isShapeBeingRemoved(shapeId: Int): Boolean {
+        // All shape ids being removed are less than all shape ids being added.
+        return shapeId < pendingAdditionsBegin
+    }
+
+    /**
+     * Ensure that any pending updates have been applied. This method must be called before accessing the cellMap field,
+     * even if the indexStatus appears to be FRESH, because a memory barrier is required in order to ensure that all
+     * the index updates are visible if the updates were done in another thread.
+     */
     private fun maybeApplyUpdates() {
         // To avoid acquiring and releasing the spinlock on every query, we use
         // atomic operations when testing whether the status is FRESH and when
         // updating the status to be FRESH.  This guarantees that any thread that
         // sees a status of FRESH will also see the corresponding index updates.
-        if (indexStatus.get() != IndexStatus.FRESH) {
+        if (indexStatus.get() != S2ShapeIndexStatus.FRESH) {
             applyUpdatesThreadSafe()
         }
     }
 
-    // Return true if this is the first update to the index.
-    private fun isFirstUpdate(): Boolean {
-        // Note that it is not sufficient to check whether cell_map_ is empty, since
-        // entries are added during the update process.
-        return pendingAdditionsBegin == 0
-    }
-
-    // Given that the given shape is being updated, return true if it is being
-    // removed (as opposed to being added).
-    private fun isShapeBeingRemoved(shape_id: Int): Boolean {
-        // All shape ids being removed are less than all shape ids being added.
-        return shape_id < pendingAdditionsBegin
-    }
-
-    // Apply any pending updates in a thread-safe way.
+    /** Apply any pending updates in a thread-safe way. */
     private fun applyUpdatesThreadSafe() {
-        logger.trace { "Iterator.applyUpdatesThreadSafe()" }
         lock.lock()
         when (indexStatus.get()) {
-            IndexStatus.FRESH -> lock.unlock()
-            IndexStatus.UPDATING -> {
-                // Wait until the updating thread is finished.  We do this by attempting
-                // to lock a mutex that is held by the updating thread.  When this mutex
-                // is unlocked the index_status_ is guaranteed to be FRESH.
+            S2ShapeIndexStatus.FRESH -> lock.unlock()
+            S2ShapeIndexStatus.UPDATING -> {
+                val updateState = updateState
+                check(updateState != null)
+                // Wait until the updating thread is finished. We do this by attempting to lock a mutex that is held by
+                // the updating thread.  When this mutex is unlocked the indexStatus is guaranteed to be FRESH.
                 ++updateState.numWaiting
                 lock.unlock()
                 updateState.waitMutex.lock()
@@ -520,49 +484,66 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
                 unlockAndSignal()  // Notify other waiting threads.
             }
             else -> {
-                Assertions.assertEQ(IndexStatus.STALE, indexStatus.get())
-                indexStatus.set(IndexStatus.UPDATING)
-                // Allocate the extra state needed for thread synchronization.  We keep
-                // the spinlock held while doing this, because (1) memory allocation is
-                // fast, so the chance of a context switch while holding the lock is low
-                // (2) by far the most common situation is that there is no contention,
-                // and this saves an extra lock and unlock step; (3) even in the rare case
-                // where there is contention, the main side effect is that some other
-                // thread will burn a few CPU cycles rather than sleeping.
-                updateState = UpdateState()
-                // lock_.Lock wait_mutex *before* calling Unlock() to ensure that all other
-                // threads will block on it.
+                Assertions.assertEQ(S2ShapeIndexStatus.STALE, indexStatus.get())
+                indexStatus.set(S2ShapeIndexStatus.UPDATING)
+                // Allocate the extra state needed for thread synchronization. We keep the spinlock held while doing
+                // this, because
+                // (1) memory allocation is fast, so the chance of a context switch while holding the lock is low
+                // (2) by far the most common situation is that there is no contention, and this saves an extra lock and
+                //     unlock step;
+                // (3) even in the rare case where there is contention, the main side effect is that some other thread
+                //     will burn a few CPU cycles rather than sleeping.
+                val updateState = UpdateState()
+                this.updateState = updateState
+                // lock.Lock wait_mutex *before* calling Unlock() to ensure that all other threads will block on it.
                 updateState.waitMutex.lock()
                 // Release the spinlock before doing any real work.
                 lock.unlock()
                 applyUpdatesInternal()
                 lock.lock()
-                // index_status_ can be updated to FRESH only while locked *and* using
-                // an atomic store operation, so that MaybeApplyUpdates() can check
-                // whether the index is FRESH without acquiring the spinlock.
-                indexStatus.set(IndexStatus.FRESH)
+                // indexStatus can be updated to FRESH only while locked *and* using an atomic store operation, so that
+                // maybeApplyUpdates() can check whether the index is FRESH without acquiring the spinlock.
+                indexStatus.set(S2ShapeIndexStatus.FRESH)
                 unlockAndSignal()  // Notify any waiting threads.
             }
         }
     }
 
-    // This method updates the index by applying all pending additions and
-    // removals.  It does *not* update index_status_ (see ApplyUpdatesThreadSafe).
-    private fun applyUpdatesInternal() {
-        logger.trace { "--> Iterator.applyUpdatesInternal()" }
-        // Check whether we have so many edges to process that we should process
-        // them in multiple batches to save memory.  Building the index can use up
-        // to 20x as much memory (per edge) as the final index size.
-        val batches = getUpdateBatches()
-        logger.trace { "${batches.size} batches to process." }
-        for ((i, batch) in batches.withIndex()) {
-            val allEdges: Array<MutableList<FaceEdge>> = Array(6) { mutableListOf() }
-            logger.trace { "Batch $i : shape_limit=${batch.additionsEnd}, edges=${batch.numEdges}" }
+    /**
+     * Releases lock and wakes up any waiting threads by releasing waitMutex. If this was the last waiting thread,
+     * also deletes updateState.
+     * REQUIRES: lock is held.
+     * REQUIRES: updateState.waitMutex is held.
+     */
+    private fun unlockAndSignal() {
+        Assertions.assertEQ(S2ShapeIndexStatus.FRESH, indexStatus.get())
+        val updateState = updateState
+        check(updateState != null)
+        val numWaiting = updateState.numWaiting
+        lock.unlock()
+        // Allow another waiting thread to proceed. Note that no new threads can start waiting because the indexStatus
+        // is now FRESH, and the caller is required to prevent any new mutations from occurring while these
+        // methods are running.
+        //
+        // We need to unlock waitMutex before destroying it even if there are no waiting threads.
+        updateState.waitMutex.unlock()
+        if (numWaiting == 0) {
+            this.updateState = null
+        }
+    }
 
-            reserveSpace(batch, allEdges)
+    /**
+     * This method updates the index by applying all pending additions and removals. It does *not* update indexStatus
+     * (see ApplyUpdatesThreadSafe).
+     */
+    private fun applyUpdatesInternal() {
+        // Check whether we have so many edges to process that we should process them in multiple batches to save
+        // memory. Building the index can use up to 20x as much memory (per edge) as the final index size.
+        val batches = getUpdateBatches()
+        for (batch in batches) {
+            val allEdges: Array<MutableList<FaceEdge>> = Array(6) { mutableListOf() }
             val tracker = InteriorTracker()
             if (pendingRemovals.isNotEmpty()) {
-                logger.trace { "Execute ${pendingRemovals.size} pending removals." }
                 // The first batch implicitly includes all shapes being removed.
                 for (pendingRemoval in pendingRemovals) {
                     removeShape(pendingRemoval, allEdges, tracker)
@@ -580,7 +561,23 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             pendingAdditionsBegin = batch.additionsEnd
         }
         // It is the caller's responsibility to update index_status_.
-        logger.trace { "<-- Iterator.applyUpdatesInternal()" }
+        logger.debug {
+            """
+                |
+                |==============================================
+                | Shape index updated
+                |----------------------------------------------
+                |Shapes
+                |--------
+                |${shapes.joinToString("\n")}
+                | 
+                |CellMap
+                |--------
+                |${cellMap.entries.joinToString("\n") { entry -> "${entry.key} => \n${entry.value.toDebugString("\n")}" }}
+                |
+                |----------------------------------------------
+                | """.trimMargin()
+        }
     }
 
     // Count the number of edges being updated, and break them into several
@@ -693,41 +690,41 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         return batchSizes
     }
 
-    fun reserveSpace(batch: BatchDescriptor, allEdges: Array<MutableList<FaceEdge>>) {}
-
     // Clip all edges of the given shape to the six cube faces, add the clipped
     // edges to "all_edges", and start tracking its interior if necessary.
     private fun addShape(id: Int, all_edges: Array<MutableList<FaceEdge>>, tracker: InteriorTracker) {
         val shape = shape(id) ?: return  // This shape has already been removed.
         // Construct a template for the edges to be added.
-        val edge = FaceEdge(
+        val faceEdge = FaceEdge(
                 shapeId = id,
                 hasInterior = shape.dimension == 2
         )
-        if (edge.hasInterior) {
+        if (faceEdge.hasInterior) {
             tracker.addShape(id, S2Shape.containsBruteForce(shape, tracker.focus()))
         }
         val numEdges = shape.numEdges
         for (e in 0 until numEdges) {
-            addFaceEdge(edge.copy(edgeId = e, edge = shape.edge(e), maxLevel = getEdgeMaxLevel(edge.edge)), all_edges)
+            val edge = shape.edge(e)
+            addFaceEdge(faceEdge.copy(edgeId = e, edge = edge, maxLevel = getEdgeMaxLevel(edge)), all_edges)
         }
     }
 
     private fun removeShape(removed: RemovedShape, allEdges: Array<MutableList<FaceEdge>>, tracker: InteriorTracker) {
-        val edge = FaceEdge(
+        val faceEdge = FaceEdge(
                 shapeId = removed.shapeId,
                 edgeId = -1,  // Not used or needed for removed edges.
                 hasInterior = removed.hasInterior,
         )
-        if (edge.hasInterior) {
-            tracker.addShape(edge.shapeId, removed.contains_tracker_origin)
+        if (faceEdge.hasInterior) {
+            tracker.addShape(faceEdge.shapeId, removed.containsTrackerOrigin)
         }
-        for (removed_edge in removed.edges) {
-            addFaceEdge(edge.copy(edge = removed_edge, maxLevel = getEdgeMaxLevel(edge.edge)), allEdges)
+        for (removedEdge in removed.edges) {
+            addFaceEdge(faceEdge.copy(edge = removedEdge, maxLevel = getEdgeMaxLevel(removedEdge)), allEdges)
         }
     }
 
-    private fun addFaceEdge(edge: FaceEdge, allEdges: Array<MutableList<FaceEdge>>) {
+    private fun addFaceEdge(faceEdge: FaceEdge, allEdges: Array<MutableList<FaceEdge>>) {
+        var edge = faceEdge.copy()
         // Fast path: both endpoints are on the same face, and are far enough from
         // the edge of the face that don't intersect any (padded) adjacent face.
         val aFace = S2Coords.getFace(edge.edge.v0)
@@ -743,9 +740,9 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // Otherwise we simply clip the edge to all six faces.
         for (face in 0..5) {
             val abClippedUV = S2EdgeClipping.clipToPaddedFace(edge.edge.v0, edge.edge.v1, face, kCellPadding)
+            logger.trace { "Face $face: Add edge $edge => $abClippedUV" }
             if (abClippedUV != null) {
-                edge.a = abClippedUV.first
-                edge.b = abClippedUV.second
+                edge = faceEdge.copy(a = abClippedUV.first, b = abClippedUV.second)
                 allEdges[face].add(edge)
             }
         }
@@ -753,21 +750,26 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 
     // Return the first level at which the edge will *not* contribute towards
     // the decision to subdivide.
-    private fun getEdgeMaxLevel(edge: Edge): Int {
+    fun getEdgeMaxLevel(edge: Edge): Int {
         // Compute the maximum cell size for which this edge is considered "long".
         // The calculation does not need to be perfectly accurate, so we use Norm()
         // rather than Angle() for speed.
-        val cellSize = ((edge.v0 - edge.v1).norm() * s2shape_index_cell_size_to_long_edge_ratio)
+        val cellSize = ((edge.v0 - edge.v1).norm() * kIndexCellSizeToLongEdgeRatio)
         // Now return the first level encountered during subdivision where the
         // average cell size is at most "cell_size".
-        return S2CellMetrics.kAvgEdge.getLevelForMaxValue(cellSize)
+        val maxLevel = S2CellMetrics.kAvgEdge.getLevelForMaxValue(cellSize)
+
+        logger.trace { "Get edge $edge max level: cell size = $cellSize, maxLevel = $maxLevel" }
+
+        return maxLevel
     }
 
     // Given a face and a vector of edges that intersect that face, add or remove
     // all the edges from the index.  (An edge is added if shapes_[id] is not
     // nullptr, and removed otherwise.)
-    private fun updateFaceEdges(face: Int, face_edges: List<FaceEdge>, tracker: InteriorTracker) {
-        val numEdges = face_edges.size
+    private fun updateFaceEdges(face: Int, faceEdges: List<FaceEdge>, tracker: InteriorTracker) {
+        logger.trace { "Update face edges: face = $face, edges = $faceEdges" }
+        val numEdges = faceEdges.size
         if (numEdges == 0 && tracker.shapeIds().isEmpty()) return
 
         // Create the initial ClippedEdge for each FaceEdge.  Additional clipped
@@ -780,8 +782,8 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         val bound = MutableR2Rect()
         for (e in 0 until numEdges) {
             val clipped = ClippedEdge(
-                    faceEdge = face_edges[e],
-                    bound = R2Rect.fromPointPair(face_edges[e].a, face_edges[e].b)
+                    faceEdge = faceEdges[e],
+                    bound = R2Rect.fromPointPair(faceEdges[e].a, faceEdges[e].b)
             )
             //clipped.face_edge = &face_edges[e]
             //clipped.bound = R2Rect::FromPointPair(face_edges[e].a, face_edges[e].b)
@@ -824,8 +826,8 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             // Don't shrink any smaller than the existing index cells, since we need
             // to combine the new edges with those cells.
             // Use InitStale() to avoid applying updated recursively.
-            val iter = iterator()
-            iter.initStale()
+            val iter = Iterator()
+            iter.initStale(this)
             val r = iter.locate(shrunkId)
             if (r == CellRelation.INDEXED) {
                 shrunkId = iter.id()
@@ -885,8 +887,8 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             // encounter such a cell, we need to combine the edges being updated with
             // the existing cell contents by "absorbing" the cell.
             // Use InitStale() to avoid applying updated recursively.
-            val iter = iterator()
-            iter.initStale()
+            val iter = Iterator()
+            iter.initStale(this)
             when (val r = iter.locate(pcell.id)) {
                 CellRelation.DISJOINT -> disjointFromIndex = true
                 CellRelation.INDEXED -> {
@@ -1055,15 +1057,12 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     // return a new edge with the updated bound.
     /* static */
     private fun updateBound(edge: ClippedEdge, u_end: Int, u: Double, v_end: Int, v: Double): ClippedEdge {
-        logger.trace { "--> updateBound(edge = $edge, uEnd = $u_end, u = $u, vEnd = $v_end, v = $v)" }
         val bound = edge.bound.toMutable()
         bound[0][u_end] = u
         bound[1][v_end] = v
         bound[0][1 - u_end] = bound[0][1 - u_end]
         bound[1][1 - v_end] = bound[1][1 - v_end]
-        logger.trace { "Bound = $bound" }
         val clipped = ClippedEdge(faceEdge = edge.faceEdge, bound = bound)
-        logger.trace { "<-- updateBound() => $clipped" }
         Assertions.assert { !clipped.bound.isEmpty }
         Assertions.assert { edge.bound.contains(clipped.bound) }
         return clipped
@@ -1118,12 +1117,12 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // Create a FaceEdge for each edge in this cell that isn't being removed.
         val faceEdges = mutableListOf<FaceEdge>()
         var trackerMoved = false
-        val cell = iter.cell() ?: S2ShapeIndexCell()
-        for (s in 0 until cell.numClipped()) {
+        val cell = iter.cell()
+        for (s in 0 until cell.numClipped) {
             val clipped = cell.clipped(s)
             val shapeId = clipped.shapeId
             val shape = shape(shapeId) ?: continue // This shape is being removed.
-            val numEdges = clipped.numEdges()
+            val numEdges = clipped.numEdges
 
             // If this shape has an interior, start tracking whether we are inside the
             // shape.  UpdateEdges() wants to know whether the entry vertex of this
@@ -1187,12 +1186,10 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
     // Attempt to build an index cell containing the given edges, and return true
     // if successful.  (Otherwise the edges should be subdivided further.)
     private fun makeIndexCell(pcell: S2PaddedCell, edges: List<ClippedEdge>, tracker: InteriorTracker): Boolean {
-        logger.trace { "--> makeIndexCell(pcell = $pcell, edges = $edges)" }
         if (edges.isEmpty() && tracker.shapeIds().isEmpty()) {
             // No index cell is needed.  (In most cases this situation is detected
             // before we get to this point, but this can happen when all shapes in a
             // cell are removed.)
-            logger.trace { "<-- makeIndexCell(pcell = $pcell, edges = $edges) = true : isEdgesEmpty = ${edges.isEmpty()}, isTrackerShapeIdsEmpty = ${tracker.shapeIds().isEmpty()}" }
             return true
         }
 
@@ -1202,11 +1199,9 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         for (edge in edges) {
             count += if (pcell.level < edge.faceEdge.maxLevel) 1 else 0
             if (count > options.maxEdgesPerCell) {
-                logger.trace { "<-- makeIndexCell(pcell = $pcell, edges = $edges) = false: edges count = $count > ${options.maxEdgesPerCell}" }
                 return false
             }
         }
-        logger.trace { "Edges that have not reached their maximum level = $count" }
 
         // Possible optimization: Continue subdividing as long as exactly one child
         // of "pcell" intersects the given edges.  This can be done by finding the
@@ -1269,7 +1264,7 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
                 // The entire cell is in the shape interior.
                 cell.addClipped(S2ClippedShape(cshape_id, emptyList(), true))
                 cnext = if (cShapeIterator.hasNext()) cShapeIterator.next() else -1
-              //  ++cnext;
+                //  ++cnext;
             } else {
                 // Count the number of edges for this shape and allocate space for them.
                 while (enext < edges.size && edges[enext].faceEdge.shapeId == eshape_id) {
@@ -1294,7 +1289,6 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         // is much faster to give an insertion hint in this case.  Otherwise the
         // hint doesn't do much harm.  With more effort we could provide a hint even
         // during incremental updates, but this is probably not worth the effort.
-        logger.trace { "Add cell ${pcell.id} => $cell" }
         cellMap[pcell.id] = cell
 
         // Shift the InteriorTracker focus point to the exit vertex of this cell.
@@ -1304,7 +1298,6 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
             tracker.setNextCellId(pcell.id.next())
         }
 
-        logger.trace { "<-- makeIndexCell(pcell = $pcell, edges = $edges) = true" }
         return true
     }
 
@@ -1323,38 +1316,30 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 // given edges, or that are currently stored in the InteriorTracker.
 /* static */
     fun countShapes(edges: List<ClippedEdge>, cshape_ids: List<Int>): Int {
-        logger.trace { "--> countShapes(edges = $edges, shapeIds = $cshape_ids)" }
 
         var count = 0
         var last_shape_id = -1
         val shapeIdsIterator = cshape_ids.iterator()
         //ShapeIdSet::const_iterator cnext = cshape_ids.begin();  // Next shape
         for (edge in edges) {
-            logger.trace { "Process edge: $edge" }
             if (edge.faceEdge.shapeId != last_shape_id) {
                 ++count
-                logger.trace { "Edge is own by a new shape: edge shape = ${edge.faceEdge.shapeId}, last shape id = $last_shape_id => count = $count" }
                 last_shape_id = edge.faceEdge.shapeId
                 // Skip over any containing shapes up to and including this one,
                 // updating "count" appropriately.
-                logger.trace { "Skip over any containing shapes up to and including this one." }
                 while (shapeIdsIterator.hasNext()) {
                     val cnext = shapeIdsIterator.next()
-                    logger.trace { "next shape id = $cnext" }
                     if (cnext > last_shape_id) {
-                        logger.trace { "It is greater, break." }
                         break
                     }
                     if (cnext < last_shape_id) {
                         ++count
-                        logger.trace { "It is smaller, count shape => count = $count" }
                     }
                 }
             }
         }
         // Count any remaining containing shapes.
         count += shapeIdsIterator.asSequence().count()
-        logger.trace { "<-- countShapes = $count" }
         return count
     }
 
@@ -1370,65 +1355,48 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
 */
 
 
-    // Releases lock_ and wakes up any waiting threads by releasing wait_mutex.
-// If this was the last waiting thread, also deletes update_state_.
-// REQUIRES: lock_ is held.
-// REQUIRES: wait_mutex is held.
-    private fun unlockAndSignal() {
-        Assertions.assertEQ(IndexStatus.FRESH, indexStatus.get())
-        //val num_waiting = updateState.numWaiting
-        lock.unlock()
-        // Allow another waiting thread to proceed.  Note that no new threads can
-        // start waiting because the index_status_ is now FRESH, and the caller is
-        // required to prevent any new mutations from occurring while these const
-        // methods are running.
-        //
-        // We need to unlock wait_mutex before destroying it even if there are no
-        // waiting threads.
-        updateState.waitMutex.unlock()
-        //if (num_waiting == 0) {
-        //updateState.reset()
-        //}
-    }
 
-    /*
-        UNLOCK_FUNCTION(lock_)
-        UNLOCK_FUNCTION(update_state_->wait_mutex)
-    */
     companion object {
 
         private val logger = KotlinLogging.logger(MutableS2ShapeIndex::class.java.name)
 
-        // FLAGS_s2shape_index_cell_size_to_long_edge_ratio
-        //
-        // The cell size relative to the length of an edge at which it is first
-        // considered to be "long".  Long edges do not contribute toward the decision
-        // to subdivide a cell further.  For example, a value of 2.0 means that the
-        // cell must be at least twice the size of the edge in order for that edge to
-        // be counted.  There are two reasons for not counting long edges: (1) such
-        // edges typically need to be propagated to several children, which increases
-        // time and memory costs without much benefit, and (2) in pathological cases,
-        // many long edges close together could force subdivision to continue all the
-        // way to the leaf cell level.
-        var s2shape_index_cell_size_to_long_edge_ratio = 1.0
+        /** The cell size relative to the length of an edge at which it is first considered to be "long". Long edges do
+         * not contribute toward the decision to subdivide a cell further.  For example, a value of 2.0 means that the
+         * cell must be at least twice the size of the edge in order for that edge to be counted. There are two reasons
+         * for not counting long edges:
+         * (1) such edges typically need to be propagated to several children, which increases time and memory costs
+         *     without much benefit, and
+         * (2) in pathological cases, many long edges close together could force subdivision to continue all the way to
+         * the leaf cell level.
+         */
+        var kIndexCellSizeToLongEdgeRatio = 1.0
 
-        // The amount by which cells are "padded" to compensate for numerical errors
-        // when clipping line segments to cell boundaries.
-        // The total error when clipping an edge comes from two sources:
-        // (1) Clipping the original spherical edge to a cube face (the "face edge").
-        //     The maximum error in this step is S2::kFaceClipErrorUVCoord.
-        // (2) Clipping the face edge to the u- or v-coordinate of a cell boundary.
-        //     The maximum error in this step is S2::kEdgeClipErrorUVCoord.
-        // Finally, since we encounter the same errors when clipping query edges, we
-        // double the total error so that we only need to pad edges during indexing
-        // and not at query time.
+        /**
+         * The default maximum number of edges per cell (not counting "long" edges). If a cell has more than this many
+         * edges, and it is not a leaf cell, then it is subdivided. This flag can be overridden via
+         * MutableS2ShapeIndex.Options.
+         * Reasonable values range from 10 to about 50 or so.
+         */
+        var kIndexDefaultMaxEdgesPerCell = 10
+
+        /** The amount by which cells are "padded" to compensate for numerical errors when clipping line segments to
+         * cell boundaries.
+         * The total error when clipping an edge comes from two sources:
+         * (1) Clipping the original spherical edge to a cube face (the "face edge").
+         *     The maximum error in this step is S2EdgeClipping.kFaceClipErrorUVCoord.
+         * (2) Clipping the face edge to the u- or v-coordinate of a cell boundary.
+         *     The maximum error in this step is S2EdgeClipping.kEdgeClipErrorUVCoord.
+         * Finally, since we encounter the same errors when clipping query edges, we double the total error so that we
+         * only need to pad edges during indexing and not at query time. */
         val kCellPadding: Double = 2 * (S2EdgeClipping.kFaceClipErrorUVCoord + S2EdgeClipping.kEdgeClipErrorUVCoord)
 
-        // Defines the initial focus point of MutableS2ShapeIndex::InteriorTracker
-        // (the start of the S2CellId space-filling curve).
-        //
-        // TODO(ericv): Move InteriorTracker here to avoid the need for this method.
-        fun kInteriorTrackerOrigin() = S2Coords.faceUVtoXYZ(0, -1.0, -1.0).normalize()
+        /**
+         * Defines the initial focus point of MutableS2ShapeIndex.InteriorTracker (the start of the S2CellId
+         * space-filling curve).
+         *
+         * TODO(ericv): Move InteriorTracker here to avoid the need for this method.
+         */
+        val kInteriorTrackerOrigin: S2Point = S2Coords.faceUVtoXYZ(0, -1.0, -1.0).normalize()
 
         // TODO(fmeurisse) check memory estimation with kotlin objects.
         // The following memory estimates are based on heap profiling.
@@ -1455,4 +1423,121 @@ class MutableS2ShapeIndex(val options: Options = Options()) : S2ShapeIndex() {
         const val kMaxUpdateBatches = 100
 
     }
+
+    /**
+     * UpdateState holds temporary data related to thread synchronization. It is only allocated while updates are being
+     * applied.
+     */
+    class UpdateState(
+            // This mutex is used as a condition variable.  It is locked by the
+            // updating thread for the entire duration of the update; other threads
+            // lock it in order to wait until the update is finished.
+            val waitMutex: ReentrantLock = ReentrantLock(),
+
+            // The number of threads currently waiting on "wait_mutex_".  The
+            // UpdateState can only be freed when this number reaches zero.
+            //
+            // Reads and writes to this field are guarded by "lock".
+            var numWaiting: Int = 0) {
+
+        fun destroy() {
+            Assertions.assertEQ(0, numWaiting)
+        }
+    }
+
 }
+
+/**
+ * The representation of a shape that has been queued for removal.
+ *
+ * @property shapeId The identifier of the removed shape.
+ * @property hasInterior Indicates if the shape has an interior (dimension = 2)
+ * @property containsTrackerOrigin Indicates if the shape contains the interior tracker origin.
+ * @property edges The shape edges.
+ *
+ * @author Google S2Geometry Project
+ * @author Fabien Meurisse (fabien.meurisse@enovea.net)
+ * @since 1.0
+ */
+data class RemovedShape(
+        val shapeId: Int,
+        val hasInterior: Boolean,
+        val containsTrackerOrigin: Boolean,
+        val edges: List<Edge>
+)
+
+// FaceEdge and ClippedEdge store temporary edge data while the index is being
+// updated.  FaceEdge represents an edge that has been projected onto a given
+// face, while ClippedEdge represents the portion of that edge that has been
+// clipped to a given S2Cell.
+//
+// While it would be possible to combine all the edge information into one
+// structure, there are two good reasons for separating it:
+//
+//  - Memory usage.  Separating the two classes means that we only need to
+//    store one copy of the per-face data no matter how many times an edge is
+//    subdivided, and it also lets us delay computing bounding boxes until
+//    they are needed for processing each face (when the dataset spans
+//    multiple faces).
+//
+//  - Performance.  UpdateEdges is significantly faster on large polygons when
+//    the data is separated, because it often only needs to access the data in
+//    ClippedEdge and this data is cached more successfully.
+
+/**
+ * FaceEdge represents an edge that has been projected onto a given face.
+ *
+ * @property shapeId The shape that this edge belongs to
+ * @property edgeId Edge id within that shape
+ * @property maxLevel Not desirable to subdivide this edge beyond this level
+ * @property hasInterior  Belongs to a shape of dimension 2.
+ * @property a The start edge endpoint, clipped to a given face
+ * @property b The end edge endpoint, clipped to a given face
+ * @property edge The edge endpoints.
+ *
+ * @author Google S2Geometry Project
+ * @author Fabien Meurisse (fabien.meurisse@enovea.net)
+ * @since 1.0
+ */
+data class FaceEdge(
+        val shapeId: Int = -1,
+        var edgeId: Int = 0,
+        var maxLevel: Int = 0,
+        val hasInterior: Boolean = false,
+        var a: R2Point = R2Point(),
+        var b: R2Point = R2Point(),
+        var edge: Edge = Edge()
+)
+
+/**
+ * ClippedEdge represents the portion of that edge that has been clipped to a given S2Cell.
+ *
+ * @property faceEdge The original unclipped edge
+ * @property bound Bounding box for the clipped portion
+ *
+ * @author Google S2Geometry Project
+ * @author Fabien Meurisse (fabien.meurisse@enovea.net)
+ * @since 1.0
+ */
+data class ClippedEdge(
+        val faceEdge: FaceEdge = FaceEdge(),
+        val bound: R2Rect = R2Rect()
+)
+
+/**
+ * A BatchDescriptor represents a set of pending updates that will be applied at the same time. The batch consists of
+ * all updates with shape ids between the current value of "pendingAdditionsBegin" (inclusive) and  "additionsEnd"
+ * (exclusive). The first batch to be processed also implicitly includes all shapes being removed.
+ *
+ * @property additionsEnd Exclusive end of the batch.
+ * @property numEdges total number of edges that will be added or removed in this batch.
+ *
+ * @author Google S2Geometry Project
+ * @author Fabien Meurisse (fabien.meurisse@enovea.net)
+ * @since 1.0
+ */
+data class BatchDescriptor(
+        var additionsEnd: Int,
+        val numEdges: Int
+)
+

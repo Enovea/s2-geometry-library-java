@@ -3,7 +3,8 @@ package dilivia.s2.index
 import dilivia.s2.S2CellId
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2TextParser
-import dilivia.s2.index.S2ShapeIndex.RangeIterator
+import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.shape.RangeIterator
 
 class S2ShapeIndexRangeIteratorTest : S2GeometryTestCase() {
 

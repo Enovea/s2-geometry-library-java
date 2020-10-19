@@ -26,8 +26,8 @@ fun testMaxDistance() {
   val index = S2CellIndex()
   index.add(makeCellUnion("0/123, 0/22, 0/3"), 1 /*label*/);
   index.build();
-  val query = FurthestCellQuery(S2MaxDistanceFactory(), index)
-  val options = S2ClosestCellQueryBase.Options<S2MaxDistance>(maxResults = 1, distanceFactory = S2MaxDistanceFactory())
+  val query = FurthestCellQuery(S2MaxDistanceFactory, index)
+  val options = S2ClosestCellQueryBase.Options<S2MaxDistance>(maxResults = 1, distanceFactory = S2MaxDistanceFactory)
   val target = FurthestPointTarget(makeCellId("3/123").toPoint())
   val results = query.findClosestCells(target, options)
   assertEquals(1, results.size)

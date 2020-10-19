@@ -40,14 +40,15 @@ import dilivia.s2.S2Predicates
 import dilivia.s2.S2WedgeRelations
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.coords.S2XYZFaceSiTi
+import dilivia.s2.index.shape.CellRelation
 import dilivia.s2.index.S2CrossingEdgePairsScanner
 import dilivia.s2.index.S2CrossingEdgeQuery
-import dilivia.s2.index.MutableS2ShapeIndex
-import dilivia.s2.shape.S2ClippedShape
+import dilivia.s2.index.shape.MutableS2ShapeIndex
+import dilivia.s2.index.shape.S2ClippedShape
 import dilivia.s2.shape.S2Shape
-import dilivia.s2.index.S2ShapeIndex
-import dilivia.s2.index.S2ShapeIndex.RangeIterator
-import dilivia.s2.index.S2ShapeIndexCell
+import dilivia.s2.index.shape.RangeIterator
+import dilivia.s2.index.shape.S2ShapeIndexCell
+import dilivia.s2.index.shape.S2ShapeIndexCellIterator
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.TypeTag
 import mu.KotlinLogging
@@ -658,7 +659,7 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         get() = bound
 
     override fun contains(cell: S2Cell): Boolean {
-        val iterator = index.iterator()
+        val iterator = index.cellIterator()
         val relation = iterator.locate(cell.id())
 
         // If "target" is disjoint from all index cells, it is not contained.
@@ -667,7 +668,7 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         // intersect a sufficient number of edges.  (But note that if "target" itself
         // is an index cell then it may be contained, since it could be a cell with
         // no edges in the loop interior.)
-        if (relation != S2ShapeIndex.CellRelation.INDEXED) return false
+        if (relation != CellRelation.INDEXED) return false
 
         // Otherwise check if any edges intersect "target".
         if (boundaryApproxIntersects(iterator, cell)) return false
@@ -677,15 +678,15 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
     }
 
     override fun mayIntersect(cell: S2Cell): Boolean {
-        val iterator = index.iterator()
+        val iterator = index.cellIterator()
         val relation = iterator.locate(cell.id())
 
         // If "target" does not overlap any index cell, there is no intersection.
-        if (relation == S2ShapeIndex.CellRelation.DISJOINT) return false
+        if (relation == CellRelation.DISJOINT) return false
 
         // If "target" is subdivided into one or more index cells, there is an
         // intersection to within the S2ShapeIndex error bound (see Contains).
-        if (relation == S2ShapeIndex.CellRelation.SUBDIVIDED) return true
+        if (relation == CellRelation.SUBDIVIDED) return true
 
         // If "target" is an index cell, there is an intersection because index cells
         // are created only if they have at least one edge or they are entirely
@@ -702,9 +703,13 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
     // The point 'p' does not need to be normalized.
 
     override fun contains(p: S2Point): Boolean {
+        logger.trace { "S2Loop contains($p)" }
         // NOTE(ericv): A bounds check slows down this function by about 50%.  It is
         // worthwhile only when it might allow us to delay building the index.
-        if (!index.isFresh() && !bound.contains(p)) return false;
+        if (!index.isFresh() && !bound.contains(p)) {
+            logger.trace { "Index is build and bound $bound does not contains point p $p" }
+            return false
+        }
 
         // For small loops it is faster to just check all the crossings.  We also
         // use this method during loop initialization because InitOriginAndBound()
@@ -730,14 +735,17 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         val kMaxUnindexedContainsCalls = 20;  // See notes above.
         if (index.numShapeIds() == 0 ||  // InitIndex() not called yet
                 numVertices() <= kMaxBruteForceVertices ||
-                (!index.isFresh() &&
-                        unindexedContainsCalls.incrementAndGet() != kMaxUnindexedContainsCalls)) {
+                (!index.isFresh() && unindexedContainsCalls.incrementAndGet() != kMaxUnindexedContainsCalls)) {
+            logger.trace { "bruteForceContains" }
             return bruteForceContains(p);
         }
         // Otherwise we look up the S2ShapeIndex cell containing this point.  Note
         // the index is built automatically the first time an iterator is created.
-        val it = index.iterator()
-        if (!it.locate(p)) return false;
+        val it = index.cellIterator()
+        if (!it.locate(p)) {
+            logger.trace { "Index iterator can be locate on point $p" }
+            return false
+        }
         return contains(it, p);
     }
 
@@ -989,20 +997,20 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
 
     // Given an iterator that is already positioned at the S2ShapeIndexCell
     // containing "p", returns Contains(p).
-    fun contains(iterator: MutableS2ShapeIndex.Iterator, p: S2Point): Boolean {
+    fun contains(iterator: S2ShapeIndexCellIterator, p: S2Point): Boolean {
         // Test containment by drawing a line segment from the cell center to the
         // given point and counting edge crossings.
-        val a_clipped = iterator.cell()!!.clipped(0)
-        var inside = a_clipped.containsCenter
-        val a_num_edges = a_clipped.numEdges()
-        if (a_num_edges > 0) {
+        val aClipped = iterator.cell().clipped(0)
+        var inside = aClipped.containsCenter
+        val aNumEdges = aClipped.numEdges
+        if (aNumEdges > 0) {
             val center = iterator.center()
             val crosser = S2EdgeCrosser(center, p)
-            var ai_prev = -2
-            for (i in 0 until a_num_edges) {
-                val ai = a_clipped.edge(i)
-                if (ai != ai_prev + 1) crosser.restartAt(vertex(ai))
-                ai_prev = ai
+            var aiPrev = -2
+            for (i in 0 until aNumEdges) {
+                val ai = aClipped.edge(i)
+                if (ai != aiPrev + 1) crosser.restartAt(vertex(ai))
+                aiPrev = ai
                 inside = inside xor crosser.edgeOrVertexCrossing(vertex(ai + 1))
             }
         }
@@ -1015,13 +1023,13 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
     //
     // REQUIRES: it.id().contains(target.id())
     // [This condition is true whenever it.Locate(target) returns INDEXED.]
-    fun boundaryApproxIntersects(iterator: MutableS2ShapeIndex.Iterator, target: S2Cell): Boolean {
+    fun boundaryApproxIntersects(iterator: S2ShapeIndexCellIterator, target: S2Cell): Boolean {
         assert { iterator.id().contains(target.id()) }
-        val a_clipped = iterator.cell()!!.clipped(0)
-        val a_num_edges = a_clipped.numEdges()
+        val aClipped = iterator.cell().clipped(0)
+        val aNumEdges = aClipped.numEdges
 
         // If there are no edges, there is no intersection.
-        if (a_num_edges == 0) return false
+        if (aNumEdges == 0) return false
 
         // We can save some work if "target" is the index cell itself.
         if (iterator.id() == target.id()) return true
@@ -1029,8 +1037,8 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         // Otherwise check whether any of the edges intersect "target".
         val kMaxError = (S2EdgeClipping.kFaceClipErrorUVCoord + S2EdgeClipping.kIntersectsRectErrorUVDist)
         val bound = target.boundUV().expanded(kMaxError)
-        for (i in 0 until a_num_edges) {
-            val ai = a_clipped.edge(i)
+        for (i in 0 until aNumEdges) {
+            val ai = aClipped.edge(i)
             val clippedEdge = S2EdgeClipping.clipToPaddedFace(vertex(ai), vertex(ai + 1), target.face(), kMaxError)
             if (clippedEdge != null && S2EdgeClipping.intersectsRect(clippedEdge.first, clippedEdge.second, bound)) {
                 return true
@@ -1055,11 +1063,11 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
             }
             return -1
         }
-        val iter = index.iterator()
+        val iter = index.cellIterator()
         if (!iter.locate(p)) return -1
 
-        val aClipped = iter.cell()!!.clipped(0)
-        var i = aClipped.numEdges() - 1
+        val aClipped = iter.cell().clipped(0)
+        var i = aClipped.numEdges - 1
         while (i >= 0) {
             val ai = aClipped.edge(i)
             // Return value must be in the range [1..N].
@@ -1072,9 +1080,9 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
 
     // When the loop is modified (Invert(), or Init() called again) then the
     // indexing structures need to be cleared since they become invalid.
-    private fun clearIndex(): Unit {
+    private fun clearIndex() {
         unindexedContainsCalls.set(0)
-        index.clear()
+        index.removeAll()
     }
 
     override fun toString(): String {
@@ -1120,6 +1128,7 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         // the direction of the positive x-axis.  (This allows the loop to be
         // rotated for testing purposes.)
         fun makeRegularLoop(frame: Matrix3x3, radius: S1Angle, num_vertices: Int): S2Loop {
+            logger.trace { "MakeRegularLoop: frame = $frame, radius = $radius, numVertices = $num_vertices" }
             // We construct the loop in the given frame coordinates, with the center at
             // (0, 0, 1).  For a loop of radius "r", the loop vertices have the form
             // (x, y, z) where x^2 + y^2 = sin(r) and z = cos(r).  The distance on the
@@ -1408,7 +1417,7 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
     // wedge crossings within those cells.
     fun cellCrossesCell(a_clipped: S2ClippedShape, b_clipped: S2ClippedShape): Boolean {
         // Test all edges of "a_clipped" against all edges of "b_clipped".
-        val aNumEdges = a_clipped.numEdges()
+        val aNumEdges = a_clipped.numEdges
         for (i in 0 until aNumEdges) {
             startEdge(a_clipped.edge(i))
             if (edgeCrossesCell(b_clipped)) return true
@@ -1432,7 +1441,7 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
         bCells.clear()
         do {
             if (bi.numEdges(0) > 0) {
-                totalEdges += bi.cell()!!.num_edges()
+                totalEdges += bi.cell()!!.numEdges()
                 if (totalEdges >= kEdgeQueryMinEdges) {
                     // There are too many edges to test them directly, so use
                     // S2CrossingEdgeQuery.
@@ -1461,7 +1470,7 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
         // edges are guaranteed to be children of "b_id", which lets us find the
         // correct index cells more efficiently.
         val bRoot = S2PaddedCell(b_id, 0.0)
-        val aNumEdges = a_clipped.numEdges()
+        val aNumEdges = a_clipped.numEdges
         for (i in 0 until aNumEdges) {
             val aj = a_clipped.edge(i)
             // Use an S2CrossingEdgeQuery starting at "b_root" to find the index cells
@@ -1488,7 +1497,7 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
     // given index cell of loop B.
     private fun edgeCrossesCell(b_clipped: S2ClippedShape): Boolean {
         // Test the current edge of A against all edges of "b_clipped".
-        val bNumEdges = b_clipped.numEdges()
+        val bNumEdges = b_clipped.numEdges
         for (j in 0 until bNumEdges) {
             val bj = b_clipped.edge(j)
             if (bj != bjPrev + 1) crosser.restartAt(b.vertex(bj))

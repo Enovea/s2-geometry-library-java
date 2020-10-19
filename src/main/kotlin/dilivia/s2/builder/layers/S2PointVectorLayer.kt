@@ -13,6 +13,7 @@ import dilivia.s2.builder.LabelSetId
 import dilivia.s2.builder.layers.Layer
 import dilivia.s2.builder.SiblingPairs
 import dilivia.s2.index.S2PointVectorLayer.Options
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.shape.S2PointVectorShape
 
 

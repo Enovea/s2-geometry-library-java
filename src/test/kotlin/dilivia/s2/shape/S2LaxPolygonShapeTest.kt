@@ -6,7 +6,7 @@ import dilivia.s2.S2LatLng
 import dilivia.s2.S2Point
 import dilivia.s2.S2Random
 import dilivia.s2.S2TextParser
-import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon

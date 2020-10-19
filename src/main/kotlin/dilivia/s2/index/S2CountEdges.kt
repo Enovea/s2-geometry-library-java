@@ -18,6 +18,8 @@
  */
 package dilivia.s2.index
 
+import dilivia.s2.index.shape.S2ShapeIndex
+
 object S2CountEdges {
 
     // Returns the total number of edges in all indexed shapes.  This method takes
@@ -27,13 +29,12 @@ object S2CountEdges {
     // Like CountEdges(), but stops once "max_edges" edges have been found (in
     // which case the current running total is returned).
     fun countEdgesUpTo(index: S2ShapeIndex, max_edges: Int): Int {
-        var num_edges = 0
-        val shapeIter = index.begin()
-        shapeIter.asSequence().filterNotNull().forEach { shape ->
-            num_edges += shape.numEdges
-            if (num_edges >= max_edges) return num_edges
+        var numEdges = 0
+        index.shapeIterator().asSequence().filterNotNull().forEach { shape ->
+            numEdges += shape.numEdges
+            if (numEdges >= max_edges) return numEdges
         }
-        return num_edges;
+        return numEdges
     }
 
 

@@ -22,6 +22,8 @@ import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2Error
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2LatLng
+import dilivia.s2.index.shape.MutableS2ShapeIndex
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.shape.S2EdgeVectorShape
 import dilivia.s2.shape.ShapeEdge
 import dilivia.s2.shape.ShapeEdgeId

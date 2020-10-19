@@ -17,7 +17,7 @@ import dilivia.s2.builder.S2Builder
 import dilivia.s2.builder.S2CellIdSnapFunction
 import dilivia.s2.builder.SnapFunction
 import dilivia.s2.coords.S2Coords
-import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.S2BooleanOperation
 import dilivia.s2.index.S2CrossingEdgePairsScanner
 import dilivia.s2.shape.Edge
@@ -1641,7 +1641,7 @@ class S2Polygon() : S2Region {
     // indexing structures need to be cleared since they become invalid.
     private fun clearIndex() {
         unindexedContainsCalls.set(0)
-        index.clear()
+        index.removeAll()
     }
 
     // Initializes the polygon to the result of the given boolean operation,

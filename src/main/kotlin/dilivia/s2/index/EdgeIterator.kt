@@ -19,6 +19,7 @@
 package dilivia.s2.index
 
 import dilivia.s2.Assertions
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.ShapeEdgeId
 

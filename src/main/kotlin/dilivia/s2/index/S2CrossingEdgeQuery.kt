@@ -27,6 +27,11 @@ import dilivia.s2.S2EdgeClipping.kFaceClipErrorUVCoord
 import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2PaddedCell
 import dilivia.s2.S2Point
+import dilivia.s2.index.shape.CellRelation
+import dilivia.s2.index.shape.IteratorBase
+import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.shape.S2ShapeIndexCell
+import dilivia.s2.index.shape.S2ShapeIndexCellIterator
 import dilivia.s2.math.R2Point
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdge
@@ -75,7 +80,7 @@ interface CellVisitor {
 // REQUIRES: "index" is not modified after this method is called.
 class S2CrossingEdgeQuery(val index: S2ShapeIndex) {
 
-    private val iter: S2ShapeIndexIteratorBase = index.iterator()
+    private val iter: S2ShapeIndexCellIterator = index.cellIterator()
 
     //////////// Temporary storage used while processing a query ///////////
     lateinit var a0_: R2Point
@@ -203,9 +208,9 @@ class S2CrossingEdgeQuery(val index: S2ShapeIndex) {
         }
         return visitCells(a0, a1, object : CellVisitor {
             override fun visit(cell: S2ShapeIndexCell): Boolean {
-                for (s in 0 until cell.numClipped()) {
+                for (s in 0 until cell.numClipped) {
                     val clipped = cell.clipped(s)
-                    for (j in 0 until clipped.numEdges()) {
+                    for (j in 0 until clipped.numEdges) {
                         if (!visitor.visit(ShapeEdgeId(clipped.shapeId, clipped.edge(j)))) {
                             return false
                         }
@@ -227,7 +232,7 @@ class S2CrossingEdgeQuery(val index: S2ShapeIndex) {
         return visitCells(a0, a1, object : CellVisitor {
             override fun visit(cell: S2ShapeIndexCell): Boolean {
                 val clipped = cell.findClipped(shape.id) ?: return true
-                for (j in 0 until clipped.numEdges()) {
+                for (j in 0 until clipped.numEdges) {
                     if (!visitor.visit(ShapeEdgeId(shape.id, clipped.edge(j)))) return false
                 }
                 return true
@@ -266,11 +271,11 @@ class S2CrossingEdgeQuery(val index: S2ShapeIndex) {
             //  3. edge_root does not intersect any index cells.  In this case there
             //     is nothing to do.
             val relation = iter.locate(edge_root)
-            if (relation == S2ShapeIndex.CellRelation.INDEXED) {
+            if (relation == CellRelation.INDEXED) {
                 // edge_root is an index cell or is contained by an index cell (case 1).
                 Assertions.assert { iter.id().contains(edge_root) }
                 if (!visitor.visit(iter.cell()!!)) return false
-            } else if (relation == S2ShapeIndex.CellRelation.SUBDIVIDED) {
+            } else if (relation == CellRelation.SUBDIVIDED) {
                 // edge_root is subdivided into one or more index cells (case 2).  We
                 // find the cells intersected by a0a1 using recursive subdivision.
                 if (!edge_root.isFace()) pcell = S2PaddedCell(edge_root, 0.0);

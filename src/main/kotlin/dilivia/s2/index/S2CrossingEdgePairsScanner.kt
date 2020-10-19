@@ -25,7 +25,10 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2PaddedCell
 import dilivia.s2.S2WedgeRelations
 import dilivia.s2.index.S2CrossingEdgePairsScanner.getShapeEdges
-import dilivia.s2.index.S2ShapeIndex.RangeIterator
+import dilivia.s2.index.shape.RangeIterator
+import dilivia.s2.index.shape.InitialPosition
+import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.shape.S2ShapeIndexCell
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdge
 import mu.KotlinLogging
@@ -77,7 +80,7 @@ object S2CrossingEdgePairsScanner {
                     if (!ba.visitCrossings(bi, ai)) return false
                 } else {
                     // The A and B cells are the same.
-                    if (ai.cell()!!.num_edges() > 0 && bi.cell()!!.num_edges() > 0) {
+                    if (ai.cell()!!.numEdges() > 0 && bi.cell()!!.numEdges() > 0) {
                         if (!ab.visitCellCellCrossings(ai.cell()!!, bi.cell()!!)) return false
                     }
                     ai.next()
@@ -122,10 +125,10 @@ object S2CrossingEdgePairsScanner {
 
     // Appends all edges in the given S2ShapeIndexCell to the given vector.
     private fun appendShapeEdges(index: S2ShapeIndex, cell: S2ShapeIndexCell, shape_edges: ShapeEdgeVector) {
-        for (s in 0 until cell.numClipped()) {
+        for (s in 0 until cell.numClipped) {
             val clipped = cell.clipped(s)
             val shape = index.shape(clipped.shapeId) ?: continue
-            val num_edges = clipped.numEdges()
+            val num_edges = clipped.numEdges
             for (i in 0 until num_edges) {
                 shape_edges.add(ShapeEdge(shape, clipped.edge(i)));
             }
@@ -163,12 +166,12 @@ object S2CrossingEdgePairsScanner {
         logger.trace { "Visit crossings(type = $type, needAdjacent = $need_adjacent)" }
         // TODO(ericv): Use brute force if the total number of edges is small enough
         // (using a larger threshold if the S2ShapeIndex is not constructed yet).
-        val shape_edges = mutableListOf<ShapeEdge>()
-        val iter = index.iterator(S2ShapeIndex.InitialPosition.BEGIN)
+        val shapeEdges = mutableListOf<ShapeEdge>()
+        val iter = index.cellIterator(InitialPosition.BEGIN)
         while (!iter.done()) {
             logger.trace { "Iterate on cell: ${iter.cell()}" }
-            getShapeEdges(index, iter.cell()!!, shape_edges)
-            if (!visitCrossings(shape_edges, type, need_adjacent, visitor)) {
+            getShapeEdges(index, iter.cell(), shapeEdges)
+            if (!visitCrossings(shapeEdges, type, need_adjacent, visitor)) {
                 return false
             }
             iter.next()
@@ -309,7 +312,7 @@ class IndexCrosser(val a_index: S2ShapeIndex, val b_index: S2ShapeIndex, type: C
     // Advances both iterators past ai->id().
     fun visitCrossings(ai: RangeIterator, bi: RangeIterator): Boolean {
         Assertions.assert { ai.id().contains(bi.id()) }
-        if (ai.cell()!!.num_edges() == 0) {
+        if (ai.cell()!!.numEdges() == 0) {
             // Skip over the cells of B using binary search.
             bi.seekBeyond(ai)
         } else {
@@ -322,7 +325,7 @@ class IndexCrosser(val a_index: S2ShapeIndex, val b_index: S2ShapeIndex, type: C
             var b_edges = 0
             b_cells.clear()
             do {
-                val cell_edges = bi.cell()!!.num_edges()
+                val cell_edges = bi.cell()!!.numEdges()
                 if (cell_edges > 0) {
                     b_edges += cell_edges;
                     if (b_edges >= kEdgeQueryMinEdges) {

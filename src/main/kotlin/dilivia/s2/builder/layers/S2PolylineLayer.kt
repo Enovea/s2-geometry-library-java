@@ -12,7 +12,7 @@ import dilivia.s2.builder.IdSetLexicon
 import dilivia.s2.builder.Label
 import dilivia.s2.builder.SiblingPairs
 import dilivia.s2.index.LabelSetIds
-import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.region.S2Polyline
 
 

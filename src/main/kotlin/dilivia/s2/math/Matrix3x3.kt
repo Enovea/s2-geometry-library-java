@@ -19,6 +19,7 @@
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.Assertions.assertNE
+import dilivia.s2.S2Point
 import dilivia.s2.math.R2Vector
 import dilivia.s2.math.R3Vector
 import dilivia.s2.math.R3VectorDouble
@@ -311,18 +312,19 @@ class Matrix3x3(val m: Array<DoubleArray>) {
     }
 
     override fun toString(): String {
-        var str = ""
+        var out = ""
         for (i in 0..2) {
-            str += if (i == 0) "[" else " "
-
-            for (j in  0..2) {
-                str += "${get(i, j)} "
-            }
-
-            if (i == 2) str += "]"
+            out += if (i ==0) { "[" } else { " " }
+            for (j in 0..2) {
+            out += "" + m[i][j] + " "
         }
-
-        return str
+            if (i == 2) {
+                out += "]"
+            } else {
+                out += "\n"
+            }
+        }
+        return out
     }
 
     companion object {
@@ -341,6 +343,10 @@ class Matrix3x3(val m: Array<DoubleArray>) {
                 v1[1], v2[1], v3[1],
                 v1[2], v2[2], v3[2]
         )
+
+
+        @JvmStatic
+        fun fromCols(cols: Triple<S2Point, S2Point, S2Point>): Matrix3x3 = fromCols(cols.first, cols.second, cols.third)
 
         // Return the identity matrix
         fun identity(): Matrix3x3 = Matrix3x3(

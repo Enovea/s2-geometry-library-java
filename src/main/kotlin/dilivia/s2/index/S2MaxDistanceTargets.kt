@@ -5,6 +5,7 @@ import dilivia.s2.S1Angle
 import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import kotlin.math.sqrt
@@ -44,7 +45,7 @@ class S2MaxDistance constructor(distance: S1ChordAngle) : Distance<S2MaxDistance
 
 }
 
-class S2MaxDistanceFactory : DistanceFactory<S2MaxDistance> {
+object S2MaxDistanceFactory : DistanceFactory<S2MaxDistance> {
 
     override fun distance(length2: Double): S2MaxDistance = S2MaxDistance(S1ChordAngle.fromLength2(length2))
 

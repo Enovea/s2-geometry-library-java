@@ -23,6 +23,7 @@ import com.google.common.geometry.S2
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertPointIsUnitLength
 import dilivia.s2.math.*
+import mu.KotlinLogging
 
 /**
  * An S2Point represents a point on the unit sphere as a 3D vector. Usually
@@ -65,14 +66,7 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
      */
     @Strictfp
     override fun ortho(): S2Point {
-        val k = largestAbsComponent()
-        val temp: S2Point
-        temp = when (k) {
-            1 -> S2Point(1, 0, 0)
-            2 -> S2Point(0, 1, 0)
-            else -> S2Point(0, 0, 1)
-        }
-        return normalize(crossProd(this, temp))
+        return ortho(this)
     }
 
     @Strictfp
@@ -96,6 +90,8 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
 
     companion object {
 
+        private val logger = KotlinLogging.logger(S2Point::class.java.name)
+
         /**
          * Return a unit-length vector that is orthogonal to "a". Satisfies Ortho(-a)
          * = -Ortho(a) for all a.
@@ -103,9 +99,15 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         @JvmStatic
         @Strictfp
         fun ortho(a: S2Point): S2Point {
-            // The current implementation in S2Point has the property we need,
-            // i.e. Ortho(-a) = -Ortho(a) for all a.
-            return a.ortho()
+            var k = a.largestAbsComponent() - 1
+            if (k < 0) k = 2
+            val temp = when(k) {
+                0 -> S2Point(1.0, 0.0053, 0.00457)
+                1 -> S2Point(0.012, 1.0, 0.00457)
+                2 -> S2Point(0.012, 0.0053, 1.0)
+                else -> throw IllegalStateException("k ($k) is not in range 0..2")
+            }
+            return a.crossProd(temp).normalize()
         }
 
         /**
@@ -195,6 +197,15 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
             m.setCol(2, z)
             m.setCol(1, ortho(z))
             m.setCol(0, m.col(1).crossProd(z));  // Already unit-length.
+
+            logger.trace { """
+                |GetFrame($z)
+                |col 2 = $z
+                |col 1 = ${ortho(z)}
+                |col 0 = ${m.col(1).crossProd(z)}
+                |
+                |$m
+            """.trimMargin() }
             return m
         }
 

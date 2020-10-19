@@ -2,6 +2,7 @@ package  dilivia.s2.index
 
 import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2Point
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.shape.S2Shape

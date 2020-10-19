@@ -74,4 +74,8 @@ class S2EdgeVectorShape(id: Int = -1, edges: List<Edge> = emptyList()) : S2Shape
 
     override val typeTag: TypeTag = kNoTypeTag
 
+    override fun toString(): String {
+        return "S2EdgeVectorShape(id = $id, edges = ${edges.joinToString(prefix = "[", postfix = "]")})"
+    }
+
 }

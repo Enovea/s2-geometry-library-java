@@ -14,7 +14,7 @@ import dilivia.s2.builder.Label
 import dilivia.s2.builder.LabelSetId
 import dilivia.s2.builder.SiblingPairs
 import dilivia.s2.index.LabelSetIds
-import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.region.S2Polyline
 
 // A layer type that assembles edges (directed or undirected) into multiple

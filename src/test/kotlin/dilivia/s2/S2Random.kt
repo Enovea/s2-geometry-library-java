@@ -18,6 +18,7 @@
  */
 package dilivia.s2
 
+import Matrix3x3
 import com.google.common.geometry.S2.M_PI
 import dilivia.s2.region.S2Cap
 import kotlin.math.*
@@ -130,6 +131,10 @@ object S2Random {
         // The surface area of a cap is 2*Pi times its height.
         return S2Cap.fromCenterArea(randomPoint(), capArea)
     }
+
+    @JvmStatic
+    fun fromCols(cols: Triple<S2Point, S2Point, S2Point>): Matrix3x3 =
+            Matrix3x3.fromCols(cols.first, cols.second, cols.third)
 
     // Return a point chosen uniformly at random (with respect to area)
     // from the given cap.

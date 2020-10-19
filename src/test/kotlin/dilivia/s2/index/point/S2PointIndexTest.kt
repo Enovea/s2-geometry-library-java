@@ -1,4 +1,4 @@
-package dilivia.s2.index
+package dilivia.s2.index.point
 
 import com.google.common.collect.SortedMultiset
 import com.google.common.collect.TreeMultiset
@@ -6,6 +6,8 @@ import dilivia.s2.S2CellId
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2Point
 import dilivia.s2.S2Random
+import dilivia.s2.index.point.PointData
+import dilivia.s2.index.point.S2PointIndex
 import dilivia.s2.region.S2CellUnion
 import mu.KotlinLogging
 
@@ -38,7 +40,7 @@ class S2PointIndexTest : S2GeometryTestCase() {
     logger.info { "Contents: ${contents.size} elements" }
     logger.info { "Index: ${index.numPoints()} elements" }
     val remaining = TreeMultiset.create(contents)
-    val iter = index.Iterator()
+    val iter = S2PointIndexIterator(index)
     var i = 0
     while (!iter.done()) {
       val currentPointData = iter.pointData()

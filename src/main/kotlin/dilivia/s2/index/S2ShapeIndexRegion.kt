@@ -4,11 +4,13 @@ import dilivia.s2.S2CellId
 import dilivia.s2.S2EdgeClipping
 import dilivia.s2.S2LatLngRect
 import dilivia.s2.S2Point
+import dilivia.s2.index.shape.CellRelation
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
 import dilivia.s2.region.S2Region
-import dilivia.s2.shape.S2ClippedShape
+import dilivia.s2.index.shape.S2ClippedShape
+import dilivia.s2.index.shape.S2ShapeIndex
 
 // This class wraps an S2ShapeIndex object with the additional methods needed
 // to implement the S2Region API, in order to allow S2RegionCoverer to compute
@@ -142,18 +144,18 @@ class S2ShapeIndexRegion<T : S2ShapeIndex>(val index: T) : S2Region {
         // If the relation is DISJOINT, then "target" is not contained.  Similarly if
         // the relation is SUBDIVIDED then "target" is not contained, since index
         // cells are subdivided only if they (nearly) intersect too many edges.
-        if (relation != S2ShapeIndex.CellRelation.INDEXED) return false
+        if (relation != CellRelation.INDEXED) return false
 
         // Otherwise, the iterator points to an index cell containing "target".
         // If any shape contains the target cell, we return true.
         check(iter.id().contains(target.id()))
-        val cell = iter.cell()!!
-        for (s in 0 until cell.numClipped()) {
+        val cell = iter.cell()
+        for (s in 0 until cell.numClipped) {
             val clipped = cell.clipped(s)
             // The shape contains the target cell iff the shape contains the cell
             // center and none of its edges intersects the (padded) cell interior.
             if (iter.id() == target.id()) {
-                if (clipped.numEdges() == 0 && clipped.containsCenter) return true
+                if (clipped.numEdges == 0 && clipped.containsCenter) return true
             } else {
                 // It is faster to call AnyEdgeIntersects() before Contains().
                 val shape = index.shape(clipped.shapeId) ?: continue
@@ -174,11 +176,11 @@ class S2ShapeIndexRegion<T : S2ShapeIndex>(val index: T) : S2Region {
         val relation = iter.locate(cell.id())
 
         // If "target" does not overlap any index cell, there is no intersection.
-        if (relation == S2ShapeIndex.CellRelation.DISJOINT) return false
+        if (relation == CellRelation.DISJOINT) return false
 
         // If "target" is subdivided into one or more index cells, then there is an
         // intersection to within the S2ShapeIndex error bound.
-        if (relation == S2ShapeIndex.CellRelation.SUBDIVIDED) return true
+        if (relation == CellRelation.SUBDIVIDED) return true
 
         // Otherwise, the iterator points to an index cell containing "target".
         //
@@ -189,8 +191,8 @@ class S2ShapeIndexRegion<T : S2ShapeIndex>(val index: T) : S2Region {
         if (iter.id() == cell.id()) return true
 
         // Test whether any shape intersects the target cell or contains its center.
-        val c = iter.cell()!!
-        for (s in 0 until c.numClipped()) {
+        val c = iter.cell()
+        for (s in 0 until c.numClipped) {
             val clipped = c.clipped(s)
             if (anyEdgeIntersects(clipped, cell)) return true
             if (contains_query.shapeContains(iter, clipped, cell.getCenter())) {
@@ -207,8 +209,8 @@ class S2ShapeIndexRegion<T : S2ShapeIndex>(val index: T) : S2Region {
 
     override fun contains(p: S2Point): Boolean {
         if (iter.locate(p)) {
-            val cell = iter.cell()!!
-            for (s in 0 until cell.numClipped()) {
+            val cell = iter.cell()
+            for (s in 0 until cell.numClipped) {
                 if (contains_query.shapeContains(iter, cell.clipped(s), p)) {
                     return true
                 }
@@ -232,7 +234,7 @@ class S2ShapeIndexRegion<T : S2ShapeIndex>(val index: T) : S2Region {
         val bound = target.boundUV().expanded(kMaxError)
         val face = target.face()
         val shape = index.shape(clipped.shapeId) ?: return false
-        val numEdges = clipped.numEdges()
+        val numEdges = clipped.numEdges
         for (i in 0 until numEdges) {
             val edge = shape.edge(clipped.edge(i))
             val clippedEdge = S2EdgeClipping.clipToPaddedFace(edge.v0, edge.v1, face, kMaxError)

@@ -5,6 +5,7 @@ import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
 import dilivia.s2.index.S2ClosestCellQueryBase.Result
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
 

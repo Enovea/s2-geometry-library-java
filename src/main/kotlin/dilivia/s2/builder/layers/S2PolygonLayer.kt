@@ -15,7 +15,7 @@ import dilivia.s2.builder.LabelSetId
 import dilivia.s2.builder.SiblingPairs
 import dilivia.s2.builder.UndirectedComponent
 import dilivia.s2.builder.get
-import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
 import dilivia.s2.collections.reverse

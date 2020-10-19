@@ -476,8 +476,8 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
 
         fun getIntersection(x: List<S2CellId>, y: List<S2CellId>, out: MutableList<S2CellId>) {
-            assertNE(out, x)
-            assertNE(out, y)
+//            assertNE(out, x)
+//            assertNE(out, y)
             assert { x.isSorted() }
             assert { y.isSorted() }
 

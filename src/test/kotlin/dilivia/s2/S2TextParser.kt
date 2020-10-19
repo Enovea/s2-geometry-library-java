@@ -18,7 +18,7 @@
  */
 package dilivia.s2
 
-import dilivia.s2.index.MutableS2ShapeIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.region.S2CellUnion
 import dilivia.s2.region.S2Loop
 import dilivia.s2.shape.S2LaxPolylineShape

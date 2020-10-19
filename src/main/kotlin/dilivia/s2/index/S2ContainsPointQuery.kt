@@ -3,7 +3,9 @@ package dilivia.s2.index
 import dilivia.s2.S2CopyingEdgeCrosser
 import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2Point
-import dilivia.s2.shape.S2ClippedShape
+import dilivia.s2.index.shape.S2ClippedShape
+import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.shape.S2ShapeIndexCellIterator
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdge
 
@@ -58,7 +60,7 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
 
     private lateinit var index: T
     private lateinit var options: S2ContainsPointQueryOptions
-    private lateinit var iter: S2ShapeIndexIteratorBase
+    private lateinit var iter: S2ShapeIndexCellIterator
 
 
     // Default constructor; requires Init() to be called.
@@ -86,7 +88,7 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
     fun init(index: T, options: S2ContainsPointQueryOptions = S2ContainsPointQueryOptions()) {
         this.index = index
         this.options = options
-        this.iter = index.iterator()
+        this.iter = index.cellIterator()
     }
 
     // Returns true if any shape in the given index() contains the point "p"
@@ -94,8 +96,8 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
     fun contains(p: S2Point): Boolean {
         if (!iter.locate(p)) return false
 
-        val cell = iter.cell()!!
-        val numClipped = cell.numClipped()
+        val cell = iter.cell()
+        val numClipped = cell.numClipped
         for (s in 0 until numClipped) {
             if (shapeContains(iter, cell.clipped(s), p)) return true
         }
@@ -128,7 +130,7 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
         if (!iter.locate(p)) return true
 
         val cell = iter.cell()!!
-        val num_clipped = cell.numClipped()
+        val num_clipped = cell.numClipped
         for (s in 0 until num_clipped) {
             val clipped = cell.clipped(s)
             val shape = index.shape(clipped.shapeId)
@@ -166,13 +168,13 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
         if (!iter.locate(p)) return true
 
         val cell = iter.cell()!!
-        val numClipped = cell.numClipped()
+        val numClipped = cell.numClipped
         for (s in 0 until numClipped) {
             val clipped = cell.clipped(s)
-            val num_edges = clipped.numEdges()
-            if (num_edges == 0) continue
+            val numEdges = clipped.numEdges
+            if (numEdges == 0) continue
             val shape = index.shape(clipped.shapeId) ?: continue
-            for (i in 0 until num_edges) {
+            for (i in 0 until numEdges) {
                 val edgeId = clipped.edge(i)
                 val edge = shape.edge(edgeId)
                 if ((edge.v0 == p || edge.v1 == p) && !visitor.visit(ShapeEdge(shape.id, edgeId, edge))) {
@@ -195,9 +197,9 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
 
     // Low-level helper method that returns true if the given S2ClippedShape
     // referred to by an S2ShapeIndex::Iterator contains the point "p".
-    fun shapeContains(iter: S2ShapeIndexIteratorBase, clipped: S2ClippedShape, p: S2Point): Boolean {
+    fun shapeContains(iter: S2ShapeIndexCellIterator, clipped: S2ClippedShape, p: S2Point): Boolean {
         var inside = clipped . containsCenter
-        val num_edges = clipped.numEdges()
+        val num_edges = clipped.numEdges
         if (num_edges > 0) {
             val shape = index.shape(clipped.shapeId)!!
             if (shape.dimension < 2) {

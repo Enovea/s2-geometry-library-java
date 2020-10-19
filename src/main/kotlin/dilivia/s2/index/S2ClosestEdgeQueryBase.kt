@@ -4,6 +4,12 @@ import com.google.common.collect.ComparisonChain
 import dilivia.s2.Assertions
 import dilivia.s2.S2CellId
 import dilivia.s2.S2Point
+import dilivia.s2.index.shape.CellRelation
+import dilivia.s2.index.shape.InitialPosition
+import dilivia.s2.index.shape.IteratorBase
+import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.shape.S2ShapeIndexCell
+import dilivia.s2.index.shape.S2ShapeIndexCellIterator
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
@@ -138,7 +144,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
     private val queue: Deque<QueueEntry<T>> = ArrayDeque(16)
 
     // Temporaries, defined here to avoid multiple allocations / initializations.
-    private lateinit var iter: S2ShapeIndexIteratorBase
+    private lateinit var iter: S2ShapeIndexCellIterator
     private val maxDistanceCovering: MutableList<S2CellId> = mutableListOf()
     private val initial_cells: MutableList<S2CellId> = mutableListOf()
 
@@ -360,8 +366,8 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
         // Return the number of edges in the given index cell.
         private fun countEdges(cell: S2ShapeIndexCell): Int {
             var count = 0;
-            for (s in 0 until cell.numClipped()) {
-                count += cell.clipped(s).numEdges()
+            for (s in 0 until cell.numClipped) {
+                count += cell.clipped(s).numEdges
             }
             return count
         }
@@ -451,10 +457,10 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
     }
 
     private fun findClosestEdgesBruteForce() {
-        for (shape in index.begin()) {
+        for (shape in index.shapeIterator()) {
             if (shape == null) continue
-            val num_edges = shape.numEdges
-            for (e in 0 until num_edges) {
+            val numEdges = shape.numEdges
+            for (e in 0 until numEdges) {
                 maybeAddResult(shape, e)
             }
         }
@@ -507,7 +513,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
         if (indexCovering.isEmpty()) {
             // We delay iterator initialization until now to make queries on very
             // small indexes a bit faster (i.e., where brute force is used).
-            iter = index.iterator(S2ShapeIndex.InitialPosition.UNPOSITIONED)
+            iter = index.cellIterator(InitialPosition.UNPOSITIONED)
         }
 
         // Optimization: if the user is searching for just the closest edge, and the
@@ -563,7 +569,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
                     // This initial cell is a proper descendant of a top-level cell.
                     // Check how it is related to the cells of the S2ShapeIndex.
                     val r = iter.locate(id_i)
-                    if (r == S2ShapeIndex.CellRelation.INDEXED) {
+                    if (r == CellRelation.INDEXED) {
                         // This cell is a descendant of an index cell.  Enqueue it and skip
                         // any other initial cells that are also descendants of this cell.
                         processOrEnqueue(iter.id(), iter.cell())
@@ -572,7 +578,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
                             continue;
                     } else {
                         // Enqueue the cell only if it contains at least one index cell.
-                        if (r == S2ShapeIndex.CellRelation.SUBDIVIDED) processOrEnqueue(id_i, null)
+                        if (r == CellRelation.SUBDIVIDED) processOrEnqueue(id_i, null)
                         ++i;
                     }
                 }
@@ -603,8 +609,8 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
 
         // TODO(ericv): Use a single iterator (iter_) below and save position
         // information using pair<S2CellId, const S2ShapeIndexCell*> type.
-        val next = index.iterator(S2ShapeIndex.InitialPosition.BEGIN)
-        val last = index.iterator(S2ShapeIndex.InitialPosition.END)
+        val next = index.cellIterator(InitialPosition.BEGIN)
+        val last = index.cellIterator(InitialPosition.END)
         last.prev();
         if (next.id() != last.id()) {
             // The index has at least two cells.  Choose a level such that the entire
@@ -636,7 +642,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
     // inclusive range of cells.
     //
     // REQUIRES: "first" and "last" have a common ancestor.
-    private fun addInitialRange(first: S2ShapeIndexIteratorBase, last: S2ShapeIndexIteratorBase) {
+    private fun addInitialRange(first: S2ShapeIndexCellIterator, last: S2ShapeIndexCellIterator) {
         if (first.id() == last.id()) {
             // The range consists of a single index cell.
             indexCovering.add(first.id())
@@ -685,10 +691,10 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
 
     private fun processEdges(entry: QueueEntry<T>) {
         val indexCell = entry.indexCell!!
-        for (s in 0 until indexCell.numClipped()) {
+        for (s in 0 until indexCell.numClipped) {
             val clipped = indexCell.clipped(s)
             val shape = index.shape(clipped.shapeId)!!
-            for (j in 0 until clipped.numEdges()) {
+            for (j in 0 until clipped.numEdges) {
                 maybeAddResult(shape, clipped.edge(j))
             }
         }

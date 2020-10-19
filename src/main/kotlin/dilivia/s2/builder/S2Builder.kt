@@ -13,8 +13,8 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2Point
 import dilivia.s2.collections.assign
 import dilivia.s2.builder.layers.Layer
-import dilivia.s2.index.MutableS2ShapeIndex
-import dilivia.s2.index.S2PointIndex
+import dilivia.s2.index.shape.MutableS2ShapeIndex
+import dilivia.s2.index.point.S2PointIndex
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
 import dilivia.s2.region.S2Polyline
@@ -856,7 +856,7 @@ class S2Builder(val options: Options = Options()) {
   private fun collectSiteEdges(site_index: S2PointIndex<SiteId>): Unit = TODO()
   private fun sortSitesByDistance(x: S2Point, sites: MutableList<SiteId>): Unit = TODO()
   private fun addExtraSites(input_edge_index: MutableS2ShapeIndex): Unit = TODO()
-  private fun maybeAddExtraSites(edge_id: InputEdgeId, max_edge_id: InputEdgeId, chain: List<SiteId>, 
+  private fun maybeAddExtraSites(edge_id: InputEdgeId, max_edge_id: InputEdgeId, chain: List<SiteId>,
                                  input_edge_index: MutableS2ShapeIndex, snap_queue: MutableList<InputEdgeId>): Unit = TODO()
   private fun addExtraSite(new_site: S2Point, max_edge_id: InputEdgeId, input_edge_index: MutableS2ShapeIndex,
                            snap_queue: MutableList<InputEdgeId>): Unit = TODO()

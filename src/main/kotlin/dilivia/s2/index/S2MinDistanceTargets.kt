@@ -6,10 +6,10 @@ import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
 import dilivia.s2.index.S2ShapeIndexRegion.Companion.makeS2ShapeIndexRegion
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
-import dilivia.s2.shape.S2Shape
 import kotlin.math.sqrt
 
 // This file defines a collection of classes that are useful for computing
@@ -43,6 +43,11 @@ class S2MinDistance constructor(distance: S1ChordAngle) : Distance<S2MinDistance
         }
         return false
     }
+
+    override fun toString(): String {
+        return "S2MinDistance(value=$value)"
+    }
+
 
 }
 
@@ -296,7 +301,7 @@ open class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanc
         // TODO(ericv): Do this by merge-joining the two S2ShapeIndexes, and share
         // the code with S2BooleanOperation.
 
-        for (shape in query_index.begin()) {
+        for (shape in query_index.shapeIterator()) {
             if (shape == null) continue;
             val num_chains = shape.numChains
             // Shapes that don't have any edges require a special case (below).

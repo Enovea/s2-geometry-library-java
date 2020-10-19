@@ -2,10 +2,10 @@ package dilivia.s2.index
 
 import dilivia.s2.S1Angle
 import dilivia.s2.S1ChordAngle
-import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
 import dilivia.s2.index.S2ClosestEdgeQueryBase.Result
+import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.region.S2Cell
 import dilivia.s2.shape.Edge
 

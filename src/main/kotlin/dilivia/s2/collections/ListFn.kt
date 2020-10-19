@@ -16,6 +16,19 @@ fun <T> List<T>.isSorted(): Boolean where T:Comparable<T>{
     return true
 }
 
+fun <T> List<T>.isSorted(comparator: Comparator<T>): Boolean {
+    if (this.size <= 1) return true
+    val iter = this.iterator()
+    var current: T
+    var previous = iter.next()
+    while (iter.hasNext()) {
+        current = iter.next();
+        if (comparator.compare(current, previous) > 0) return false
+        previous = current;
+    }
+    return true
+}
+
 
 /**
  *

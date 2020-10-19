@@ -22,6 +22,7 @@ import dilivia.s2.Assertions
 import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2Point
 import dilivia.s2.region.S2ContainsVertexQuery
+import mu.KotlinLogging
 
 // A 32-bit tag that can be used to identify the type of an encoded S2Shape.
 // All encodable types have a non-zero type tag.  The tag associated with a
@@ -228,6 +229,8 @@ abstract class S2Shape(var id: Int = -1) {
 
     companion object {
 
+        private val logger = KotlinLogging.logger(S2Shape::class.java.name)
+
         // Indicates that a given S2Shape type cannot be encoded.
         val kNoTypeTag: TypeTag = 0U
 
@@ -343,15 +346,23 @@ abstract class S2Shape(var id: Int = -1) {
             if (shape.dimension < 2) return false
 
             val refPoint = shape.getReferencePoint()
-            if (refPoint.point == focus) return refPoint.contained
+            if (refPoint.point == focus) {
+                logger.trace { "Focus point $focus = ref point of shape $shape: Focus point is contained." }
+                return refPoint.contained
+            }
 
             val crosser = S2EdgeCrosser(refPoint.point, focus);
             var inside = refPoint.contained;
             for (e in 0 until  shape.numEdges) {
                 val edge = shape.edge(e)
-                inside = inside xor crosser.edgeOrVertexCrossing(edge.v0, edge.v1)
+                val crossing = crosser.edgeOrVertexCrossing(edge.v0, edge.v1)
+                inside = inside xor crossing
+
+                //logger.trace { "Process edge $e: crossing = $crossing => inside = $inside" }
             }
-            return inside;
+
+            logger.trace { "Focus point $focus is inside ? $inside" }
+            return inside
         }
     }
 

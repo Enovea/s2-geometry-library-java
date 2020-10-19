@@ -349,7 +349,7 @@ class S2LoopTest : S2GeometryTestCase() {
             }
         }
 
-        fun testRelation(a: S2Loop, b: S2Loop, flags: Int, shared_edge: Boolean) = testRelationWithDesc(a, b, flags, shared_edge, "args $a , $b")
+        fun testRelation(a: S2Loop, b: S2Loop, flags: Int, shared_edge: Boolean) = testRelationWithDesc(a, b, flags, shared_edge, "Test $flags (sharedEdge = $shared_edge) with args $a , $b")
 
         fun makeCellLoop(begin: S2CellId, end: S2CellId): S2Loop {
             // Construct a CCW polygon whose boundary is the union of the cell ids
@@ -704,7 +704,7 @@ class S2LoopTest : S2GeometryTestCase() {
 
 
     fun testLoopRelations() {
-        fail("A corriger")
+        //fail("A corriger")
         // Check full and empty relationships with normal loops and each other.
         testRelation(full, full, CONTAINS or CONTAINED or COVERS, true)
         testRelation(full, north_hemi, CONTAINS or COVERS, false)
