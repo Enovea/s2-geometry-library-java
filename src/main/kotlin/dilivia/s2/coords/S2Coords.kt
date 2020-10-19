@@ -18,8 +18,11 @@
  */
 package dilivia.s2.coords
 
-import com.google.common.geometry.S2.*
 import dilivia.s2.*
+import dilivia.s2.S2.M_1_PI
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
+import dilivia.s2.S2.M_PI_4
 import dilivia.s2.math.R2Point
 import kotlin.math.*
 

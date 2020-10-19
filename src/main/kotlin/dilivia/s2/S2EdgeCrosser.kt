@@ -18,8 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
-import com.google.common.geometry.S2.DBL_EPSILON
+import dilivia.s2.S2.DBL_EPSILON
 
 /**
  * This class allows edges to be efficiently tested for intersection with a given fixed edge AB.  It is especially

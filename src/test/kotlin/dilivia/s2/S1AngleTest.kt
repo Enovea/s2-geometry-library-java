@@ -18,14 +18,16 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.*
 import dilivia.s2.S1Angle.Companion.degrees
 import dilivia.s2.S1Angle.Companion.e5
 import dilivia.s2.S1Angle.Companion.e6
 import dilivia.s2.S1Angle.Companion.e7
 import dilivia.s2.S1Angle.Companion.radians
+import dilivia.s2.S2.DBL_EPSILON
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
+import dilivia.s2.S2.M_PI_4
 import junit.framework.TestCase
-import kotlin.random.Random
 
 @Strictfp
 class S1AngleTest : TestCase() {

@@ -18,8 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
-import com.google.common.geometry.S2.M_PI
+import dilivia.s2.S2.M_PI
 import dilivia.s2.S1Angle.Companion.degrees
 import dilivia.s2.S1Angle.Companion.e5
 import dilivia.s2.S1Angle.Companion.e6

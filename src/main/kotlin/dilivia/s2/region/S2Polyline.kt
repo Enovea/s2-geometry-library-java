@@ -18,7 +18,7 @@
  */
 package dilivia.s2.region
 
-import com.google.common.geometry.S2.M_PI
+import dilivia.s2.S2.M_PI
 import dilivia.s2.Assertions
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE

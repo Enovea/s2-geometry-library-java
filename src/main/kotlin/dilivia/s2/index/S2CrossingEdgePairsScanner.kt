@@ -25,7 +25,7 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2PaddedCell
 import dilivia.s2.S2WedgeRelations
 import dilivia.s2.index.S2CrossingEdgePairsScanner.getShapeEdges
-import dilivia.s2.index.shape.RangeIterator
+import dilivia.s2.index.shape.S2ShapeIndexRangeIterator
 import dilivia.s2.index.shape.InitialPosition
 import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.index.shape.S2ShapeIndexCell
@@ -58,8 +58,8 @@ object S2CrossingEdgePairsScanner {
 
         // TODO(ericv): Use brute force if the total number of edges is small enough
         // (using a larger threshold if the S2ShapeIndex is not constructed yet).
-        val ai = RangeIterator(a_index)
-        val bi = RangeIterator(b_index)
+        val ai = S2ShapeIndexRangeIterator(a_index)
+        val bi = S2ShapeIndexRangeIterator(b_index)
         val ab = IndexCrosser(a_index, b_index, type, visitor, false);  // Tests A against B
         val ba = IndexCrosser(b_index, a_index, type, visitor, true);   // Tests B against A
         while (!ai.done() || !bi.done()) {
@@ -310,7 +310,7 @@ class IndexCrosser(val a_index: S2ShapeIndex, val b_index: S2ShapeIndex, type: C
     // visits all crossings between edges of A and B that intersect a->id().
     // Terminates early and returns false if visitor_ returns false.
     // Advances both iterators past ai->id().
-    fun visitCrossings(ai: RangeIterator, bi: RangeIterator): Boolean {
+    fun visitCrossings(ai: S2ShapeIndexRangeIterator, bi: S2ShapeIndexRangeIterator): Boolean {
         Assertions.assert { ai.id().contains(bi.id()) }
         if (ai.cell()!!.numEdges() == 0) {
             // Skip over the cells of B using binary search.

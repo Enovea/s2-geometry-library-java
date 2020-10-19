@@ -1,5 +1,24 @@
+/**
+ * This project is a kotlin port of the Google s2 geometry library (Copyright 2005 Google Inc. All Rights Reserved.):
+ *                                 https://github.com/google/s2geometry.git
+ *
+ * Copyright © 2020 Dilivia (contact@dilivia.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dilivia.s2.shape
 
+import dilivia.s2.Fractal
 import dilivia.s2.S1Angle
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2LatLng
@@ -8,6 +27,7 @@ import dilivia.s2.S2Random
 import dilivia.s2.S2TextParser
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
+import dilivia.s2.math.Matrix3x3
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
 
@@ -190,22 +210,18 @@ class S2LaxPolygonShapeTest : S2GeometryTestCase() {
     }
 
     fun testCompareToS2Loop() {
-        fail("TODO")
-//        repeat(100) {
-//            S2Testing::Fractal fractal fractal.set_max_level(S2Testing::rnd.Uniform(5))
-//            fractal.set_fractal_dimension(1 + S2Testing::rnd.RandDouble())
-//            S2Point center = S2Testing ::RandomPoint()
-//            unique_ptr<S2Loop> loop (fractal.MakeLoop(
-//                    S2Testing::GetRandomFrameAt(center), S1Angle::Degrees(5)))
-//
-//            // Compare S2Loop to S2LaxLoopShape.
-//            CompareS2LoopToShape(*loop, make_unique<S2LaxLoopShape>(*loop))
-//
-//            // Compare S2Loop to S2LaxPolygonShape.
-//            vector < S2LaxPolygonShape::Loop > loops(
-//                    1, vector<S2Point>(& loop->vertex(0),
-//            &loop->vertex(0)+loop->num_vertices()))
-//            CompareS2LoopToShape(*loop, make_unique<S2LaxPolygonShape>(loops))
-//        }
+        repeat(100) {i ->
+            val fractal = Fractal(maxLevel = S2Random.randomInt(5), dimension = 1.0 + S2Random.randomDouble())
+            val center = S2Random.randomPoint()
+            val frame = Matrix3x3.fromCols(S2Random.randomFrameAt(center))
+            println("Iteration $i:\n-----------------\nfractal = $fractal\ncenter = $center\nnominal radius = 5°")
+            val loop = fractal.makeLoop(frame, S1Angle.degrees(5))
+
+            // Compare S2Loop to S2LaxLoopShape.
+            compareS2LoopToShape(loop, S2LaxLoopShape(loop))
+
+            // Compare S2Loop to S2LaxPolygonShape.
+            compareS2LoopToShape(loop, S2LaxPolygonShape(listOf(loop.verticesSpan())))
+        }
     }
 }

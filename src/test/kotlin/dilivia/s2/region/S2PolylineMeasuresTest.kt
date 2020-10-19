@@ -18,7 +18,7 @@
  */
 package dilivia.s2.region
 
-import com.google.common.geometry.S2.M_PI
+import dilivia.s2.S2.M_PI
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2Point
 import dilivia.s2.S2Random

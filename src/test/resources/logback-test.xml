@@ -30,7 +30,7 @@
     <logger name="dilivia.s2.region.S2CellUnionTest" level="INFO" />
     <logger name="dilivia.s2.region.S2LoopTest" level="INFO" />
     <logger name="dilivia.s2.region.S2RegionCovererTest" level="INFO" />
-    <logger name="dilivia.s2.index.S2CellIndexTest" level="INFO" />
+    <logger name="dilivia.s2.index.cell.S2CellIndexTest" level="INFO" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

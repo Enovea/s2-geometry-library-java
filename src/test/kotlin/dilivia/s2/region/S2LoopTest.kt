@@ -18,8 +18,8 @@
  */
 package dilivia.s2.region
 
-import com.google.common.geometry.S2.M_PI
-import com.google.common.geometry.S2.M_PI_2
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
 import dilivia.s2.R1Interval
 import dilivia.s2.S1Angle
 import dilivia.s2.S2CellId
@@ -704,7 +704,6 @@ class S2LoopTest : S2GeometryTestCase() {
 
 
     fun testLoopRelations() {
-        //fail("A corriger")
         // Check full and empty relationships with normal loops and each other.
         testRelation(full, full, CONTAINS or CONTAINED or COVERS, true)
         testRelation(full, north_hemi, CONTAINS or COVERS, false)
@@ -797,7 +796,6 @@ class S2LoopTest : S2GeometryTestCase() {
     // Make sure the relations are correct if the loop crossing happens on
     // two ends of a shared boundary segment.
     fun testLoopRelationsWhenSameExceptPiecesStickingOutAndIn() {
-        fail("Infinite Loop")
         testRelation(loop_a, loop_c, 0, true)
         testRelation(loop_c, loop_a, 0, true)
         testRelation(loop_a, loop_d, CONTAINED, true)
@@ -817,7 +815,6 @@ class S2LoopTest : S2GeometryTestCase() {
 
 
     fun testLoopRelations2() {
-        fail("A corriger")
         // Construct polygons consisting of a sequence of adjacent cell ids
         // at some fixed level.  Comparing two polygons at the same level
         // ensures that there are no T-vertices.

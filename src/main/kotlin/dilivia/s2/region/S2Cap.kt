@@ -18,12 +18,14 @@
  */
 package dilivia.s2.region
 
-import com.google.common.geometry.S2.*
 import dilivia.s2.*
 import dilivia.s2.Assertions.assertCapIsValid
 import dilivia.s2.Assertions.assertGreaterOrEquals
 import dilivia.s2.Assertions.assertPointIsUnitLength
 import dilivia.s2.S1Angle.Companion.radians
+import dilivia.s2.S2.DBL_EPSILON
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
 import dilivia.s2.S2Point.Companion.crossProd
 import dilivia.s2.S2Point.Companion.isUnitLength
 import kotlin.math.*

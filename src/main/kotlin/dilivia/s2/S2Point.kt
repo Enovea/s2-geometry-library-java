@@ -18,8 +18,7 @@
  */
 package dilivia.s2
 
-import Matrix3x3
-import com.google.common.geometry.S2
+import dilivia.s2.math.Matrix3x3
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertPointIsUnitLength
 import dilivia.s2.math.*

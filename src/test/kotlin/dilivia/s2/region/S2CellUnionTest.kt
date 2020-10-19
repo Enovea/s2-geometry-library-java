@@ -19,8 +19,8 @@
 package dilivia.s2.region
 
 import dilivia.s2.region.S2CellUnion.S2CellUnionTestPeer.fromVerbatimNoChecks
-import com.google.common.geometry.S2.M_PI
-import com.google.common.geometry.S2.M_PI_2
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
 import dilivia.s2.*
 import dilivia.s2.S2Random.oneIn
 import dilivia.s2.S2Random.randomCap

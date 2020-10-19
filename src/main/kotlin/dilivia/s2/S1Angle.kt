@@ -18,11 +18,10 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.M_PI
+import dilivia.s2.S2.M_PI
 import java.util.*
 import kotlin.math.IEEErem
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 /**
  * This class represents a one-dimensional angle (as opposed to a two-dimensional solid angle). It has methods for

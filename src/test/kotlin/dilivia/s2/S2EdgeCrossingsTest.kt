@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.google.common.geometry.S2.DBL_EPSILON
+import dilivia.s2.S2.DBL_EPSILON
 import dilivia.s2.*
 import dilivia.s2.S2EdgeCrossings.intersectionMethodCounter
 import mu.KotlinLogging

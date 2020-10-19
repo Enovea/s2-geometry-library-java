@@ -18,9 +18,9 @@
  */
 package dilivia.s2.region
 
-import Matrix3x3
-import com.google.common.geometry.S2.M_PI
-import com.google.common.geometry.S2.M_PI_2
+import dilivia.s2.math.Matrix3x3
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
 import dilivia.s2.Assertions
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertEQ
@@ -46,7 +46,7 @@ import dilivia.s2.index.S2CrossingEdgeQuery
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.shape.S2ClippedShape
 import dilivia.s2.shape.S2Shape
-import dilivia.s2.index.shape.RangeIterator
+import dilivia.s2.index.shape.S2ShapeIndexRangeIterator
 import dilivia.s2.index.shape.S2ShapeIndexCell
 import dilivia.s2.index.shape.S2ShapeIndexCellIterator
 import dilivia.s2.shape.Edge
@@ -304,6 +304,8 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         val j = i - numVertices()
         return vertices[if (j < 0) i else j]
     }
+
+    fun vertices(): List<S2Point> = this.vertices.toList()
 
     // Like vertex(), but this method returns vertices in reverse order if the
     // loop represents a polygon hole.  For example, arguments 0, 1, 2 are
@@ -1162,8 +1164,8 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         fun hasCrossingRelation(a: S2Loop, b: S2Loop, relation: LoopRelation): Boolean {
             // We look for S2CellId ranges where the indexes of A and B overlap, and
             // then test those edges for crossings.
-            val ai = RangeIterator(a.index)
-            val bi = RangeIterator(b.index)
+            val ai = S2ShapeIndexRangeIterator(a.index)
+            val bi = S2ShapeIndexRangeIterator(b.index)
             val ab = LoopCrosser(a, b, relation, false)  // Tests edges of A against B
             val ba = LoopCrosser(b, a, relation, true)   // Tests edges of B against A
             while (!ai.done() || !bi.done()) {
@@ -1389,8 +1391,8 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
     // Specifically, this method returns true if there is an edge crossing, a
     // wedge crossing, or a point P that matches both "crossing targets".
     // Advances both iterators past ai->id().
-    fun hasCrossingRelation(ai: RangeIterator, bi: RangeIterator): Boolean {
-        assert { ai.id().contains(bi.id()) }
+    fun hasCrossingRelation(ai: S2ShapeIndexRangeIterator, bi: S2ShapeIndexRangeIterator): Boolean {
+//        assert { ai.id().contains(bi.id()) }
         if (ai.numEdges(0) == 0) {
             if (ai.containsCenter(0) && a_crossing_target == 1) {
             // All points within ai->id() satisfy the crossing target for A, so it's
@@ -1428,8 +1430,8 @@ class LoopCrosser(val a: S2Loop, val b: S2Loop, val relation: LoopRelation, val 
     // Given two iterators positioned such that ai->id().Contains(bi->id()),
     // return true if there is an edge crossing or wedge crosssing anywhere
     // within ai->id().  Advances "bi" (only) past ai->id().
-    private fun hasCrossing(ai: RangeIterator, bi: RangeIterator): Boolean {
-        assert { ai.id().contains(bi.id()) }
+    private fun hasCrossing(ai: S2ShapeIndexRangeIterator, bi: S2ShapeIndexRangeIterator): Boolean {
+//        assert { ai.id().contains(bi.id()) }
         // If ai->id() intersects many edges of B, then it is faster to use
         // S2CrossingEdgeQuery to narrow down the candidates.  But if it intersects
         // only a few edges, it is faster to check all the crossings directly.

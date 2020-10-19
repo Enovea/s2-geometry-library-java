@@ -18,7 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.DBL_EPSILON
+import dilivia.s2.S2.DBL_EPSILON
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.math.R2Point
 import mu.KotlinLogging

@@ -18,7 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.M_SQRT2
+import dilivia.s2.S2.M_SQRT2
 import dilivia.s2.Assertions.assert
 import dilivia.s2.coords.S2Coords
 import kotlin.math.max

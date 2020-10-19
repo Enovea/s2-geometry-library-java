@@ -18,7 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.DBL_EPSILON
+import dilivia.s2.S2.DBL_EPSILON
 import dilivia.s2.R1Interval.Companion.empty
 import dilivia.s2.R1Interval.Companion.fromPointPair
 import dilivia.s2.math.R2Vector

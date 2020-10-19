@@ -18,7 +18,10 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.*
+import dilivia.s2.S2.DBL_EPSILON
+import dilivia.s2.S2.M_SQRT1_2
+import dilivia.s2.S2.M_SQRT2
+import dilivia.s2.S2.M_SQRT3
 import dilivia.s2.math.*
 import mu.KotlinLogging
 import java.math.BigDecimal

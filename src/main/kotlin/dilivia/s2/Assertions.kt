@@ -18,7 +18,6 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2
 import dilivia.s2.region.S2Cap
 
 /**

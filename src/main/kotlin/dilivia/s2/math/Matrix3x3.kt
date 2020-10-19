@@ -16,6 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dilivia.s2.math
+
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.Assertions.assertNE

@@ -18,7 +18,7 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.M_PI
+import dilivia.s2.S2.M_PI
 import dilivia.s2.S2Random.randomDouble
 import dilivia.s2.S2Random.randomFrame
 import kotlin.math.cos

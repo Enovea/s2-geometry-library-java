@@ -19,7 +19,6 @@
 package dilivia.s2
 
 import ch.obermuhlner.math.big.BigDecimalMath
-import com.google.common.geometry.S2
 import dilivia.s2.math.ExactFloatType
 import dilivia.s2.math.R3Vector
 import dilivia.s2.math.R3VectorExactFloat
@@ -27,7 +26,6 @@ import mu.KotlinLogging
 import java.math.BigDecimal
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.pow
 import kotlin.math.sqrt
 
 

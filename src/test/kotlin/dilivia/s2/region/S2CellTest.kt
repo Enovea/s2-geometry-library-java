@@ -18,9 +18,10 @@
  */
 package dilivia.s2.region
 
-import com.google.common.geometry.S2.*
-import com.google.common.geometry.S2Loop
 import dilivia.s2.*
+import dilivia.s2.S2.DBL_EPSILON
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
 import dilivia.s2.coords.S2Coords.kMaxCellLevel
 import dilivia.s2.coords.S2Coords.kSwapMask
 import dilivia.s2.S2Random.oneIn

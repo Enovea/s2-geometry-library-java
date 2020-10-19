@@ -18,7 +18,10 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.*
+import dilivia.s2.S2.DBL_EPSILON
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
+import dilivia.s2.S2.M_PI_4
 import java.lang.Math.pow
 import kotlin.math.asin
 import kotlin.math.pow

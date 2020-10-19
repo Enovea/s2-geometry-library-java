@@ -18,7 +18,11 @@
  */
 package dilivia.s2
 
-import com.google.common.geometry.S2.*
+import dilivia.s2.S2.M_PI
+import dilivia.s2.S2.M_PI_2
+import dilivia.s2.S2.M_PI_4
+import dilivia.s2.S2.M_SQRT2
+import dilivia.s2.S2.M_SQRT3
 import dilivia.s2.S2Random.oneIn
 import dilivia.s2.S2Random.randomDouble
 import dilivia.s2.S2Random.randomPoint

@@ -66,9 +66,7 @@ typealias CellMap = TreeMap<S2CellId, S2ShapeIndexCell>
  * @author Fabien Meurisse (fabien.meurisse@enovea.net)
  * @since 1.0
  */
-class MutableS2ShapeIndex(options: Options = Options()) : S2ShapeIndex() {
-
-    private var options: Options = options
+class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeIndex() {
 
     private var updateState: UpdateState? = null
 
