@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.S2Debug
 import dilivia.s2.S2EdgeCrossings
@@ -25,8 +25,8 @@ import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2LatLng
 import dilivia.s2.S2Point
 import dilivia.s2.S2TextParser
-import dilivia.s2.index.shape.MutableS2ShapeIndex
-import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.CrossingType
+import dilivia.s2.index.EdgeIterator
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
 import dilivia.s2.shape.S2EdgeVectorShape

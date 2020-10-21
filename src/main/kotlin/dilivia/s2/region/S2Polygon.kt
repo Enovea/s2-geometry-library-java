@@ -39,7 +39,7 @@ import dilivia.s2.builder.layers.S2PolygonLayer
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.S2BooleanOperation
-import dilivia.s2.index.S2CrossingEdgePairsScanner
+import dilivia.s2.index.shape.S2CrossingEdgePairsScanner
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.TypeTag

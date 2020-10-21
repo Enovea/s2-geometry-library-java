@@ -19,7 +19,7 @@
     <logger name="dilivia.s2.S2Point" level="INFO" />
     <logger name="dilivia.s2.S2TextParser" level="DEBUG" />
     <logger name="dilivia.s2.builder.S2Builder" level="DEBUG" />
-    <logger name="dilivia.s2.index.S2CrossingEdgePairsScanner" level="INFO" />
+    <logger name="dilivia.s2.index.shape.S2CrossingEdgePairsScanner" level="INFO" />
     <logger name="dilivia.s2.index.shape.MutableS2ShapeIndex" level="INFO" />
     <logger name="dilivia.s2.index.S2CellIndex" level="INFO" />
     <logger name="dilivia.s2.index.point.S2ClosestPointQueryBase" level="DEBUG" />

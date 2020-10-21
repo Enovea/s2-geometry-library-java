@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.Assertions
 import dilivia.s2.S2CellId
@@ -24,11 +24,10 @@ import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2Error
 import dilivia.s2.S2PaddedCell
 import dilivia.s2.S2WedgeRelations
-import dilivia.s2.index.S2CrossingEdgePairsScanner.getShapeEdges
-import dilivia.s2.index.shape.S2ShapeIndexRangeIterator
-import dilivia.s2.index.shape.InitialPosition
-import dilivia.s2.index.shape.S2ShapeIndex
-import dilivia.s2.index.shape.S2ShapeIndexCell
+import dilivia.s2.index.CellVisitor
+import dilivia.s2.index.CrossingType
+import dilivia.s2.index.S2CrossingEdgeQuery
+import dilivia.s2.index.shape.S2CrossingEdgePairsScanner.getShapeEdges
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdge
 import mu.KotlinLogging

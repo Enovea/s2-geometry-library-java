@@ -41,7 +41,7 @@ import dilivia.s2.S2WedgeRelations
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.coords.S2XYZFaceSiTi
 import dilivia.s2.index.shape.CellRelation
-import dilivia.s2.index.S2CrossingEdgePairsScanner
+import dilivia.s2.index.shape.S2CrossingEdgePairsScanner
 import dilivia.s2.index.S2CrossingEdgeQuery
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.shape.S2ClippedShape
