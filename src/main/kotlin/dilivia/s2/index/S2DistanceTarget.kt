@@ -86,23 +86,27 @@ import dilivia.s2.shape.S2Shape
 //   S1ChordAngle GetChordAngleBound() const;
 // };
 typealias Delta = S1ChordAngle
-interface Distance<T: Distance<T>> : Comparable<T> {
 
-   // Subtraction operator.  Note that the second argument represents a
-   // delta between two distances.  This distinction is important for
-   // classes that compute maximum distances (e.g., S2FurthestEdgeQuery).
-   operator fun minus(delta: Delta): T
+interface Distance<T : Distance<T>> : Comparable<T>, Cloneable {
 
-   // Method that returns an upper bound on the S1ChordAngle corresponding
-   // to this Distance (needed to implement Options::max_distance
-   // efficiently).  For example, if Distance measures WGS84 ellipsoid
-   // distance then the corresponding angle needs to be 0.56% larger.
-   fun getChordAngleBound(): S1ChordAngle
+    // Subtraction operator.  Note that the second argument represents a
+    // delta between two distances.  This distinction is important for
+    // classes that compute maximum distances (e.g., S2FurthestEdgeQuery).
+    operator fun minus(delta: Delta): T
+
+    // Method that returns an upper bound on the S1ChordAngle corresponding
+    // to this Distance (needed to implement Options::max_distance
+    // efficiently).  For example, if Distance measures WGS84 ellipsoid
+    // distance then the corresponding angle needs to be 0.56% larger.
+    fun getChordAngleBound(): S1ChordAngle
+
+    public override fun clone(): T
+
 }
 
-interface DistanceFactory<T: Distance<T>> {
+interface DistanceFactory<T : Distance<T>> {
 
-   // Factory methods:
+    // Factory methods:
     fun distance(length2: Double): T
     fun distance(other: T): T
     fun zero(): T      // Returns a zero distance.
@@ -112,77 +116,86 @@ interface DistanceFactory<T: Distance<T>> {
 }
 
 
-interface S2DistanceTarget<T: Distance<T>> {
+interface S2DistanceTarget<T : Distance<T>> {
 
-  // Returns an S2Cap that bounds the set of points whose distance to the
-  // target is Distance::Zero().
-  fun getCapBound(): S2Cap
+    // Returns an S2Cap that bounds the set of points whose distance to the
+    // target is Distance::Zero().
+    fun getCapBound(): S2Cap
 
-  // If the distance to the point "p" "min_dist", then updates "min_dist" and
-  // returns true.  Otherwise returns false.
-  fun updateMinDistance(p: S2Point, minDist: T): Boolean
+    /**
+     * Gets the distance of the target from the given point.
+     *
+     * @param p A point
+     * @return The distance between the target and the point as a S1ChordAngle.
+     */
+    fun distance(p: S2Point): T
 
-  // If the distance to the edge (v0, v1) is less than "min_dist", then
-  // updates "min_dist" and returns true.  Otherwise returns false.
-  fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: T): Boolean
+    // If the distance to the point "p" "min_dist", then updates "min_dist" and
+    // returns true.  Otherwise returns false.
+    fun updateMinDistance(p: S2Point, minDist: T): Boolean
 
-  // If the distance to the given S2Cell (including its interior) is less
-  // than "min_dist", then updates "min_dist" and returns true.  Otherwise
-  // returns false.
-  fun updateMinDistance(cell: S2Cell, minDist: T): Boolean
+    // If the distance to the edge (v0, v1) is less than "min_dist", then
+    // updates "min_dist" and returns true.  Otherwise returns false.
+    fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: T): Boolean
 
-  // Finds all polygons in the given "query_index" that completely contain a
-  // connected component of the target geometry.  (For example, if the
-  // target consists of 10 points, this method finds polygons that contain
-  // any of those 10 points.)  For each such polygon, "visitor" is called
-  // with the S2Shape of the polygon along with a point of the target
-  // geometry that is contained by that polygon.
-  //
-  // Optionally, any polygon that intersects the target geometry may also be
-  // returned.  In other words, this method returns all polygons that
-  // contain any connected component of the target, along with an arbitrary
-  // subset of the polygons that intersect the target.
-  //
-  // For example, suppose that "query_index" contains two abutting polygons
-  // A and B.  If the target consists of two points "a" contained by A and
-  // "b" contained by B, then both A and B are returned.  But if the target
-  // consists of the edge "ab", then any subset of {A, B} could be returned
-  // (because both polygons intersect the target but neither one contains
-  // the edge "ab").
-  //
-  // If "visitor" returns false, this method terminates early and returns
-  // false as well.  Otherwise returns true.
-  //
-  // NOTE(ericv): This method exists only for the purpose of implementing
-  // S2ClosestEdgeQuery::Options::include_interiors() efficiently.  Its API is
-  // unlikely to be useful for other purposes.
-  interface ShapeVisitor {
-      fun visit(containing_shape: S2Shape, target_point: S2Point): Boolean
-  }
-  fun visitContainingShapes(query_index: S2ShapeIndex, visitor: ShapeVisitor): Boolean
+    // If the distance to the given S2Cell (including its interior) is less
+    // than "min_dist", then updates "min_dist" and returns true.  Otherwise
+    // returns false.
+    fun updateMinDistance(cell: S2Cell, minDist: T): Boolean
 
-  // Specifies that whenever one of the UpdateMinDistance() methods above
-  // returns "true", the returned distance is allowed to be up to "max_error"
-  // larger than the true minimum distance.  In other words, it gives this
-  // target object permission to terminate its distance calculation as soon as
-  // it has determined that (1) the minimum distance is less than "min_dist"
-  // and (2) the best possible further improvement is less than "max_error".
-  //
-  // If the target takes advantage of "max_error" to optimize its distance
-  // calculation, this method must return "true".  (Most target types can use
-  // the default implementation which simply returns false.)
-  fun setMaxError(max_error: Delta): Boolean = false
+    // Finds all polygons in the given "query_index" that completely contain a
+    // connected component of the target geometry.  (For example, if the
+    // target consists of 10 points, this method finds polygons that contain
+    // any of those 10 points.)  For each such polygon, "visitor" is called
+    // with the S2Shape of the polygon along with a point of the target
+    // geometry that is contained by that polygon.
+    //
+    // Optionally, any polygon that intersects the target geometry may also be
+    // returned.  In other words, this method returns all polygons that
+    // contain any connected component of the target, along with an arbitrary
+    // subset of the polygons that intersect the target.
+    //
+    // For example, suppose that "query_index" contains two abutting polygons
+    // A and B.  If the target consists of two points "a" contained by A and
+    // "b" contained by B, then both A and B are returned.  But if the target
+    // consists of the edge "ab", then any subset of {A, B} could be returned
+    // (because both polygons intersect the target but neither one contains
+    // the edge "ab").
+    //
+    // If "visitor" returns false, this method terminates early and returns
+    // false as well.  Otherwise returns true.
+    //
+    // NOTE(ericv): This method exists only for the purpose of implementing
+    // S2ClosestEdgeQuery::Options::include_interiors() efficiently.  Its API is
+    // unlikely to be useful for other purposes.
+    interface ShapeVisitor {
+        fun visit(containing_shape: S2Shape, target_point: S2Point): Boolean
+    }
 
-  // The following method is provided as a convenience for classes that
-  // compute distances to a collection of indexed geometry, such as
-  // S2ClosestPointQuery, S2ClosestEdgeQuery, and S2ClosestCellQuery.  It
-  // returns the maximum number of indexed objects for which it is faster to
-  // compute the distance by brute force (e.g., by testing every edge) rather
-  // than by using an index.  (The appropriate value is different for each
-  // index type and can be estimated for a given (distance target, index type)
-  // pair by running benchmarks.)
-  //
-  // By default this method returns -1, indicating that it is not implemented.
-  fun maxBruteForceIndexSize(): Int = -1
+    fun visitContainingShapes(query_index: S2ShapeIndex, visitor: ShapeVisitor): Boolean
+
+    // Specifies that whenever one of the UpdateMinDistance() methods above
+    // returns "true", the returned distance is allowed to be up to "max_error"
+    // larger than the true minimum distance.  In other words, it gives this
+    // target object permission to terminate its distance calculation as soon as
+    // it has determined that (1) the minimum distance is less than "min_dist"
+    // and (2) the best possible further improvement is less than "max_error".
+    //
+    // If the target takes advantage of "max_error" to optimize its distance
+    // calculation, this method must return "true".  (Most target types can use
+    // the default implementation which simply returns false.)
+    fun setMaxError(max_error: Delta): Boolean = false
+
+    // The following method is provided as a convenience for classes that
+    // compute distances to a collection of indexed geometry, such as
+    // S2ClosestPointQuery, S2ClosestEdgeQuery, and S2ClosestCellQuery.  It
+    // returns the maximum number of indexed objects for which it is faster to
+    // compute the distance by brute force (e.g., by testing every edge) rather
+    // than by using an index.  (The appropriate value is different for each
+    // index type and can be estimated for a given (distance target, index type)
+    // pair by running benchmarks.)
+    //
+    // By default this method returns -1, indicating that it is not implemented.
+    fun maxBruteForceIndexSize(): Int = -1
 
 }

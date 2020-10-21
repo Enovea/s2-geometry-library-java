@@ -83,6 +83,7 @@ class S2ClosestPointQueryTest : S2GeometryTestCase() {
     }
 
     fun testCirclePoints() {
+        fail("Infinite loop")
         testWithIndexFactory(CirclePointIndexFactory(), kNumIndexes, kNumPoints, kNumQueries)
     }
 
@@ -91,6 +92,7 @@ class S2ClosestPointQueryTest : S2GeometryTestCase() {
     }
 
     fun testGridPoints() {
+        fail("Infinite loop")
         testWithIndexFactory(GridPointIndexFactory(), kNumIndexes, kNumPoints, kNumQueries)
     }
 
@@ -147,11 +149,13 @@ class S2ClosestPointQueryTest : S2GeometryTestCase() {
             getClosestPoints(target, query, expected)
             query.options().useBruteForce = false
             getClosestPoints(target, query, actual)
-            assertTrue("""
+            assertTrue(
+                    """
                max_results  = ${query.options().getMaxResult()},
                max_distance = ${query.options().maxDistance},
                max_error    = ${query.options().maxError}
-            """.trimIndent(), checkDistanceResults(S2MinDistanceFactory, expected, actual, query.options().getMaxResult(), query.options().maxDistance, query.options().maxError))
+            """.trimIndent(),
+                    checkDistanceResults(S2MinDistanceFactory, expected, actual, query.options().getMaxResult(), query.options().maxDistance, query.options().maxError))
 
 
             if (expected.isEmpty()) return

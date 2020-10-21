@@ -41,7 +41,7 @@ fun <T> List<T>.isSorted(comparator: Comparator<T>): Boolean {
     var previous = iter.next()
     while (iter.hasNext()) {
         current = iter.next();
-        if (comparator.compare(current, previous) > 0) return false
+        if (comparator.compare(previous, current) > 0) return false
         previous = current;
     }
     return true

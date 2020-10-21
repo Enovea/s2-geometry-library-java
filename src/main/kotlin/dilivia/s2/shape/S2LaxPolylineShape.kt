@@ -43,7 +43,7 @@ class S2LaxPolylineShape(val vertices: List<S2Point>) : S2Shape() {
 
     // Constructs an S2LaxPolylineShape from the given S2Polyline, by copying
     // its data.
-    constructor(polyline: S2Polyline) : this(polyline.vertices)
+    constructor(polyline: S2Polyline) : this(polyline.vertices())
 
     // Initializes an S2LaxPolylineShape with the given vertices.
     init {

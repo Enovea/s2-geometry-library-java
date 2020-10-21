@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.builder
+package dilivia.s2.builder.graph
 
 import dilivia.s2.Assertions
 import dilivia.s2.Assertions.assertEQ
@@ -25,6 +25,16 @@ import dilivia.s2.Assertions.assertTrue
 import dilivia.s2.S2Error
 import dilivia.s2.S2Point
 import dilivia.s2.S2Predicates
+import dilivia.s2.builder.Edge
+import dilivia.s2.builder.EdgeId
+import dilivia.s2.builder.EdgeType
+import dilivia.s2.builder.IdSetLexicon
+import dilivia.s2.builder.InputEdgeId
+import dilivia.s2.builder.InputEdgeIdSetId
+import dilivia.s2.builder.IsFullPolygonPredicate
+import dilivia.s2.builder.Label
+import dilivia.s2.builder.LabelSetId
+import dilivia.s2.builder.min
 import dilivia.s2.collections.assign
 import dilivia.s2.collections.remove
 import dilivia.s2.collections.sortAndRemoveDuplicates
@@ -490,23 +500,30 @@ class Graph(
         ////////////////////////////////////////////////////////////////////////
         //////////////// Helper Functions for Creating Graphs //////////////////
 
-        // Given an unsorted collection of edges, transform them according to the
-        // given set of GraphOptions.  This includes actions such as discarding
-        // degenerate edges; merging duplicate edges; and canonicalizing sibling
-        // edge pairs in several possible ways (e.g. discarding or creating them).
-        // The output is suitable for passing to the Graph constructor.
-        //
-        // If options.edge_type() == EdgeType::UNDIRECTED, then all input edges
-        // should already have been transformed into a pair of directed edges.
-        //
-        // "input_ids" is a vector of the same length as "edges" that indicates
-        // which input edges were snapped to each edge.  This vector is also updated
-        // appropriately as edges are discarded, merged, etc.
-        //
-        // Note that "options" may be modified by this method: in particular, the
-        // edge_type() can be changed if sibling_pairs() is CREATE or REQUIRE (see
-        // the description of S2Builder::GraphOptions).
-        fun processEdges(options: GraphOptions, edges: List<Edge>, input_ids: List<InputEdgeIdSetId>, id_set_lexicon: IdSetLexicon, error: S2Error): Unit = TODO()
+        /**
+         * Given an unsorted collection of edges, transform them according to the given set of GraphOptions.
+         * This includes actions such as discarding degenerate edges; merging duplicate edges; and canonicalizing
+         * sibling edge pairs in several possible ways (e.g. discarding or creating them).
+         * The output is suitable for passing to the Graph constructor.
+         *
+         * If options.edge_type) == EdgeType.UNDIRECTED, then all input edges should already have been transformed
+         * into a pair of directed edges.
+         *
+         * Note that "options" may be modified by this method: in particular, the edge_type) can be changed if
+         * sibling_pairs is CREATE or REQUIRE (see the description of GraphOptions)
+         *
+         * @param input_ids vector of the same length as "edges" that indicates which input edges were snapped to each
+         * edge. This vector is also updated appropriately as edges are discarded, merged, etc.
+         */
+        fun processEdges(options: GraphOptions, edges: ArrayList<Edge>, input_ids: ArrayList<InputEdgeIdSetId>, id_set_lexicon: IdSetLexicon, error: S2Error) {
+            val processor = EdgeProcessor(options, edges, input_ids, id_set_lexicon)
+            processor.run(error)
+            // Certain values of sibling_pairs() discard half of the edges and change
+            // the edge_type() to DIRECTED (see the description of GraphOptions).
+            if (options.sibling_pairs == SiblingPairs.REQUIRE || options.sibling_pairs == SiblingPairs.CREATE) {
+                options.edge_type = EdgeType.DIRECTED
+            }
+        }
 
         // Given a set of vertices and edges, removes all vertices that do not have
         // any edges and returned the new, minimal set of vertices.  Also updates

@@ -61,6 +61,8 @@ class S2MaxDistance constructor(distance: S1ChordAngle) : Distance<S2MaxDistance
         return false
     }
 
+    override fun clone(): S2MaxDistance = S2MaxDistance(value)
+
 }
 
 object S2MaxDistanceFactory : DistanceFactory<S2MaxDistance> {
@@ -92,7 +94,9 @@ open class S2MaxDistancePointTarget(val point: S2Point) : S2MaxDistanceTarget {
     // S2MaxDistance::Zero().)
     override fun getCapBound(): S2Cap = S2Cap(-point, S1ChordAngle.zero)
 
-    override fun updateMinDistance(p: S2Point, minDist: S2MaxDistance): Boolean = minDist.updateMin(S2MaxDistance(S1ChordAngle.between(p, point)))
+    override fun distance(p: S2Point): S2MaxDistance = S2MaxDistance(S1ChordAngle.between(p, point))
+
+    override fun updateMinDistance(p: S2Point, minDist: S2MaxDistance): Boolean = minDist.updateMin(distance(p))
 
     override fun updateMinDistance(v0: S2Point, v1: S2Point, minDist: S2MaxDistance): Boolean {
         val dist = MutableS1ChordAngle(minDist.value)
@@ -132,6 +136,8 @@ class S2MaxDistanceEdgeTarget(a: S2Point, b: S2Point) : S2MaxDistanceTarget {
         val r2 = (0.5 * d2) / (1 + sqrt(1 - 0.25 * d2))
         return S2Cap(-(a + b).normalize(), S1ChordAngle.fromLength2(r2))
     }
+
+    override fun distance(p: S2Point): S2MaxDistance = S2MaxDistance(S2EdgeDistances.getDistance(p, a, b))
 
     override fun updateMinDistance(p: S2Point, minDist: S2MaxDistance): Boolean {
         val dist = MutableS1ChordAngle(minDist.value)
@@ -177,6 +183,8 @@ class S2MaxDistanceCellTarget(val cell: S2Cell) : S2MaxDistanceTarget {
         val cap = cell.capBound
         return S2Cap(-cap.center, cap.radius)
     }
+
+    override fun distance(p: S2Point): S2MaxDistance = S2MaxDistance(cell.getMaxDistance(p))
 
     override fun updateMinDistance(p: S2Point, minDist: S2MaxDistance): Boolean {
         return minDist.updateMin(S2MaxDistance(cell.getMaxDistance(p)))
@@ -251,6 +259,10 @@ class S2MaxDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MaxDistanceTarg
         TODO()
 //        val cap = makeS2ShapeIndexRegion(index).capBound
 //        return S2Cap(-cap.center, cap.radius)
+    }
+
+    override fun distance(p: S2Point): S2MaxDistance {
+        TODO("Not yet implemented")
     }
 
     override fun updateMinDistance(p: S2Point, minDist: S2MaxDistance): Boolean {

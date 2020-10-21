@@ -1,27 +1,34 @@
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <withJansi>true</withJansi>
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%black(%d{ISO8601}) %highlight(%-5.5level) [%blue(%10.10t)] %yellow(%20.20logger{20}): %msg%n%throwable</pattern>
+<!--            <pattern>%gray(%d{HH:mm:ss.SSS}) [%thread] %highlight(%-5level) %cyan(%logger{6}) - %msg%n</pattern>-->
         </encoder>
     </appender>
 
-    <logger name="dilivia.s2" level="INFO" />
-    <logger name="dilivia.s2.region.S2CellUnion" level="INFO" />
+    <logger name="dilivia.s2" level="DEBUG" />
     <logger name="dilivia.s2.S2EdgeClipping" level="INFO" />
     <logger name="dilivia.s2.S2EdgeCrossings" level="INFO" />
     <logger name="dilivia.s2.S2EdgeDistances" level="INFO" />
     <logger name="dilivia.s2.S2Loop" level="INFO" />
     <logger name="dilivia.s2.S2PaddedCell" level="INFO" />
     <logger name="dilivia.s2.S2Point" level="INFO" />
+    <logger name="dilivia.s2.S2TextParser" level="DEBUG" />
+    <logger name="dilivia.s2.builder.S2Builder" level="DEBUG" />
+    <logger name="dilivia.s2.index.S2CrossingEdgePairsScanner" level="INFO" />
     <logger name="dilivia.s2.index.shape.MutableS2ShapeIndex" level="INFO" />
     <logger name="dilivia.s2.index.S2CellIndex" level="INFO" />
+    <logger name="dilivia.s2.index.point.S2ClosestPointQueryBase" level="DEBUG" />
     <logger name="dilivia.s2.index.point.S2PointIndex" level="INFO" />
+    <logger name="dilivia.s2.region.S2CellUnion" level="DEBUG" />
     <logger name="dilivia.s2.region.S2Loop" level="INFO" />
     <logger name="dilivia.s2.region.S2LoopMeasures" level="INFO" />
     <logger name="dilivia.s2.region.S2Polyline" level="INFO" />
+    <logger name="dilivia.s2.region.S2Polygon" level="DEBUG" />
     <logger name="dilivia.s2.region.S2RegionCoverer" level="INFO" />
     <logger name="dilivia.s2.shape.S2Shape" level="INFO" />
 

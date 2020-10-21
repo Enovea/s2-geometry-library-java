@@ -23,6 +23,7 @@ import dilivia.s2.Assertions.assertEQ
 import dilivia.s2.Assertions.assertLT
 import dilivia.s2.Assertions.assertTrue
 import dilivia.s2.S1Angle
+import dilivia.s2.S2.M_PI
 import dilivia.s2.S2CellId
 import dilivia.s2.S2CellMetrics
 import dilivia.s2.S2EdgeCrossings
@@ -30,10 +31,11 @@ import dilivia.s2.S2Error
 import dilivia.s2.S2LatLngRect
 import dilivia.s2.S2LatLngRectBounder
 import dilivia.s2.S2Point
-import dilivia.s2.builder.IdentitySnapFunction
+import dilivia.s2.builder.snap.IdentitySnapFunction
 import dilivia.s2.builder.S2Builder
-import dilivia.s2.builder.S2CellIdSnapFunction
-import dilivia.s2.builder.SnapFunction
+import dilivia.s2.builder.snap.S2CellIdSnapFunction
+import dilivia.s2.builder.snap.SnapFunction
+import dilivia.s2.builder.layers.S2PolygonLayer
 import dilivia.s2.coords.S2Coords
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.S2BooleanOperation
@@ -204,6 +206,8 @@ class S2Polygon() : S2Region {
     constructor(loop: S2Loop, check: Boolean = true): this() {
         init(loop, check)
     }
+
+    fun loops(): List<S2Loop> = loops.toList()
 
     // Create a polygon from a set of hierarchically nested loops.  The polygon
     // interior consists of the points contained by an odd number of loops.
@@ -387,19 +391,21 @@ class S2Polygon() : S2Region {
     }
     fun findValidationError(error: S2Error): Boolean {
         for (i in 0 until numLoops()) {
+            val loop = loop(i)
+            logger.trace { "FindValidationError: Validate loop $i = $loop" }
             // Check for loop errors that don't require building an S2ShapeIndex.
-            error.init(loop(i).findValidationErrorNoIndex())
+            error.init(loop.findValidationErrorNoIndex())
             if (!error.isOk()) {
                 error.init(code = error.code, text = "Loop $i: ${error.text}")
                 return false
             }
             // Check that no loop is empty, and that the full loop only appears in the
             // full polygon.
-            if (loop(i).isEmpty()) {
+            if (loop.isEmpty()) {
                 error.init(code = S2Error.POLYGON_EMPTY_LOOP, text = "Loop $i: empty loops are not allowed")
                 return false
             }
-            if (loop(i).isFull() && numLoops() > 1) {
+            if (loop.isFull() && numLoops() > 1) {
                 error.init(
                         code = S2Error.POLYGON_EXCESS_FULL_LOOP,
                         text = "Loop $i: full loop appears in non-full polygon"
@@ -786,23 +792,28 @@ class S2Polygon() : S2Region {
         initToSymmetricDifference(a, b, IdentitySnapFunction(snap_radius))
     }
 
-    // Initializes the polygon from input polygon "a" using the given S2Builder.
-    // If the result has an empty boundary (no loops), also decides whether the
-    // result should be the full polygon rather than the empty one based on the
-    // area of the input polygon.  (See comments in InitToApproxIntersection.)
+    /**
+     * Initializes the polygon from input polygon "a" using the given S2Builder. If the result has an empty boundary
+     * (no loops), also decides whether the result should be the full polygon rather than the empty one based on the
+     * area of the input polygon.
+     *
+     * @param a A polygon
+     * @param builder A builder.
+     *
+     * @see initToApproxIntersection
+     */
     fun initFromBuilder(a: S2Polygon, builder: S2Builder) {
-        TODO()
-//        builder.startLayer(S2PolygonLayer(this))
-//        builder.addPolygon(a)
-//        val error = builder.build()
-//        if (!error.isOk()) {
-//            logger.error { "Could not build polygon: $error" }
-//        }
-//        // If there are no loops, check whether the result should be the full
-//        // polygon rather than the empty one.  (See InitToApproxIntersection.)
-//        if (numLoops() == 0) {
-//            if (a.bound.area > 2 * M_PI && a.getArea() > 2 * M_PI) invert()
-//        }
+        builder.startLayer(S2PolygonLayer(this))
+        builder.addPolygon(a)
+        val error = builder.build()
+        if (!error.isOk()) {
+            logger.error { "Could not build polygon: $error" }
+        }
+        // If there are no loops, check whether the result should be the full
+        // polygon rather than the empty one.  (See InitToApproxIntersection.)
+        if (numLoops() == 0) {
+            if (a.bound.area > 2 * M_PI && a.getArea() > 2 * M_PI) invert()
+        }
     }
 
     fun operationWithPolyline(op_type: S2BooleanOperation.OpType, snap_function: SnapFunction, a: S2Polyline): List<S2Polyline> {
@@ -833,6 +844,7 @@ class S2Polygon() : S2Region {
     // starting with data that is not in S2Polygon format (e.g., integer E7
     // coordinates) then it is faster to just use S2Builder directly.
     fun initToSnapped(polygon: S2Polygon, snap_function: SnapFunction) {
+        TODO()
     }
 
     // Convenience function that snaps the vertices to S2CellId centers at the
@@ -840,7 +852,7 @@ class S2Polygon() : S2Region {
     // centimeter apart).  Polygons can be efficiently encoded by Encode() after
     // they have been snapped.
     fun initToSnapped(polygon: S2Polygon, snapLevel: Int = S2CellId.kMaxLevel) {
-        val builder = S2Builder(S2Builder.Options(snapFunction = S2CellIdSnapFunction(snapLevel)))
+        val builder = S2Builder(S2Builder.Options(snapFunction = S2CellIdSnapFunction(snapLevel), verbose = true))
         initFromBuilder(polygon, builder)
     }
 
@@ -859,6 +871,21 @@ class S2Polygon() : S2Region {
     fun initToSimplified(a: S2Polygon, snap_function: SnapFunction) {
         val builder = S2Builder(S2Builder.Options(snapFunction = snap_function, simplifyEdgeChains = true))
         initFromBuilder(a, builder)
+    }
+
+    fun toDebugString(loop_separator: String = " ; "): String {
+        if (this.isEmpty()) {
+            return "empty"
+        } else if (this.isFull()) {
+            return "full"
+        }
+        var out = ""
+        for (i in 0 until this.numLoops()) {
+            if (i > 0) out += loop_separator
+            val loop = this.loop(i)
+            out += loop.vertices().joinToString(", ") { p -> p.toDegreesString() }
+        }
+        return out
     }
 
     // Given a point "p" inside an S2Cell or on its boundary, return a mask
@@ -1281,7 +1308,7 @@ class S2Polygon() : S2Region {
     // might have a lot of extra padding.  Both bounds are conservative in that
     // if the loop contains a point P, then the bound contains P also.
 
-    override fun clone(): S2Polygon {
+    public override fun clone(): S2Polygon {
         val result = S2Polygon()
         result.copy(this)
         return result

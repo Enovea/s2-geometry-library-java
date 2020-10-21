@@ -20,16 +20,16 @@ package dilivia.s2.index
 
 import dilivia.s2.S2Error
 import dilivia.s2.S2Point
-import dilivia.s2.builder.DegenerateEdges
-import dilivia.s2.builder.DuplicateEdges
+import dilivia.s2.builder.graph.DegenerateEdges
+import dilivia.s2.builder.graph.DuplicateEdges
 import dilivia.s2.builder.EdgeType
-import dilivia.s2.builder.Graph
-import dilivia.s2.builder.GraphOptions
+import dilivia.s2.builder.graph.Graph
+import dilivia.s2.builder.graph.GraphOptions
 import dilivia.s2.builder.IdSetLexicon
 import dilivia.s2.builder.Label
 import dilivia.s2.builder.LabelSetId
 import dilivia.s2.builder.layers.Layer
-import dilivia.s2.builder.SiblingPairs
+import dilivia.s2.builder.graph.SiblingPairs
 import dilivia.s2.index.S2PointVectorLayer.Options
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.shape.S2PointVectorShape

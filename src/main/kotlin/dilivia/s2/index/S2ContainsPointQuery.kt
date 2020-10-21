@@ -138,7 +138,7 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
     // visited at most once.
     //
     // Note that the API allows non-const access to the visited shapes.
-    interface ShapeVisitor {
+    fun interface ShapeVisitor {
         fun visit(shape: S2Shape): Boolean
     }
 

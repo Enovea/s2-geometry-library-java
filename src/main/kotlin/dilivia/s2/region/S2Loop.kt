@@ -292,6 +292,11 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
         return error
     }
 
+    fun findValidationError(error: S2Error): Boolean {
+        error.init(findValidationError())
+        return !error.isOk()
+    }
+
     fun numVertices(): Int = vertices.size
 
     // For convenience, we make two entire copies of the vertex list available:
@@ -564,6 +569,16 @@ class S2Loop internal constructor(vertices: List<S2Point>, var depth: Int = 0, c
 
     override fun hashCode(): Int {
         return vertices.hashCode()
+    }
+
+
+    fun toDebugString(): String {
+        if (this.isEmpty()) {
+            return "empty"
+        } else if (this.isFull()) {
+            return "full"
+        }
+        return this.vertices().joinToString(", ") { p -> p.toDegreesString() }
     }
 
     // Returns true if two loops have the same boundary.  This is true if and

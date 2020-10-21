@@ -51,19 +51,23 @@ import kotlin.math.sin
 // An S2Polyline represents a sequence of zero or more vertices connected by
 // straight edges (geodesics).  Edges of length 0 and 180 degrees are not
 // allowed, i.e. adjacent vertices should not be identical or antipodal.
-class S2Polyline internal constructor(val vertices: MutableList<S2Point>, check: Boolean) : S2Region {
+class S2Polyline internal constructor(vertices: List<S2Point>, check: Boolean) : S2Region {
+
+    private val vertices: MutableList<S2Point> = vertices.toMutableList()
 
     // Creates an empty S2Polyline that should be initialized by calling Init()
     // or Decode().
-    constructor() : this(mutableListOf<S2Point>(), true)
+    constructor() : this(listOf<S2Point>(), true)
 
-    constructor(vertices: MutableList<S2Point>) : this(vertices, true)
+    constructor(vertices: List<S2Point>) : this(vertices, true)
 
     init {
         if (check) {
             assert { isValid() }
         }
     }
+
+    fun vertices(): List<S2Point> = vertices
 
     fun init(vertices: MutableList<S2Point>, check: Boolean = true) {
         this.vertices.clear()
@@ -311,7 +315,7 @@ class S2Polyline internal constructor(val vertices: MutableList<S2Point>, check:
     }
 
     // Reverse the order of the polyline vertices.
-    fun reversed(): S2Polyline = S2Polyline(vertices.asReversed().toMutableList())
+    fun reversed(): S2Polyline = S2Polyline(vertices.asReversed())
 
     // Return a subsequence of vertex indices such that the polyline connecting
     // these vertices is never further than "tolerance" from the original
@@ -549,7 +553,7 @@ class S2Polyline internal constructor(val vertices: MutableList<S2Point>, check:
     // S2Region interface (see s2region.h for details):
 
     override fun clone(): S2Polyline {
-        return S2Polyline(vertices.toMutableList())
+        return S2Polyline(vertices)
     }
 
     override val capBound: S2Cap
@@ -639,7 +643,7 @@ class S2Polyline internal constructor(val vertices: MutableList<S2Point>, check:
 
         private val logger = KotlinLogging.logger(S2Polyline::class.java.name)
 
-        fun fromLatLng(vertices: List<S2LatLng>): S2Polyline = S2Polyline(vertices.asSequence().map { it.toPoint() }.toMutableList())
+        fun fromLatLng(vertices: List<S2LatLng>): S2Polyline = S2Polyline(vertices.asSequence().map { it.toPoint() }.toList())
 
         // Returns the length of the polyline.  Returns zero for polylines with fewer
         // than two vertices.

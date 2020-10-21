@@ -401,7 +401,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
         resultSingleton = Result(distance = distanceFactory.infinity())
         check(resultVector.isEmpty())
         check(resultSet.isEmpty())
-        check(target.maxBruteForceIndexSize() >= 0)
+        check(target.maxBruteForceIndexSize() >= 0) { "Target $target : maxBruteForceIndexSize < 0" }
         if (distanceLimit == distanceFactory.zero()) return
 
         if (options.getMaxResults() == Options.kMaxMaxResults && options.maxDistance == distanceFactory.infinity()) {

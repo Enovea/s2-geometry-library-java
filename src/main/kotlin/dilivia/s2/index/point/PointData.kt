@@ -30,4 +30,9 @@ data class PointData<T : Comparable<T>>(val point: S2Point, val data: T) : Compa
         return if (pointComparison == 0) data.compareTo(other.data) else pointComparison
     }
 
+    override fun toString(): String {
+        return "(p=${point.toDegreesString()}, d=$data)"
+    }
+
+
 }

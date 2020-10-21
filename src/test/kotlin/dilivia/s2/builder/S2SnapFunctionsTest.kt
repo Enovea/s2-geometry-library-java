@@ -31,9 +31,9 @@ import dilivia.s2.S2LatLng
 import dilivia.s2.S2Measures
 import dilivia.s2.S2Point
 import dilivia.s2.S2Random
-import dilivia.s2.builder.IntLatLngSnapFunction
-import dilivia.s2.builder.S2CellIdSnapFunction
-import dilivia.s2.builder.SnapFunction
+import dilivia.s2.builder.snap.IntLatLngSnapFunction
+import dilivia.s2.builder.snap.S2CellIdSnapFunction
+import dilivia.s2.builder.snap.SnapFunction
 import dilivia.s2.region.S2Cell
 import java.math.BigDecimal
 import java.math.MathContext

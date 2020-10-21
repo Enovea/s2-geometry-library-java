@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.builder
+package dilivia.s2.builder.snap
 
 import dilivia.s2.Assertions
 import dilivia.s2.S1Angle

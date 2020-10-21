@@ -19,8 +19,8 @@
 package dilivia.s2.builder.layers
 
 import dilivia.s2.S2Error
-import dilivia.s2.builder.Graph
-import dilivia.s2.builder.GraphOptions
+import dilivia.s2.builder.graph.Graph
+import dilivia.s2.builder.graph.GraphOptions
 
 
 // This class is not needed by ordinary S2Builder clients.  It is only

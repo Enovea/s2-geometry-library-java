@@ -93,7 +93,7 @@ class S2ShapeIndexCell {
         return "S2ShapeIndexCell(shapes=$shapes)"
     }
 
-    fun toDebugString(separator: String = ", ", prefix: String = "  -"): String =
+    fun toDebugString(separator: String = ", ", prefix: String = "  - "): String =
             shapes.joinToString(separator = separator) { shape ->
                 "$prefix${shape.shapeId}, ${shape.containsCenter}, ${shape.edges})"
             }

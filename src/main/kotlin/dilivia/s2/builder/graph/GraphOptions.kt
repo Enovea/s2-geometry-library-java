@@ -16,7 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.builder
+package dilivia.s2.builder.graph
+
+import dilivia.s2.builder.EdgeType
 
 
 enum class DegenerateEdges { DISCARD, DISCARD_EXCESS, KEEP }
@@ -156,6 +158,6 @@ data class GraphOptions(
         // (This is not recommended when the number of layers could be large.)
         //
         // DEFAULT: true
-        var allow_vertex_filtering: Boolean = true
+        var allowVertexFiltering: Boolean = true
 )
 

@@ -21,10 +21,14 @@ package dilivia.s2
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.region.S2CellUnion
 import dilivia.s2.region.S2Loop
+import dilivia.s2.region.S2Polygon
 import dilivia.s2.shape.S2LaxPolylineShape
 import dilivia.s2.shape.S2PointVectorShape
+import mu.KotlinLogging
 
 object S2TextParser {
+
+    private val logger = KotlinLogging.logger {  }
 
     // Parses a string of one or more latitude-longitude coordinates in degrees,
     // and return the corresponding vector of S2LatLng points.
@@ -178,4 +182,44 @@ object S2TextParser {
         return true
     }
 
+    fun makePolygon(str: String, debug: S2Debug = S2Debug.ALLOW): S2Polygon = internalMakePolygon(str, debug, true)
+
+    fun makeVerbatimPolygon(str: String): S2Polygon {
+        logger.debug { "Create verbatim Polygon: $str" }
+        return internalMakePolygon(str, S2Debug.ALLOW, false)
+    }
+
+    private fun internalMakePolygon(str: String, debug: S2Debug, normalize_loops: Boolean): S2Polygon {
+        val loopStrs = str.trim().let {
+            var s = it
+            while(s.endsWith(";")) s = s.removeSuffix(";").trim()
+            s
+        }.split(';')
+        val loops = mutableListOf<S2Loop>()
+        for (loop_str in loopStrs) {
+            logger.trace { "internalMakePolygon: create loop $loop_str" }
+            var s = loop_str.trim()
+            if (s.isBlank()) s = "empty"
+            val loop = makeLoop(s, debug == S2Debug.ALLOW)
+            // Don't normalize loops that were explicitly specified as "full".
+            if (normalize_loops && !loop.isFull()) loop.normalize()
+            loops.add(loop)
+        }
+        return S2Polygon(loops, debug == S2Debug.ALLOW)
+    }
+
+    fun toString(polygon: S2Polygon, loop_separator: String = " ; "): String {
+        if (polygon.isEmpty()) {
+            return "empty"
+        } else if (polygon.isFull()) {
+            return "full"
+        }
+        var out = ""
+        for (i in 0 until polygon.numLoops()) {
+            if (i > 0) out += loop_separator
+            val loop = polygon.loop(i)
+            out += loop.vertices().joinToString(", ")
+        }
+        return polygon.toDebugString(loop_separator)
+    }
 }

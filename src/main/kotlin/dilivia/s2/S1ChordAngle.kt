@@ -136,8 +136,8 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
         // Note that this method is much more efficient than converting the chord
         // angles to S1Angles and adding those.  It requires only one square root
         // plus a few additions and multiplications.
-        check(!isSpecial())
-        require(!b.isSpecial())
+        check(!isSpecial()) { "This angle $this is special" }
+        require(!b.isSpecial()) { "The angle $b to add is special." }
 
         // Optimization for the common case where "b" is an error tolerance
         // parameter that happens to be set to zero.
@@ -164,8 +164,8 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
 
     open operator fun minus(b: S1ChordAngle): S1ChordAngle {
         // See comments in operator+().
-        check(!isSpecial())
-        require(!b.isSpecial())
+        check(!isSpecial()) { "This angle $this is special." }
+        require(!b.isSpecial())  { "Angle $b to subtract is special." }
         val a2 = length2
         val b2 = b.length2
         return when {
@@ -287,7 +287,7 @@ open class S1ChordAngle protected constructor(open val length2: Double) : Compar
     }
 
     override fun toString(): String {
-        return "S1ChordAngle(length2=$length2)"
+        return "S1ChordAngle(length2=$length2, angle=${toAngle()})"
     }
 
     fun toMutable(): MutableS1ChordAngle = MutableS1ChordAngle(length2)

@@ -29,6 +29,15 @@ fun <T> MutableList<T>.remove(fromIndex: Int, toIndex: Int) {
     repeat(nbElementToRemove) { this.removeAt(fromIndex) }
 }
 
+fun <T> MutableList<T>.assignWith(size: Int, allocator: () -> T) {
+    if (this is ArrayList) {
+        this.ensureCapacity(size)
+    }
+    (0 until min(this.size, size)).forEach { i -> this[i] = allocator() }
+    while(this.size < size) this.add(allocator())
+    while (this.size > size) this.removeLast()
+}
+
 fun <T> MutableList<T>.assign(size: Int, value: T) {
     if (this is ArrayList) {
         this.ensureCapacity(size)

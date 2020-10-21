@@ -103,6 +103,8 @@ object S2CrossingEdgePairsScanner {
     // TODO(ericv): Add an option to support S2LaxPolygonShape rules (i.e.,
     // duplicate vertices and edges are allowed, but loop crossings are not).
     fun findSelfIntersection(index: S2ShapeIndex): S2Error {
+        logger.trace { "Find self intersection ${index.toDebugString()}" }
+
         if (index.numShapeIds() == 0) return S2Error(code = S2Error.OK);
         Assertions.assertEQ(1, index.numShapeIds())
         val shape = index.shape(0)!!
@@ -169,7 +171,6 @@ object S2CrossingEdgePairsScanner {
         val shapeEdges = mutableListOf<ShapeEdge>()
         val iter = index.cellIterator(InitialPosition.BEGIN)
         while (!iter.done()) {
-            logger.trace { "Iterate on cell: ${iter.cell()}" }
             getShapeEdges(index, iter.cell(), shapeEdges)
             if (!visitCrossings(shapeEdges, type, need_adjacent, visitor)) {
                 return false

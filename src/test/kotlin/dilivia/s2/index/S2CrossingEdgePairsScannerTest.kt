@@ -4,7 +4,7 @@
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -18,12 +18,17 @@
  */
 package dilivia.s2.index
 
+import dilivia.s2.S2Debug
 import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2Error
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2LatLng
+import dilivia.s2.S2Point
+import dilivia.s2.S2TextParser
 import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.region.S2Loop
+import dilivia.s2.region.S2Polygon
 import dilivia.s2.shape.S2EdgeVectorShape
 import dilivia.s2.shape.ShapeEdge
 import dilivia.s2.shape.ShapeEdgeId
@@ -40,7 +45,7 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
                 index, type, object : EdgePairVisitor {
             override fun visit(a: ShapeEdge, b: ShapeEdge, is_interior: Boolean): Boolean {
                 edge_pairs.add(Pair(a.id, b.id))
-                return true;  // Continue visiting.
+                return true  // Continue visiting.
             }
         })
         return edge_pairs
@@ -89,7 +94,7 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
     }
 
     fun testGetCrossingEdgePairsEdgeGrid() {
-        val kGridSize = 10;  // (kGridSize + 1) * (kGridSize + 1) crossings
+        val kGridSize = 10  // (kGridSize + 1) * (kGridSize + 1) crossings
         val index = MutableS2ShapeIndex()
         val shape = S2EdgeVectorShape()
         for (i in 0..kGridSize) {
@@ -100,7 +105,7 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
         testGetCrossingEdgePairs(index, CrossingType.ALL)
         testGetCrossingEdgePairs(index, CrossingType.INTERIOR)
     }
-/*
+
     // This function recursively verifies that HasCrossing returns the given
     // result for all possible cyclic permutations of the loop vertices for the
     // given set of loops.
@@ -108,7 +113,7 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
         if (i == loops.size) {
             val index = MutableS2ShapeIndex()
             val polygon = S2Polygon(loops, check = false)
-            index.add(polygon)
+            index.add(S2Polygon.Shape(polygon))
             assertEquals(has_crossing, hasSelfIntersection(index))
         } else {
             val orig_loop = loops[i]
@@ -130,22 +135,20 @@ class S2CrossingEdgePairsScannerTest : S2GeometryTestCase() {
     // permutations of the loop vertices.
     fun testHasCrossing(polygon_str: String, has_crossing: Boolean) {
         // Set S2Debug::DISABLE to allow invalid polygons.
-        unique_ptr<S2Polygon> polygon = s2textformat::MakePolygonOrDie(polygon_str, S2Debug::DISABLE);
-        val loops = polygon->Release();
-        testHasCrossingPermutations(loops, 0, has_crossing);
+        val polygon = S2TextParser.makePolygon(polygon_str, S2Debug.DISABLE)
+        val loops = polygon.loops()
+        testHasCrossingPermutations(loops.toMutableList(), 0, has_crossing)
     }
 
     fun testFindSelfIntersectionBasic() {
         // Coordinates are (lat,lng), which can be visualized as (y,x).
-        testHasCrossing("0:0, 0:1, 0:2, 1:2, 1:1, 1:0", false);
-        testHasCrossing("0:0, 0:1, 0:2, 1:2, 0:1, 1:0", true);  // duplicate vertex
-        testHasCrossing("0:0, 0:1, 1:0, 1:1", true);  // edge crossing
-        testHasCrossing("0:0, 1:1, 0:1; 0:0, 1:1, 1:0", true);  // duplicate edge
-        testHasCrossing("0:0, 1:1, 0:1; 1:1, 0:0, 1:0", true);  // reversed edge
-        testHasCrossing("0:0, 0:2, 2:2, 2:0; 1:1, 0:2, 3:1, 2:0", true);  // vertex crossing
+        testHasCrossing("0:0, 0:1, 0:2, 1:2, 1:1, 1:0", false)
+        testHasCrossing("0:0, 0:1, 0:2, 1:2, 0:1, 1:0", true)  // duplicate vertex
+        testHasCrossing("0:0, 0:1, 1:0, 1:1", true)  // edge crossing
+        testHasCrossing("0:0, 1:1, 0:1; 0:0, 1:1, 1:0", true)  // duplicate edge
+        testHasCrossing("0:0, 1:1, 0:1; 1:1, 0:0, 1:0", true)  // reversed edge
+        testHasCrossing("0:0, 0:2, 2:2, 2:0; 1:1, 0:2, 3:1, 2:0", true)  // vertex crossing
     }
-
- */
 
     companion object {
 

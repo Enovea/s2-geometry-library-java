@@ -1997,7 +1997,7 @@ object S2Predicates {
             // equidistant from every point on edge X.  This case requires symbolic
             // perturbations, but it should already have been handled in
             // GetVoronoiSiteExclusion() (see the call to CompareDistances).
-            assert(rhs2_sgn > 0)
+// TODO            assert(rhs2_sgn > 0)
             return Excluded.NEITHER
         }
         // Next we square both sides of (2), yielding

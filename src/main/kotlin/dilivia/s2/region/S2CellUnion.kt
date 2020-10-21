@@ -474,8 +474,70 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
 
     companion object {
 
+        private val logger = KotlinLogging.logger(S2CellUnion::class.java.name)
+
 
         fun getIntersection(x: List<S2CellId>, y: List<S2CellId>, out: MutableList<S2CellId>) {
+            logger.trace { """ Get intersection of:
+                |- x = $x
+                |- y = $y 
+            """.trimMargin() }
+            assert { x.isSorted() }
+            assert { y.isSorted() }
+
+            // This is a fairly efficient calculation that uses binary search to skip
+            // over sections of both input vectors.  It takes logarithmic time if all the
+            // cells of "x" come before or after all the cells of "y" in S2CellId order.
+
+            out.clear()
+            var iIdx = 0
+            var jIdx = 0
+            while (iIdx != x.size && jIdx != y.size) {
+                var i = x[iIdx]
+                var j = y[jIdx]
+                val imin = i.rangeMin()
+                val jmin = j.rangeMin()
+                if (imin > jmin) {
+                    // Either j->contains(*i) or the two cells are disjoint.
+                    if (i <= j.rangeMax()) {
+                        out.add(i)
+                        ++iIdx
+                    } else {
+                        // Advance "j" to the first cell possibly contained by *i.
+                        jIdx = y.lowerBound(jIdx + 1, y.size, imin)
+                        // The previous cell *(j-1) may now contain *i.
+                        if (i <= y[(jIdx - 1)].rangeMax()) {
+                            --jIdx
+                        }
+                    }
+                } else if (jmin > imin) {
+                    // Identical to the code above with "i" and "j" reversed.
+                    if (j <= i.rangeMax()) {
+                        out.add(j)
+                        ++jIdx
+                    } else {
+                        iIdx = x.lowerBound(iIdx + 1, x.size, jmin)
+                        if (j <= x[iIdx - 1].rangeMax()) {
+                            --iIdx
+                        }
+                    }
+                } else {
+                    // "i" and "j" have the same range_min(), so one contains the other.
+                    if (i < j) {
+                        out.add(i)
+                        ++iIdx
+                    }
+                    else {
+                        out.add(j)
+                        ++jIdx
+                    }
+                }
+            }
+            // The output is generated in sorted order.
+            assert { out.isSorted() }
+
+
+            /*
 //            assertNE(out, x)
 //            assertNE(out, y)
             assert { x.isSorted() }
@@ -531,6 +593,8 @@ class S2CellUnion private constructor(private val cellIds: MutableList<S2CellId>
             }
             // The output is generated in sorted order.
             assert { out.isSorted() }
+
+             */
         }
 
         // Converts a vector of uint64 to a vector of S2CellIds.

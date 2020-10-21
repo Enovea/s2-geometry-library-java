@@ -278,14 +278,20 @@ class S2ClosestEdgeQuery {
   // Target subtype that computes the closest distance to a point.
   class PointTarget(point: S2Point) : S2MinDistancePointTarget(point) {
       override fun maxBruteForceIndexSize(): Int {
-          return super.maxBruteForceIndexSize()
+          // Using BM_FindClosest (which finds the single closest edge), the
+          // break-even points are approximately 80, 100, and 250 edges for point
+          // cloud, fractal, and regular loop geometry respectively.
+          return 120
       }
   }
 
   // Target subtype that computes the closest distance to an edge.
   class EdgeTarget(a: S2Point, b: S2Point) : S2MinDistanceEdgeTarget(a, b) {
       override fun maxBruteForceIndexSize(): Int {
-          return super.maxBruteForceIndexSize()
+          // Using BM_FindClosestToEdge (which finds the single closest edge), the
+          // break-even points are approximately 40, 50, and 100 edges for point
+          // cloud, fractal, and regular loop geometry respectively.
+          return 60
       }
   }
 
@@ -293,7 +299,10 @@ class S2ClosestEdgeQuery {
   // (including the interior of the cell).
   class CellTarget(cell: S2Cell) : S2MinDistanceCellTarget(cell) {
       override fun maxBruteForceIndexSize(): Int {
-          return super.maxBruteForceIndexSize()
+          // Using BM_FindClosestToCell (which finds the single closest edge), the
+          // break-even points are approximately 20, 25, and 40 edges for point cloud,
+          // fractal, and regular loop geometry respectively.
+          return 30
       }
   }
 
@@ -309,7 +318,11 @@ class S2ClosestEdgeQuery {
   // (see S2MinDistanceShapeIndexTarget for details).
   class ShapeIndexTarget(index: S2ShapeIndex) : S2MinDistanceShapeIndexTarget(index) {
       override fun maxBruteForceIndexSize(): Int {
-          return super.maxBruteForceIndexSize()
+          // For BM_FindClosestToSameSizeAbuttingIndex (which uses two nearby indexes
+          // with similar edge counts), the break-even points are approximately 20,
+          // 30, and 40 edges for point cloud, fractal, and regular loop geometry
+          // respectively.
+          return 25
       }
   }
 

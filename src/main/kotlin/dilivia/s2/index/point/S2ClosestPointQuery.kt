@@ -275,7 +275,7 @@ class S2ClosestPointQuery<T : Comparable<T>> {
         }
 
         public override fun clone(): Options {
-            return Options(getMaxResult(), maxDistance, maxError, region, useBruteForce)
+            return Options(getMaxResult(), maxDistance.clone(), maxError, region, useBruteForce)
         }
 
     }
@@ -294,6 +294,7 @@ class S2ClosestPointQuery<T : Comparable<T>> {
             // TODO(ericv): Adjust using benchmarks.
             return 150;
         }
+
 
     }
 

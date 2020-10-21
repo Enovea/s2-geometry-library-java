@@ -27,6 +27,16 @@ package dilivia.s2
 // the default copy constructor and assignment operator.
 data class S2Error(var code: Int = OK, var text: String = ""): Exception("S2Error $code: $text") {
 
+    fun isOk(): Boolean = code == OK
+
+    fun init(code: Int, text: String): S2Error {
+        this.code = code
+        this.text = text
+        return this
+    }
+
+    fun init(error: S2Error): S2Error = init(error.code, error.text)
+
     companion object Code {
         const val OK = 0                  // No error.
 
@@ -107,15 +117,5 @@ data class S2Error(var code: Int = OK, var text: String = ""): Exception("S2Erro
         // (containing all points).
         const val BUILDER_IS_FULL_PREDICATE_NOT_SPECIFIED = 305
     }
-
-  fun isOk(): Boolean = code == OK
-
-    fun init(code: Int, text: String): S2Error {
-        this.code = code
-        this.text = text
-        return this
-    }
-
-    fun init(error: S2Error): S2Error = init(error.code, error.text)
 
 }

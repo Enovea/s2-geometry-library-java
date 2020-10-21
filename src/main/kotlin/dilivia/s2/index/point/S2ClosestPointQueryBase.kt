@@ -149,11 +149,12 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
     // This version can be more efficient when this method is called many times,
     // since it does not require allocating a new vector on each call.
     fun findClosestPoints(target: S2DistanceTarget<T>, options: Options<T>, results: MutableList<Result<T, D>>) {
+        logger.debug { "Search closest points: target = $target, options = $options" }
         findClosestPointsInternal(target, options);
         results.clear()
         if (options.getMaxResult() == 1) {
             val result = resultSingleton
-            if (result != null) {
+            if (!result.isEmpty()) {
                 results.add(result)
             }
         } else if (options.getMaxResult() == Options.kMaxMaxResults) {
@@ -179,19 +180,17 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
     fun findClosestPoint(target: S2DistanceTarget<T>, options: Options<T>): Result<T, D> {
         Assertions.assertEQ(options.getMaxResult(), 1)
         findClosestPointsInternal(target, options)
-        assert(resultSingleton != null)
-        return resultSingleton!!
+        return resultSingleton
     }
 
     private fun findClosestPointsInternal(target: S2DistanceTarget<T>, options: Options<T>) {
         this.target = target
         this.options = options
 
-        distanceLimit = options.maxDistance
+        distanceLimit = options.maxDistance.clone()
         resultSingleton = Result(distanceFactory.infinity())
         assert(resultVector.isEmpty())
         assert(resultSet.isEmpty())
-        println("$target -> ${target.maxBruteForceIndexSize()}")
         Assertions.assertGE(target.maxBruteForceIndexSize(), 0)
         if (distanceLimit == distanceFactory.zero()) return
 
@@ -222,7 +221,7 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
         // (Note that this is how IsDistanceLess() and friends are implemented.)
         //
         // Note that Distance::Delta only supports operator==.
-        val targetUsesMaxError = (!(options.maxError == Delta.zero) && target.setMaxError(options.maxError))
+        val targetUsesMaxError = (options.maxError != Delta.zero && target.setMaxError(options.maxError))
 
         // Note that we can't compare max_error() and distance_limit_ directly
         // because one is a Delta and one is a Distance.  Instead we subtract them.
@@ -240,15 +239,29 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
     }
 
     private fun findClosestPointsBruteForce() {
+        logger.trace { """
+            |FindClosestPointsBruteForce: distanceLimit=${distanceLimit}, useConservativeCellDistance=$useConservativeCellDistance
+            |----------------------------------------------------------------------------------------""".trimMargin() }
         iter.begin()
         while (!iter.done()) {
             maybeAddResult(iter.pointData())
             iter.next()
         }
+        logger.trace { """
+            |
+            |- Singleton: $resultSingleton
+            |- Result set: $resultSet
+            |- Result vector: $resultVector
+            |------------------------------------------
+        """.trimMargin() }
     }
 
     private fun findClosestPointsOptimized() {
+        logger.trace { """
+            |FindClosestPointsOptimized: distanceLimit=${distanceLimit}, useConservativeCellDistance=$useConservativeCellDistance
+            |----------------------------------------------------------------------------------------""".trimMargin() }
         initQueue()
+        logger.trace { "Intialized queue: $queue" }
         while (!queue.isEmpty()) {
             // We need to copy the top entry before removing it, and we need to remove
             // it before adding any new entries to the queue.
@@ -270,6 +283,13 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
                 child = child.next()
             }
         }
+        logger.trace { """
+            |
+            |- Singleton: $resultSingleton
+            |- Result set: $resultSet
+            |- Result vector: $resultVector
+            |------------------------------------------
+        """.trimMargin() }
     }
     private fun initQueue() {
         Assertions.assertTrue(queue.isEmpty())
@@ -280,6 +300,7 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
         // save a lot of work when the search region is small.
         val cap = target.getCapBound()
         if (cap.isEmpty) return  // Empty target.
+        // TODO(fmeurisse): Fix this optimization
         if (options.getMaxResult() == 1) {
             // If the user is searching for just the closest point, we can compute an
             // upper bound on search radius by seeking to the center of the target's
@@ -312,6 +333,7 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
         if (region != null) {
             val coverer = S2RegionCoverer(maxCells = 4)
             coverer.getCovering(region, regionCovering)
+            regionCovering.sort()
             S2CellUnion.getIntersection(indexCovering, regionCovering, intersectionWithRegion)
             initialCells = intersectionWithRegion
         }
@@ -391,17 +413,25 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
     }
     
     private fun maybeAddResult(pointData: PointData<D>) {
-        var distance = distanceLimit
-        if (!target.updateMinDistance(pointData.point, distance)) return
+        //logger.trace { "Maybe add result ? $pointData" }
+        var distance = distanceLimit.clone()
+        if (!target.updateMinDistance(pointData.point, distance)) {
+            logger.trace { "Point ${pointData.data} distance ${target.distance(pointData.point)} >= $distanceLimit: skip point" }
+            return
+        }
 
         val region = options.region
-        if (region != null && !region.contains(pointData.point)) return
+        if (region != null && !region.contains(pointData.point)) {
+            logger.trace { "Point ${pointData.data} is not in the region of the query." }
+            return
+        }
 
         val result = Result(distance, pointData)
         if (options.getMaxResult() == 1) {
             // Optimization for the common case where only the closest point is wanted.
             resultSingleton = result
             distanceLimit = result.distance - options.maxError
+            logger.trace { "Currently closest point: $pointData, distance = ${target.distance(pointData.point)}" }
         } else if (options.getMaxResult() == Options.kMaxMaxResults) {
             resultVector.add(result)  // Sort/unique at end.
         } else {
@@ -416,6 +446,7 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
             if (resultSet.size >= options.getMaxResult()) {
                 distanceLimit = resultSet.peek().distance - options.maxError
             }
+            logger.trace { "Try to add $pointData, distance = ${target.distance(pointData.point)} to result: $resultSet" }
         }
     }
 
@@ -442,7 +473,7 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
             if (numPoints == kMinPointsToEnqueue - 1) {
                 // This cell has too many points (including this one), so enqueue it.
                 val cell = S2Cell(id)
-                var distance = distanceLimit
+                var distance = distanceLimit.clone()
                 // We check "region_" second because it may be relatively expensive.
                 val region = options.region
                 if (target.updateMinDistance(cell, distance) && (region == null || region.mayIntersect(cell))) {
@@ -455,6 +486,7 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
                 return true;  // Seek to next child.
             }
             tmpPointData[numPoints++] = iter.pointData()
+            iter.next()
         }
         // There were few enough points that we might as well process them now.
         for (i in 0 until numPoints) {
@@ -539,6 +571,10 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
         }
 
         fun getMaxResult(): Int = maxResult
+        override fun toString(): String {
+            return "Options(maxResult=$maxResult, maxDistance=$maxDistance, maxError=$maxError, region=$region, useBruteForce=$useBruteForce)"
+        }
+
 
         companion object {
 
@@ -574,6 +610,11 @@ class S2ClosestPointQueryBase<T: Distance<T>, D : Comparable<D>> {
                     }
                 }
                 .result()
+
+        override fun toString(): String {
+            return "($distance, $pointData)"
+        }
+
 
     }
 

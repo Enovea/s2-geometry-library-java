@@ -26,7 +26,7 @@ import mu.KotlinLogging
 class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
 
     private lateinit var index: S2PointIndex<T>
-    private var currentCellId: S2CellId? = null
+    private var currentCellId: S2CellId = S2CellId.none()
     private var currentPointData: PointData<T>? = null
     private var currentOccurence: Int = 0
 
@@ -46,7 +46,7 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
 
     // The S2CellId for the current index entry.
     // REQUIRES: !done()
-    fun id(): S2CellId = currentCellId!!
+    fun id(): S2CellId = currentCellId
 
     // The point associated with the current index entry.
     // REQUIRES: !done()
@@ -65,11 +65,11 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
     // Positions the iterator at the first index entry (if any).
     fun begin() {
         currentPointData = null
-        currentCellId = if (index.map.isNotEmpty()) index.map.firstKey() else null
-        while (currentPointData == null && currentCellId != null) {
+        currentCellId = if (index.map.isNotEmpty()) index.map.firstKey() else S2CellId.sentinel()
+        while (currentPointData == null && currentCellId != S2CellId.sentinel()) {
             currentPointData = index.map[currentCellId]?.firstOrNull()
             if (currentPointData == null) {
-                currentCellId = index.map.higherKey(currentCellId)
+                currentCellId = index.map.higherKey(currentCellId) ?: S2CellId.sentinel()
             }
         }
         if (currentPointData != null) currentOccurence = 1
@@ -85,7 +85,7 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
 
     // Positions the iterator so that done() is true.
     fun finish() {
-        currentCellId = null
+        currentCellId = S2CellId.sentinel()
         currentPointData = null
         currentOccurence = 0
 
@@ -104,7 +104,7 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
         var nextPointData: PointData<T>? = null
         var cellId = currentCellId
         var nextOccurence = currentOccurence + 1
-        while (nextPointData == null && cellId != null) {
+        while (nextPointData == null && cellId != S2CellId.sentinel()) {
             val pointMultiset = index.map[cellId]
             if (pointMultiset != null) {
                 if (nextOccurence > pointMultiset.count(currentPointData)) {
@@ -115,8 +115,8 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
                 }
             }
             if (nextPointData == null) {
-                cellId = index.map.higherKey(cellId)
-                nextPointData = cellId?.let { index.map[it]?.firstOrNull() }
+                cellId = index.map.higherKey(cellId) ?: S2CellId.sentinel()
+                nextPointData = cellId.let { index.map[it]?.firstOrNull() }
                 nextOccurence = if (nextPointData == null) 0 else 1
             }
         }
@@ -140,7 +140,7 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
         var previousPointData: PointData<T>? = null
         var cellId = currentCellId
         var previousOccurence = currentOccurence - 1
-        while (previousPointData == null && cellId != null) {
+        while (previousPointData == null && cellId != S2CellId.none()) {
             var pointMultiset = index.map[cellId]
             if (pointMultiset != null) {
                 if (previousOccurence <= 0) {
@@ -151,8 +151,8 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
                 }
             }
             if (previousPointData == null) {
-                cellId = index.map.lowerKey(cellId)
-                pointMultiset = cellId?.let { index.map[it] }
+                cellId = index.map.lowerKey(cellId) ?: S2CellId.none()
+                pointMultiset = cellId.let { index.map[it] }
                 previousPointData = pointMultiset?.lastOrNull()
                 previousOccurence = pointMultiset?.size ?: 0
             }
@@ -179,17 +179,17 @@ class S2PointIndexIterator<T : Comparable<T>>(index: S2PointIndex<T>) {
     // Positions the iterator at the first entry with id() >= target, or at the
     // end of the index if no such entry exists.
     fun seek(target: S2CellId) {
-        currentCellId = index.map.ceilingKey(target)
+        currentCellId = index.map.ceilingKey(target) ?: S2CellId.sentinel()
         currentPointData = null
         currentOccurence = 0
-        while (currentPointData == null && currentCellId != null) {
-            val pointList = index.map.getValue(currentCellId!!)
+        while (currentPointData == null && currentCellId != S2CellId.sentinel()) {
+            val pointList = index.map.getValue(currentCellId)
             if (pointList.isNotEmpty()) {
                 currentPointData = pointList.first()
                 currentOccurence = 1
             }
             else {
-                currentCellId = index.map.higherKey(currentCellId)
+                currentCellId = index.map.higherKey(currentCellId) ?: S2CellId.sentinel()
             }
         }
 

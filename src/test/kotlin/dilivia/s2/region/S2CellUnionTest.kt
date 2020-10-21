@@ -516,4 +516,15 @@ class S2CellUnionTest : S2GeometryTestCase() {
         assertEquals(expected, cell_union.leafCellsCovered())
     }
 
+    fun testCellUnion() {
+        val x = listOf("5/1322210002222", "5/132221001", "5/132221002", "5/132221003")
+                .map { S2CellId.fromDebugString(it) }
+        val y = listOf("5/13222100232000", "5/13222100232003", "5/13222100233110", "5/13222100233111")
+                .map { S2CellId.fromDebugString(it) }
+        val out = mutableListOf<S2CellId>()
+        S2CellUnion.getIntersection(x, y, out)
+        println(out)
+        assertEquals(y, out)
+    }
+
 }

@@ -126,4 +126,23 @@ abstract class S2ShapeIndex {
      */
     internal abstract fun newIterator(pos: InitialPosition): IteratorBase
 
+
+    fun toDebugString(): String {
+        var cellMap = ""
+        val iterator = newIterator(pos = InitialPosition.BEGIN)
+        while (!iterator.done()) {
+            val cell = iterator.cell()
+            val id = iterator.id()
+            cellMap += "\n$id => ${cell.toDebugString()}"
+            iterator.next()
+        }
+        return """
+            |${this.javaClass.simpleName} content
+            |---------------------------------------------
+            |CellMap:$cellMap
+            |---------------------------------------------
+        """.trimMargin()
+    }
+
+
 }
