@@ -24,7 +24,7 @@ import dilivia.s2.S2CellId
 import dilivia.s2.S2CellMetrics
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2LatLng
-import dilivia.s2.S2LatLngRect
+import dilivia.s2.region.S2LatLngRect
 import dilivia.s2.S2Point
 import dilivia.s2.S2Random
 import dilivia.s2.index.shape.MutableS2ShapeIndex
@@ -88,6 +88,7 @@ class S2ClosestPointQueryTest : S2GeometryTestCase() {
     }
 
     fun testFractalPoints() {
+        fail("Infinite loop")
         testWithIndexFactory(FractalPointIndexFactory(), kNumIndexes, kNumPoints, kNumQueries)
     }
 

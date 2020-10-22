@@ -43,7 +43,7 @@ import dilivia.s2.builder.snap.SnapFunction
 import dilivia.s2.collections.assign
 import dilivia.s2.collections.assignWith
 import dilivia.s2.collections.sortAndRemoveDuplicates
-import dilivia.s2.index.S2ClosestEdgeQuery
+import dilivia.s2.index.shape.S2ClosestEdgeQuery
 import dilivia.s2.index.S2MinDistance
 import dilivia.s2.index.point.S2ClosestPointQuery
 import dilivia.s2.index.point.S2ClosestPointQuery.S2ClosestPointQueryEdgeTarget

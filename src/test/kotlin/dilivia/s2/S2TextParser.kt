@@ -22,6 +22,7 @@ import dilivia.s2.index.shape.MutableS2ShapeIndex
 import dilivia.s2.region.S2CellUnion
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
+import dilivia.s2.shape.S2LaxPolygonShape
 import dilivia.s2.shape.S2LaxPolylineShape
 import dilivia.s2.shape.S2PointVectorShape
 import mu.KotlinLogging
@@ -174,15 +175,33 @@ object S2TextParser {
         }
 
         for (polygon_str in strs[2].split('|').map { it.trim() }.filter { it.isNotEmpty() }) {
-            TODO()
-           /* std::unique_ptr<S2LaxPolygonShape> lax_polygon;
-            if (!MakeLaxPolygon(polygon_str, &lax_polygon)) return false;
-            (*index)->Add(unique_ptr<S2Shape>(lax_polygon.release()));*/
+            val lax_polygon = makeLaxPolygon(polygon_str)
+            index.add(lax_polygon)
         }
         return true
     }
 
     fun makePolygon(str: String, debug: S2Debug = S2Debug.ALLOW): S2Polygon = internalMakePolygon(str, debug, true)
+
+   fun makeLaxPolygon(str: String): S2LaxPolygonShape {
+       val loopStrs = str.trim().let {
+           var s = it
+           while(s.endsWith(";")) s = s.removeSuffix(";").trim()
+           s
+       }.split(';')
+       val loops = mutableListOf<MutableList<S2Point>>()
+       for (loop_str in loopStrs) {
+           if (loop_str == "full") {
+               loops.add(mutableListOf<S2Point>())
+           } else if (loop_str != "empty") {
+               val points = mutableListOf<S2Point>()
+               check (parsePoints(loop_str, points)) { "Fail to parse loop: $loop_str" }
+               loops.add(points)
+           }
+       }
+       return S2LaxPolygonShape(loops)
+    }
+
 
     fun makeVerbatimPolygon(str: String): S2Polygon {
         logger.debug { "Create verbatim Polygon: $str" }

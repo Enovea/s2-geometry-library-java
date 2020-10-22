@@ -16,14 +16,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.S1Angle
 import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
-import dilivia.s2.index.S2ClosestEdgeQueryBase.Result
-import dilivia.s2.index.shape.S2ShapeIndex
+import dilivia.s2.index.S2MinDistance
+import dilivia.s2.index.S2MinDistanceCellTarget
+import dilivia.s2.index.S2MinDistanceEdgeTarget
+import dilivia.s2.index.S2MinDistanceFactory
+import dilivia.s2.index.S2MinDistancePointTarget
+import dilivia.s2.index.S2MinDistanceShapeIndexTarget
+import dilivia.s2.index.S2MinDistanceTarget
+import dilivia.s2.index.shape.S2ClosestEdgeQueryBase.Result
 import dilivia.s2.region.S2Cell
 import dilivia.s2.shape.Edge
 

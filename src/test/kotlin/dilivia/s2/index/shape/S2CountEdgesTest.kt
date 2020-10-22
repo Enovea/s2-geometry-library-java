@@ -16,10 +16,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2TextParser
+import dilivia.s2.index.shape.S2CountEdges
 
 class S2CountEdgesTest : S2GeometryTestCase() {
 

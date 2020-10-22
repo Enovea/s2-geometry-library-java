@@ -16,9 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
-
-import dilivia.s2.index.shape.S2ShapeIndex
+package dilivia.s2.index.shape
 
 object S2CountEdges {
 
@@ -30,7 +28,7 @@ object S2CountEdges {
     // which case the current running total is returned).
     fun countEdgesUpTo(index: S2ShapeIndex, max_edges: Int): Int {
         var numEdges = 0
-        index.shapeIterator().asSequence().filterNotNull().forEach { shape ->
+        index.iterator().asSequence().filterNotNull().forEach { shape ->
             numEdges += shape.numEdges
             if (numEdges >= max_edges) return numEdges
         }

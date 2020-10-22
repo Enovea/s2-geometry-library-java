@@ -16,16 +16,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
 import dilivia.s2.S2.M_PI
 import dilivia.s2.S2.M_PI_2
 import dilivia.s2.Assertions.assertLatLngIsValid
 import dilivia.s2.Assertions.assertLatLngRectIsValid
 import dilivia.s2.Assertions.assertPointIsUnitLength
-import dilivia.s2.region.S2Cap
-import dilivia.s2.region.S2Cell
-import dilivia.s2.region.S2Region
+import dilivia.s2.R1Interval
+import dilivia.s2.S1Angle
+import dilivia.s2.S1ChordAngle
+import dilivia.s2.S1Interval
+import dilivia.s2.S2EdgeCrossings
+import dilivia.s2.S2EdgeDistances
+import dilivia.s2.S2LatLng
+import dilivia.s2.S2Point
+import dilivia.s2.times
 import kotlin.math.*
 
 /**
@@ -198,10 +204,10 @@ class S2LatLngRect(val lat: R1Interval, val lng: S1Interval) : S2Region {
             // which fortunately appears in the denominator of "d".
 
             if (isEmpty) return S2Point()
-            val z1 = sin(latLo())
-            val z2 = sin(latHi())
-            val r1 = cos(latLo())
-            val r2 = cos(latHi())
+            val z1 = dilivia.s2.sin(latLo())
+            val z2 = dilivia.s2.sin(latHi())
+            val r1 = dilivia.s2.cos(latLo())
+            val r2 = dilivia.s2.cos(latHi())
             val alpha = 0.5 * lng.length
             val r = sin(alpha) * (r2 * z2 - r1 * z1 + lat.length)
             val lng = lng.center

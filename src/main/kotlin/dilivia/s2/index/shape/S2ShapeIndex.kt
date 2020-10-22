@@ -80,7 +80,7 @@ import kotlin.collections.Iterator
  * @author Fabien Meurisse (fabien.meurisse@enovea.net)
  * @since 1.0
  */
-abstract class S2ShapeIndex {
+abstract class S2ShapeIndex: Iterable<S2Shape?> {
 
     /**
      * Gets the number of distinct shape ids in the index. This is the same as the number of shapes provided that no
@@ -110,7 +110,7 @@ abstract class S2ShapeIndex {
      *     }
      * </pre>
      */
-    fun shapeIterator(): Iterator<S2Shape?> = object : Iterator<S2Shape?> {
+    override fun iterator(): Iterator<S2Shape?> = object : Iterator<S2Shape?> {
         private var shapeId: Int = 0
         override fun hasNext(): Boolean = shapeId < numShapeIds()
         override fun next(): S2Shape? = shape(shapeId++)

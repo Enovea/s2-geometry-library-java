@@ -28,8 +28,6 @@ import dilivia.s2.S2CellId
 import dilivia.s2.S2CellMetrics
 import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2Error
-import dilivia.s2.S2LatLngRect
-import dilivia.s2.S2LatLngRectBounder
 import dilivia.s2.S2Point
 import dilivia.s2.builder.snap.IdentitySnapFunction
 import dilivia.s2.builder.S2Builder

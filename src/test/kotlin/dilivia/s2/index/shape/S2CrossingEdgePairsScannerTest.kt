@@ -4,7 +4,7 @@
  *
  * Copyright © 2020 Dilivia (contact@dilivia.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License")
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -26,7 +26,6 @@ import dilivia.s2.S2LatLng
 import dilivia.s2.S2Point
 import dilivia.s2.S2TextParser
 import dilivia.s2.index.CrossingType
-import dilivia.s2.index.EdgeIterator
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
 import dilivia.s2.shape.S2EdgeVectorShape

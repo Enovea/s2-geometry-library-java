@@ -16,18 +16,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import com.google.common.collect.ComparisonChain
 import dilivia.s2.Assertions
 import dilivia.s2.S2CellId
 import dilivia.s2.S2Point
-import dilivia.s2.index.shape.CellRelation
-import dilivia.s2.index.shape.InitialPosition
-import dilivia.s2.index.shape.IteratorBase
-import dilivia.s2.index.shape.S2ShapeIndex
-import dilivia.s2.index.shape.S2ShapeIndexCell
-import dilivia.s2.index.shape.S2ShapeIndexCellIterator
+import dilivia.s2.index.Delta
+import dilivia.s2.index.Distance
+import dilivia.s2.index.DistanceFactory
+import dilivia.s2.index.cell.S2ClosestCellQueryBase
+import dilivia.s2.index.S2DistanceTarget
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
@@ -309,8 +308,8 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
 
         fun getMaxResults(): Int = maxResults
 
-        override fun clone(): S2ClosestEdgeQueryBase.Options<T> {
-            return S2ClosestEdgeQueryBase.Options(
+        override fun clone(): Options<T> {
+            return Options(
                     distanceFactory, maxResults, maxDistance, maxError, includeInteriors, useBruteForce
             )
         }
@@ -475,7 +474,7 @@ class S2ClosestEdgeQueryBase<T : Distance<T>> {
     }
 
     private fun findClosestEdgesBruteForce() {
-        for (shape in index.shapeIterator()) {
+        for (shape in index) {
             if (shape == null) continue
             val numEdges = shape.numEdges
             for (e in 0 until numEdges) {

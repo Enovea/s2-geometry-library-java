@@ -22,7 +22,6 @@ import dilivia.s2.*
 import dilivia.s2.Assertions.assert
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertLE
-import dilivia.s2.Assertions.assertNE
 import dilivia.s2.collections.Container
 import dilivia.s2.collections.isSorted
 import dilivia.s2.collections.lowerBound

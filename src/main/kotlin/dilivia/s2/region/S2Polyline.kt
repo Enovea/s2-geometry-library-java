@@ -32,8 +32,6 @@ import dilivia.s2.S2EdgeCrosser
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Error
 import dilivia.s2.S2LatLng
-import dilivia.s2.S2LatLngRect
-import dilivia.s2.S2LatLngRectBounder
 import dilivia.s2.S2Point
 import dilivia.s2.S2Predicates
 import dilivia.s2.shape.Edge

@@ -23,8 +23,6 @@ import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2Point
 import dilivia.s2.S2TextParser.makeCellId
 import dilivia.s2.S2TextParser.makeCellUnion
-import dilivia.s2.index.S2CellIndex
-import dilivia.s2.index.S2ClosestCellQueryBase
 import dilivia.s2.index.S2MaxDistance
 import dilivia.s2.index.S2MaxDistanceFactory
 import dilivia.s2.index.S2MaxDistancePointTarget

@@ -19,6 +19,7 @@
 package dilivia.s2
 
 import dilivia.s2.region.S2Cap
+import dilivia.s2.region.S2LatLngRect
 
 /**
  * Assertion Helpers

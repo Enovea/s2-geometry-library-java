@@ -16,14 +16,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.S2CopyingEdgeCrosser
 import dilivia.s2.S2EdgeCrossings
 import dilivia.s2.S2Point
-import dilivia.s2.index.shape.S2ClippedShape
-import dilivia.s2.index.shape.S2ShapeIndex
-import dilivia.s2.index.shape.S2ShapeIndexCellIterator
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdge
 
@@ -176,7 +173,7 @@ class S2ContainsPointQuery<T : S2ShapeIndex> {
     // (i.e., "p" is one of the edge endpoints), terminating early if the given
     // EdgeVisitor function returns false (in which case VisitIncidentEdges
     // returns false as well).  Each edge is visited at most once.
-    interface EdgeVisitor {
+    fun interface EdgeVisitor {
         fun visit(edge: ShapeEdge): Boolean
     }
 

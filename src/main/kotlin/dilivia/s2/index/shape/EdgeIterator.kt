@@ -16,10 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.shape
 
 import dilivia.s2.Assertions
-import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.shape.Edge
 import dilivia.s2.shape.ShapeEdgeId
 
@@ -31,7 +30,7 @@ import dilivia.s2.shape.ShapeEdgeId
 //   auto edge = it.edge();
 //   //...
 // }
-class EdgeIterator {
+class EdgeIterator : Cloneable {
 
     val index: S2ShapeIndex
     private var shape_id = -1
@@ -98,5 +97,8 @@ class EdgeIterator {
         return result
     }
 
+    public override fun clone(): EdgeIterator {
+        return EdgeIterator(this)
+    }
 }
 

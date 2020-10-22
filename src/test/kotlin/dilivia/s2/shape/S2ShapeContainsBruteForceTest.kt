@@ -22,6 +22,7 @@ import dilivia.s2.S1Angle
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2TextParser
 import dilivia.s2.region.S2Loop
+import dilivia.s2.shape.S2Shape.Companion.containsBruteForce
 
 
 class  S2ShapeContainsBruteForceTest : S2GeometryTestCase() {
@@ -29,22 +30,22 @@ class  S2ShapeContainsBruteForceTest : S2GeometryTestCase() {
     fun testContainsBruteForceNoInterior() {
         // Defines a polyline that almost entirely encloses the point 0:0.
         val polyline = S2TextParser.makeLaxPolyline("0:0, 0:1, 1:-1, -1:-1, -1e9:1");
-        assertFalse(S2Shape.containsBruteForce(polyline, makePoint("0:0")))
+        assertFalse(containsBruteForce(polyline, makePoint("0:0")))
     }
-/*
+
     fun testContainsBruteForceContainsReferencePoint() {
         // Checks that ContainsBruteForce agrees with GetReferencePoint.
-        val polygon = makeLaxPolygon("0:0, 0:1, 1:-1, -1:-1, -1e9:1");
+        val polygon = S2TextParser.makeLaxPolygon("0:0, 0:1, 1:-1, -1:-1, -1e9:1");
         val ref = polygon.getReferencePoint()
         assertEquals(ref.contained, containsBruteForce(polygon, ref.point))
     }
- */
+
     fun testContainsBruteForceConsistentWithS2Loop() {
         // Checks that ContainsBruteForce agrees with S2Loop::Contains().
         val loop = S2Loop.makeRegularLoop(makePoint("89:-179"), S1Angle.degrees(10), 100)
         val shape = S2Loop.Shape(0 , loop)
         for (i in 0 until loop.numVertices()) {
-            assertEquals(loop.contains(loop.vertex(i)), S2Shape.containsBruteForce(shape, loop.vertex(i)))
+            assertEquals(loop.contains(loop.vertex(i)), containsBruteForce(shape, loop.vertex(i)))
         }
     }
 

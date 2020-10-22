@@ -21,6 +21,7 @@ package dilivia.s2
 import dilivia.s2.math.Matrix3x3
 import dilivia.s2.S2.M_PI
 import dilivia.s2.region.S2Cap
+import dilivia.s2.region.S2LatLngRect
 import kotlin.math.*
 import kotlin.random.Random
 import kotlin.random.nextUInt

@@ -21,11 +21,9 @@ package dilivia.s2.index.cell
 import dilivia.s2.S2CellId
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2Random
-import dilivia.s2.index.Label
-import dilivia.s2.index.S2CellIndex
-import dilivia.s2.index.S2CellIndex.CellIterator
-import dilivia.s2.index.S2CellIndex.ContentsIterator
-import dilivia.s2.index.S2CellIndex.LabelledCell
+import dilivia.s2.index.cell.S2CellIndex.CellIterator
+import dilivia.s2.index.cell.S2CellIndex.ContentsIterator
+import dilivia.s2.index.cell.S2CellIndex.LabelledCell
 import dilivia.s2.region.S2CellUnion
 import mu.KotlinLogging
 import java.util.*

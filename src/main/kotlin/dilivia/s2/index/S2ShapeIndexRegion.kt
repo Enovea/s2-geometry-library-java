@@ -20,7 +20,7 @@ package dilivia.s2.index
 
 import dilivia.s2.S2CellId
 import dilivia.s2.S2EdgeClipping
-import dilivia.s2.S2LatLngRect
+import dilivia.s2.region.S2LatLngRect
 import dilivia.s2.S2Point
 import dilivia.s2.index.shape.CellRelation
 import dilivia.s2.region.S2Cap
@@ -28,6 +28,7 @@ import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
 import dilivia.s2.region.S2Region
 import dilivia.s2.index.shape.S2ClippedShape
+import dilivia.s2.index.shape.S2ContainsPointQuery
 import dilivia.s2.index.shape.S2ShapeIndex
 
 // This class wraps an S2ShapeIndex object with the additional methods needed

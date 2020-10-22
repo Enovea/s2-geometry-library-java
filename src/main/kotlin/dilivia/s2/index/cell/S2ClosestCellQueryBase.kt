@@ -16,16 +16,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2.index
+package dilivia.s2.index.cell
 
 import com.google.common.collect.ComparisonChain
 import dilivia.s2.Assertions
 import dilivia.s2.Assertions.assertGE
 import dilivia.s2.Assertions.assertTrue
 import dilivia.s2.S2CellId
-import dilivia.s2.index.S2CellIndex.LabelledCell
-import dilivia.s2.index.S2CellIndex.NonEmptyRangeIterator
-import dilivia.s2.index.S2CellIndex.RangeIterator
+import dilivia.s2.index.Delta
+import dilivia.s2.index.Distance
+import dilivia.s2.index.DistanceFactory
+import dilivia.s2.index.S2DistanceTarget
+import dilivia.s2.index.cell.S2CellIndex.LabelledCell
+import dilivia.s2.index.cell.S2CellIndex.NonEmptyRangeIterator
+import dilivia.s2.index.cell.S2CellIndex.RangeIterator
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
 import dilivia.s2.region.S2CellUnion
@@ -213,7 +217,7 @@ class S2ClosestCellQueryBase<T : Distance<T>> {
     //
     // The Distance template argument is described below.
     open class Options<T : Distance<T>>(
-          
+
             val distanceFactory: DistanceFactory<T>,
             
             // Specifies that at most "max_results" cells should be returned.

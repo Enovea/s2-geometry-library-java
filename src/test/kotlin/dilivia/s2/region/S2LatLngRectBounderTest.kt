@@ -16,12 +16,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
+import dilivia.s2.R1Interval
+import dilivia.s2.S1Angle
+import dilivia.s2.S1Interval
 import dilivia.s2.S2.DBL_EPSILON
 import dilivia.s2.S2.M_PI
 import dilivia.s2.S2.M_PI_2
 import dilivia.s2.S2.M_PI_4
+import dilivia.s2.S2EdgeDistances
+import dilivia.s2.S2GeometryTestCase
+import dilivia.s2.S2LatLng
+import dilivia.s2.S2Point
+import dilivia.s2.S2Random
+import dilivia.s2.times
 import java.lang.Math.pow
 import kotlin.math.asin
 import kotlin.math.pow
@@ -112,7 +121,7 @@ class S2LatLngRectBounderTest : S2GeometryTestCase() {
       // Return a point that is exactly proportional to A and that still
       // satisfies S2Point.isUnitLength().
       while (true) {
-        val b =(2 - a.norm() + 5 * (S2Random.randomDouble()-0.5) * DBL_EPSILON) * a;
+        val b =(2 - a.norm() + 5 * (S2Random.randomDouble() -0.5) * DBL_EPSILON) * a;
         if (b != a && S2Point.isUnitLength(b))
           return b;
       }

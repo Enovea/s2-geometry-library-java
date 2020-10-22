@@ -16,17 +16,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
+import dilivia.s2.R1Interval
+import dilivia.s2.S1Angle
 import dilivia.s2.S1Angle.Companion.min
 import dilivia.s2.S1Angle.Companion.zero
+import dilivia.s2.S1Interval
 import dilivia.s2.S2.M_PI
 import dilivia.s2.S2.M_PI_2
 import dilivia.s2.S2.M_PI_4
+import dilivia.s2.S2EdgeDistances
+import dilivia.s2.S2GeometryTestCase
+import dilivia.s2.S2LatLng
+import dilivia.s2.S2Point
 import dilivia.s2.S2Random.randomPoint
 import dilivia.s2.math.R2Vector
-import dilivia.s2.region.S2Cap
-import dilivia.s2.region.S2Cell
 import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random

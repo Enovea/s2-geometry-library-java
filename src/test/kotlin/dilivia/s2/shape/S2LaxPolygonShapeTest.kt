@@ -26,7 +26,7 @@ import dilivia.s2.S2Point
 import dilivia.s2.S2Random
 import dilivia.s2.S2TextParser
 import dilivia.s2.index.shape.MutableS2ShapeIndex
-import dilivia.s2.index.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
+import dilivia.s2.index.shape.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
 import dilivia.s2.math.Matrix3x3
 import dilivia.s2.region.S2Loop
 import dilivia.s2.region.S2Polygon
@@ -137,24 +137,23 @@ class S2LaxPolygonShapeTest : S2GeometryTestCase() {
     }
 
     fun testMultiLoopS2Polygon() {
-      fail("TODO")
         // Verify that the orientation of loops representing holes is reversed when
         // converting from an S2Polygon to an S2LaxPolygonShape.
-//        val polygon = MakePolygonOrDie ("0:0, 0:3, 3:3; 1:1, 1:2, 2:2")
-//        S2LaxPolygonShape shape ( * polygon)
-//        for (int i = 0; i < polygon->num_loops(); ++i) {
-//            S2Loop * loop = polygon->loop(i)
-//            for (int j = 0; j < loop->num_vertices(); ++j) {
-//            assertEquals(loop->oriented_vertex(j),
-//            shape.loop_vertex(i, j))
-//        }
-//        }
+        val polygon = S2TextParser.makePolygon("0:0, 0:3, 3:3; 1:1, 1:2, 2:2")
+        val shape = S2LaxPolygonShape(polygon)
+        for (i in 0 until polygon.numLoops()) {
+            val loop = polygon.loop(i)
+            for (j in 0 until loop.numVertices()) {
+                assertEquals(loop.orientedVertex(j),
+                        shape.loopVertex(i, j))
+            }
+        }
     }
 
     fun testManyLoopPolygon() {
         // Test a polygon with enough loops so that cumulative_vertices_ is used.
         val loops = mutableListOf<List<S2Point>>()
-                repeat(100) { i ->
+        repeat(100) { i ->
             val center = S2LatLng.fromDegrees(0, i).toPoint()
             loops.add(makeRegularPoints(center, S1Angle.degrees(0.1), S2Random.randomInt(3)))
         }
@@ -168,11 +167,11 @@ class S2LaxPolygonShapeTest : S2GeometryTestCase() {
             assertEquals(num_vertices, shape.chain(i).start)
             assertEquals(loops[i].size, shape.chain(i).length)
             for (j in loops[i].indices) {
-            assertEquals(loops[i][j], shape.loopVertex(i, j))
-            val edge = shape . edge (num_vertices + j)
-            assertEquals(loops[i][j], edge.v0)
-            assertEquals(loops[i][(j + 1) % loops[i].size], edge.v1)
-        }
+                assertEquals(loops[i][j], shape.loopVertex(i, j))
+                val edge = shape.edge(num_vertices + j)
+                assertEquals(loops[i][j], edge.v0)
+                assertEquals(loops[i][(j + 1) % loops[i].size], edge.v1)
+            }
             num_vertices += loops[i].size
         }
         assertEquals(num_vertices, shape.numVertices())
@@ -181,7 +180,7 @@ class S2LaxPolygonShapeTest : S2GeometryTestCase() {
 
     fun testDegenerateLoops() {
         val loops = mutableListOf(
-            S2TextParser.parsePoints("1:1, 1:2, 2:2, 1:2, 1:3, 1:2, 1:1"),
+                S2TextParser.parsePoints("1:1, 1:2, 2:2, 1:2, 1:3, 1:2, 1:1"),
                 S2TextParser.parsePoints("0:0, 0:3, 0:6, 0:9, 0:6, 0:3, 0:0"),
                 S2TextParser.parsePoints("5:5, 6:6")
         )
@@ -200,17 +199,17 @@ class S2LaxPolygonShapeTest : S2GeometryTestCase() {
 
     fun compareS2LoopToShape(loop: S2Loop, shape: S2Shape) {
         val index = MutableS2ShapeIndex()
-                index.add(shape)
-        val cap = loop .capBound
+        index.add(shape)
+        val cap = loop.capBound
         val query = makeS2ContainsPointQuery(index)
         repeat(100) {
-        val point = S2Random.samplePoint(cap)
-        assertEquals(loop.contains(point), query.shapeContains(index.shape(0)!!, point))
-    }
+            val point = S2Random.samplePoint(cap)
+            assertEquals(loop.contains(point), query.shapeContains(index.shape(0)!!, point))
+        }
     }
 
     fun testCompareToS2Loop() {
-        repeat(100) {i ->
+        repeat(100) { i ->
             val fractal = Fractal(maxLevel = S2Random.randomInt(5), dimension = 1.0 + S2Random.randomDouble())
             val center = S2Random.randomPoint()
             val frame = Matrix3x3.fromCols(S2Random.randomFrameAt(center))

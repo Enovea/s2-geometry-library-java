@@ -23,8 +23,11 @@ import dilivia.s2.S1Angle
 import dilivia.s2.S1ChordAngle
 import dilivia.s2.S2EdgeDistances
 import dilivia.s2.S2Point
-import dilivia.s2.index.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
+import dilivia.s2.index.shape.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
 import dilivia.s2.index.S2ShapeIndexRegion.Companion.makeS2ShapeIndexRegion
+import dilivia.s2.index.cell.S2CellIndex
+import dilivia.s2.index.cell.S2ClosestCellQuery
+import dilivia.s2.index.shape.S2ClosestEdgeQuery
 import dilivia.s2.index.shape.S2ShapeIndex
 import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Cell
@@ -365,7 +368,7 @@ open class S2MinDistanceShapeIndexTarget(val index: S2ShapeIndex) : S2MinDistanc
         // TODO(ericv): Do this by merge-joining the two S2ShapeIndexes, and share
         // the code with S2BooleanOperation.
 
-        for (shape in query_index.shapeIterator()) {
+        for (shape in query_index) {
             if (shape == null) continue;
             val num_chains = shape.numChains
             // Shapes that don't have any edges require a special case (below).

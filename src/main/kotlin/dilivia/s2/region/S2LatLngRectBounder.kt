@@ -16,11 +16,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dilivia.s2
+package dilivia.s2.region
 
+import dilivia.s2.Assertions
+import dilivia.s2.R1Interval
+import dilivia.s2.S1Interval
 import dilivia.s2.S2.DBL_EPSILON
 import dilivia.s2.S2.M_PI
 import dilivia.s2.S2.M_PI_2
+import dilivia.s2.S2LatLng
+import dilivia.s2.S2Point
 import kotlin.math.*
 
 // This class computes a bounding rectangle that contains all edges defined
