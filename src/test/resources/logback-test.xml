@@ -21,7 +21,7 @@
     <logger name="dilivia.s2.builder.S2Builder" level="INFO" />
     <logger name="dilivia.s2.index.shape.MutableS2ShapeIndex" level="INFO" />
     <logger name="dilivia.s2.index.shape.S2CrossingEdgePairsScanner" level="INFO" />
-    <logger name="dilivia.s2.index.shape.S2PolygonBoundariesBuilder" level="INFO" />
+    <logger name="dilivia.s2.index.shape.S2PolygonBoundariesBuilder" level="TRACE" />
     <logger name="dilivia.s2.index.cell.S2CellIndex" level="INFO" />
     <logger name="dilivia.s2.index.point.S2ClosestPointQueryBase" level="INFO" />
     <logger name="dilivia.s2.index.point.S2PointIndex" level="INFO" />

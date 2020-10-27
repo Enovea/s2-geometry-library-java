@@ -154,21 +154,28 @@ class S2PolygonBoundariesBuilderTest : S2GeometryTestCase() {
                 listOf(a4_d0)
         )
         val expected_faces = listOf(
-                listOf(a0, b0),
-                listOf(a1, a1_a0, a1_b0, a1_c0),
-                listOf(a1_a1),
-                listOf(a1_a2, a1_a2_a0),
-                listOf(a1_a2_a1),
-                listOf(a1_a3, a1_a3_a0),
-                listOf(a1_b1),
+                listOf(a1_a0, a1_b0, a1_c0, a1),
                 listOf(a2),
-                listOf(a3, a3_a0),
+                listOf(a3_a0, a3),
+                listOf(a4_a0, a4_b0, a4_c0, a4_d0, a4),
+                listOf(a1_a1),
+                listOf(a1_a2_a0, a1_a2),
+                listOf(a1_a3_a0, a1_a3),
+                listOf(a1_b1),
+                listOf(a1_a2_a1),
                 listOf(a3_a1),
-                listOf(a4, a4_a0, a4_b0, a4_c0, a4_d0)
+                listOf(a0, b0),
         )
         val faces = mutableListOf<MutableList<S2Shape>>()
         S2PolygonBoundariesBuilder.buildPolygonBoundaries(components, faces)
         assertEquals(expected_faces.size, faces.size)
+
+        println("Expected:")
+        println(expected_faces.map { f -> f.map { l -> l.id } })
+        println("Faces:")
+        println(faces.map { f -> f.map { l -> l.id } })
+
+
         assertEquals(expected_faces, faces)
     }
 

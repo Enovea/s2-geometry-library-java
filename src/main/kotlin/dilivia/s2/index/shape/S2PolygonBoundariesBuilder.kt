@@ -98,6 +98,7 @@ object S2PolygonBoundariesBuilder {
         // A map from shape.id() to the corresponding component number.
         val component_ids = mutableListOf<Int>()
         val outer_loops = mutableListOf<S2Shape>()
+        var outerLoopId = 0
         for (i in components.indices) {
             val component = components[i]
             for (loop in component) {
@@ -105,6 +106,7 @@ object S2PolygonBoundariesBuilder {
                     index.add(loop);
                     component_ids.add(i)
                 } else {
+                    loop.id = --outerLoopId
                     outer_loops.add(loop)
                 }
             }
@@ -123,9 +125,15 @@ object S2PolygonBoundariesBuilder {
             assertGT(loop.numEdges, 0)
             ancestors[i] = contains_query.getContainingShapes(loop.edge(0).v0)
         }
+
+        logger.trace { """
+            |
+            |${ancestors.mapIndexed { index, shapes -> "Outer Loop $index -> ${shapes.map { s -> s.id }}" }.joinToString("\n")}
+        """.trimMargin() }
+
         // Assign each outer loop to the component whose depth is one less.
         // Components at depth 0 become a single face.
-        val children = TreeMap<S2Shape, MutableList<S2Shape>>()
+        val children = mutableMapOf<S2Shape?, MutableList<S2Shape>>()
         for (i in 0 until outer_loops.size) {
             var ancestor: S2Shape? = null
             val depth = ancestors[i].size
@@ -136,24 +144,35 @@ object S2PolygonBoundariesBuilder {
                         ancestor = candidate
                     }
                 }
+                check(ancestor != null)
             }
-            check(ancestor != null)
             if (!children.containsKey(ancestor)) children[ancestor] = mutableListOf()
             children.getValue(ancestor).add(outer_loops[i])
         }
+
+        logger.trace { """
+            |Children:
+            |------------------------------
+            |${children.entries
+                .sortedBy { entry -> entry.key?.id }
+                .joinToString("\n") { entry -> "${entry.key?.id} => ${entry.value.map { s -> "${s.id};${s.edge(0).v0.x }" }}"}}
+            |------------------------------
+        """.trimMargin() }
+
         // There is one face per loop that is not an outer loop, plus one for the
         // outer loops of components at depth 0.
         polygons.assignWith(index.numShapeIds() + 1) { mutableListOf() }
         for (i in 0 until index.numShapeIds()) {
-            val polygon = polygons[i]
+            var polygon = polygons[i]
             val loop = index.shape(i)!!
             val loopChildren = children[loop]
             if (loopChildren != null) {
                 polygons[i] = loopChildren
+                polygon = polygons[i]
             }
             polygon.add(loop)
         }
-        // ??? polygons->back() = children[nullptr];
+        if (children.containsKey(null)) polygons[polygons.lastIndex] = children.getValue(null)
 
         // Explicitly release the shapes from the index so they are not deleted.
         index.removeAll()
