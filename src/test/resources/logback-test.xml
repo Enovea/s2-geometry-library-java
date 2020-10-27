@@ -10,25 +10,25 @@
         </encoder>
     </appender>
 
-    <logger name="dilivia.s2" level="DEBUG" />
+    <logger name="dilivia.s2" level="INFO" />
     <logger name="dilivia.s2.S2EdgeClipping" level="INFO" />
     <logger name="dilivia.s2.S2EdgeCrossings" level="INFO" />
     <logger name="dilivia.s2.S2EdgeDistances" level="INFO" />
     <logger name="dilivia.s2.S2Loop" level="INFO" />
     <logger name="dilivia.s2.S2PaddedCell" level="INFO" />
     <logger name="dilivia.s2.S2Point" level="INFO" />
-    <logger name="dilivia.s2.S2TextParser" level="DEBUG" />
-    <logger name="dilivia.s2.builder.S2Builder" level="DEBUG" />
+    <logger name="dilivia.s2.S2TextParser" level="INFO" />
+    <logger name="dilivia.s2.builder.S2Builder" level="INFO" />
     <logger name="dilivia.s2.index.shape.S2CrossingEdgePairsScanner" level="INFO" />
     <logger name="dilivia.s2.index.shape.MutableS2ShapeIndex" level="INFO" />
     <logger name="dilivia.s2.index.cell.S2CellIndex" level="INFO" />
-    <logger name="dilivia.s2.index.point.S2ClosestPointQueryBase" level="DEBUG" />
+    <logger name="dilivia.s2.index.point.S2ClosestPointQueryBase" level="INFO" />
     <logger name="dilivia.s2.index.point.S2PointIndex" level="INFO" />
-    <logger name="dilivia.s2.region.S2CellUnion" level="DEBUG" />
+    <logger name="dilivia.s2.region.S2CellUnion" level="INFO" />
     <logger name="dilivia.s2.region.S2Loop" level="INFO" />
     <logger name="dilivia.s2.region.S2LoopMeasures" level="INFO" />
     <logger name="dilivia.s2.region.S2Polyline" level="INFO" />
-    <logger name="dilivia.s2.region.S2Polygon" level="DEBUG" />
+    <logger name="dilivia.s2.region.S2Polygon" level="INFO" />
     <logger name="dilivia.s2.region.S2RegionCoverer" level="INFO" />
     <logger name="dilivia.s2.shape.S2Shape" level="INFO" />
 

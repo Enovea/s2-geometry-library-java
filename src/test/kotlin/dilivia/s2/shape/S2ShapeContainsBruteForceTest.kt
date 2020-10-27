@@ -23,9 +23,12 @@ import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2TextParser
 import dilivia.s2.region.S2Loop
 import dilivia.s2.shape.S2Shape.Companion.containsBruteForce
+import mu.KotlinLogging
 
 
 class  S2ShapeContainsBruteForceTest : S2GeometryTestCase() {
+
+    private val logger = KotlinLogging.logger {  }
 
     fun testContainsBruteForceNoInterior() {
         // Defines a polyline that almost entirely encloses the point 0:0.
@@ -42,10 +45,18 @@ class  S2ShapeContainsBruteForceTest : S2GeometryTestCase() {
 
     fun testContainsBruteForceConsistentWithS2Loop() {
         // Checks that ContainsBruteForce agrees with S2Loop::Contains().
-        val loop = S2Loop.makeRegularLoop(makePoint("89:-179"), S1Angle.degrees(10), 100)
+        val center = makePoint("89:-179")
+        val radius = S1Angle.degrees(10)
+        val loop = S2Loop.makeRegularLoop(center, radius, 100)
         val shape = S2Loop.Shape(0 , loop)
+
+        logger.trace { "Regular loop: center = $center, radius = $radius, num points = 100" }
         for (i in 0 until loop.numVertices()) {
-            assertEquals(loop.contains(loop.vertex(i)), containsBruteForce(shape, loop.vertex(i)))
+            val vertex = loop.vertex(i)
+            val contains = loop.contains(vertex)
+            val bruteForce = containsBruteForce(shape, vertex)
+            logger.trace { "Vertex $i = $vertex: loop contains = $contains, brute force = $bruteForce" }
+            assertEquals(contains, bruteForce)
         }
     }
 

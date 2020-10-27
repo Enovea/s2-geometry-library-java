@@ -188,6 +188,7 @@ class S2ClosestPointQueryTest : S2GeometryTestCase() {
                 factory.addPoints(index_caps.last(), num_points, indexes.last())
             }
             for (i in 0 until num_queries) {
+                println("Query: $i")
                 S2Random.reset(randomSeed + i)
                 val iIndex = S2Random.randomInt(num_indexes)
                 val indexCap = index_caps[iIndex]

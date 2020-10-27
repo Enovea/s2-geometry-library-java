@@ -52,7 +52,7 @@ class InteriorTracker {
 
     private var isActive: Boolean = false
     private var a: S2Point = S2Point()
-    private var b: S2Point = S2Point.origin()
+    private var b: S2Point = origin()
     private var nextCellid: S2CellId = S2CellId.begin(S2CellId.kMaxLevel)
     private val crosser = S2EdgeCrosser()
     private val shapeIds = mutableListOf<Int>()
@@ -176,6 +176,11 @@ class InteriorTracker {
         if (pos.hasPrevious()) pos.previous()
         return pos.iterator();
     }
+
+    override fun toString(): String {
+        return "InteriorTracker(isActive=$isActive, a=$a, b=$b, nextCellid=$nextCellid, shapeIds=$shapeIds, savedIds=$savedIds)"
+    }
+
 
     companion object {
 
