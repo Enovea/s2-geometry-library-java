@@ -40,7 +40,6 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.abs
-import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -400,6 +399,17 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
         if (indexStatus.get() != S2ShapeIndexStatus.FRESH) {
             applyUpdatesInternal()
             indexStatus.set(S2ShapeIndexStatus.FRESH)
+
+            logger.debug {
+                """
+                |
+                |==============================================
+                | Shape index updated
+                |----------------------------------------------
+                |${toDebugString()}
+                |----------------------------------------------
+                | """.trimMargin()
+            }
         }
     }
 
@@ -515,6 +525,17 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
                 // indexStatus can be updated to FRESH only while locked *and* using an atomic store operation, so that
                 // maybeApplyUpdates() can check whether the index is FRESH without acquiring the spinlock.
                 indexStatus.set(S2ShapeIndexStatus.FRESH)
+
+                logger.debug { """
+                    |
+                    |==============================================
+                    | Shape index updated
+                    |----------------------------------------------
+                    |${toDebugString()}
+                    |----------------------------------------------
+                    | """.trimMargin()
+                }
+
                 unlockAndSignal()  // Notify any waiting threads.
             }
         }
@@ -585,23 +606,6 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
         cellMap.entries.removeIf { entry -> entry.value.numClipped == 0 }
 
         // It is the caller's responsibility to update index_status_.
-        logger.debug {
-            """
-                |
-                |==============================================
-                | Shape index updated
-                |----------------------------------------------
-                |Shapes
-                |--------
-                |${shapes.joinToString("\n")}
-                | 
-                |CellMap
-                |--------
-                |${cellMap.entries.joinToString("\n") { entry -> "${entry.key} => \n${entry.value.toDebugString("\n")}" }}
-                |
-                |----------------------------------------------
-                | """.trimMargin()
-        }
     }
 
     // Count the number of edges being updated, and break them into several
@@ -733,21 +737,23 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
             addFaceEdge(faceEdge.copy(edgeId = e, edge = edge, maxLevel = getEdgeMaxLevel(edge)), all_edges)
         }
 
-        logger.trace {
-            """Add shape $id
-            |---------------------------------------
-            |Interior tracker: $tracker
-            |${
-                all_edges
-                        .mapIndexed { index, faceEdgeList ->
-                            "$index: \n${faceEdgeList.joinToString(",\n") { faceEdge -> 
-                                "   - (sid=${faceEdge.shapeId}, eid=${faceEdge.edgeId}, edge=${faceEdge.edge})" 
-                            }}"
-                        }.joinToString("")
-            }
-            |---------------------------------------
-        """.trimMargin()
-        }
+//        logger.trace {
+//            """Add shape $id
+//            |---------------------------------------
+//            |Interior tracker: $tracker
+//            |${
+//                all_edges
+//                        .mapIndexed { index, faceEdgeList ->
+//                            "$index: \n${
+//                                faceEdgeList.joinToString(",\n") { faceEdge ->
+//                                    "   - (sid=${faceEdge.shapeId}, eid=${faceEdge.edgeId}, edge=${faceEdge.edge})"
+//                                }
+//                            }"
+//                        }.joinToString("")
+//            }
+//            |---------------------------------------
+//        """.trimMargin()
+//        }
     }
 
     private fun removeShape(removed: RemovedShape, allEdges: Array<MutableList<FaceEdge>>, tracker: InteriorTracker) {
@@ -1234,6 +1240,7 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
      * @return true if a cell has been created and false otherwise.
      */
     private fun makeIndexCell(pcell: S2PaddedCell, edges: List<ClippedEdge>, tracker: InteriorTracker): Boolean {
+        logger.trace { "makeIndexCell(pcell = $pcell, edges = [${edges.joinToString { e -> "(${e.faceEdge.shapeId}, ${e.faceEdge.edgeId})" }}], tracker = ${tracker.shapeIds()})" }
         if (edges.isEmpty() && tracker.shapeIds().isEmpty()) {
             // No index cell is needed. (In most cases this situation is detected before we get to this point, but this
             // can happen when all shapes in a cell are removed.)
@@ -1245,7 +1252,7 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
         // Return false if there are too many such edges.
         var count = 0
         for (edge in edges) {
-            count += if(pcell.level < edge.faceEdge.maxLevel) 1 else 0
+            count += if (pcell.level < edge.faceEdge.maxLevel) 1 else 0
             if (count > options.maxEdgesPerCell) {
                 logger.trace { "Cell $pcell contains more than ${options.maxEdgesPerCell} edges. makeIndexCell = false" }
                 return false
@@ -1277,52 +1284,46 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
             tracker.drawTo(pcell.getCenter())
             testAllEdges(edges, tracker)
         }
+        logger.trace { "tracker = ${tracker.shapeIds()})" }
+
 
         // Allocate and fill a new index cell.  To get the total number of shapes we need to merge the shapes
         // associated with the intersecting edges together with the shapes that happen to contain the cell center.
-        val cshape_ids: ShapeIdSet = tracker.shapeIds()
-        val num_shapes = countShapes(edges, cshape_ids)
+        val containingShapeIds: ShapeIdSet = tracker.shapeIds()
+        val cellNumShapes = countShapes(edges, containingShapeIds)
         val cell = S2ShapeIndexCell()
-        //S2ClippedShape* base = cell->add_shapes(num_shapes);
 
         // To fill the index cell we merge the two sources of shapes: "edge shapes" (those that have at least one edge
         // that intersects this cell), and "containing shapes" (those that contain the cell center).  We keep track
         // of the index of the next intersecting edge and the next containing shape as we go along.  Both sets of shape
         // ids are already sorted.
-        var enext = 0
-        var cnextIdx = 0
-        for (i in 0 until num_shapes) {
-            var eshape_id = numShapeIds()
-            var cshape_id = eshape_id;  // Sentinels
-            if (enext != edges.size) {
-                eshape_id = edges[enext].faceEdge.shapeId
-            }
-            if (cnextIdx != cshape_ids.size) {
-                cshape_id = cshape_ids[cnextIdx]
-            }
-            var ebegin = enext
-            if (cshape_id < eshape_id) {
+        var currentEdgeIndex = 0
+        var currentContainingShapeIndex = 0
+        repeat(cellNumShapes) {
+            val currentEdgeShapeId = if (currentEdgeIndex < edges.size) edges[currentEdgeIndex].faceEdge.shapeId else Int.MAX_VALUE
+            val currentContainingShapeId = if (currentContainingShapeIndex < containingShapeIds.size) containingShapeIds[currentContainingShapeIndex] else Int.MAX_VALUE
+
+            if (currentContainingShapeId < currentEdgeShapeId) {
                 // The entire cell is in the shape interior.
-                cell.addClipped(S2ClippedShape(cshape_id, emptyList(), true))
-                ++cnextIdx
-            } else {
-                // Count the number of edges for this shape and allocate space for them.
-                while (enext < edges.size && edges[enext].faceEdge.shapeId == eshape_id) {
-                    ++enext
-                }
+                cell.addClipped(S2ClippedShape(currentContainingShapeId, emptyList(), true))
+                ++currentContainingShapeIndex
+            }
+            else {
                 val clippedShapeEdges = mutableListOf<Int>()
-                for (e in ebegin until enext) {
-                    clippedShapeEdges.add(edges[e].faceEdge.edgeId)
+                while(currentEdgeIndex < edges.size && edges[currentEdgeIndex].faceEdge.shapeId == currentEdgeShapeId) {
+                    clippedShapeEdges.add(edges[currentEdgeIndex].faceEdge.edgeId)
+                    ++currentEdgeIndex
                 }
-                val containsCenter = if (cshape_id == eshape_id) {
-                    ++cnextIdx
+                val containsCenter = if (currentContainingShapeId == currentEdgeShapeId) {
+                    ++currentContainingShapeIndex
                     true
                 } else false
 
-                cell.addClipped(S2ClippedShape(eshape_id, clippedShapeEdges, containsCenter))
+                cell.addClipped(S2ClippedShape(currentEdgeShapeId, clippedShapeEdges, containsCenter))
 
             }
         }
+
         // UpdateEdges() visits cells in increasing order of S2CellId, so during
         // initial construction of the index all insertions happen at the end.  It
         // is much faster to give an insertion hint in this case.  Otherwise the
@@ -1337,10 +1338,9 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
             tracker.setNextCellId(pcell.id.next())
         }
 
-        logger.trace { "MakeCellIndex: id = ${pcell.id} => ${cell.numClipped}" }
+        logger.trace { "MakeCellIndex: id = ${pcell.id} => $cell" }
         return true
     }
-
 
 
 /*
@@ -1409,30 +1409,28 @@ class MutableS2ShapeIndex(private var options: Options = Options()) : S2ShapeInd
         // Return the number of distinct shapes that are either associated with the
         // given edges, or that are currently stored in the InteriorTracker.
         private fun countShapes(edges: List<ClippedEdge>, cshape_ids: List<Int>): Int {
-
+            val edgeIterator = edges.iterator()
+            var cShapeIndex = 0
+            var lastShapeId = -1
             var count = 0
-            var last_shape_id = -1
-            val shapeIdsIterator = cshape_ids.iterator()
-            //ShapeIdSet::const_iterator cnext = cshape_ids.begin();  // Next shape
-            for (edge in edges) {
-                if (edge.faceEdge.shapeId != last_shape_id) {
+            while(edgeIterator.hasNext()) {
+                val clippedEdge = edgeIterator.next()
+                if (clippedEdge.faceEdge.shapeId != lastShapeId) {
                     ++count
-                    last_shape_id = edge.faceEdge.shapeId
-                    // Skip over any containing shapes up to and including this one,
-                    // updating "count" appropriately.
-                    while (shapeIdsIterator.hasNext()) {
-                        val cnext = shapeIdsIterator.next()
-                        if (cnext > last_shape_id) {
-                            break
-                        }
-                        if (cnext < last_shape_id) {
-                            ++count
-                        }
+                    lastShapeId = clippedEdge.faceEdge.shapeId
+
+                    while (cShapeIndex < cshape_ids.size && cshape_ids[cShapeIndex] <= lastShapeId) {
+                        if (cshape_ids[cShapeIndex] < lastShapeId) ++count
+                        ++cShapeIndex
                     }
                 }
+
             }
-            // Count any remaining containing shapes.
-            count += shapeIdsIterator.asSequence().count()
+            while(cShapeIndex < cshape_ids.size) {
+                ++count
+                ++cShapeIndex
+            }
+
             return count
         }
 

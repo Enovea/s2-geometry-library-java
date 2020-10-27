@@ -19,8 +19,9 @@
     <logger name="dilivia.s2.S2Point" level="INFO" />
     <logger name="dilivia.s2.S2TextParser" level="INFO" />
     <logger name="dilivia.s2.builder.S2Builder" level="INFO" />
-    <logger name="dilivia.s2.index.shape.S2CrossingEdgePairsScanner" level="INFO" />
     <logger name="dilivia.s2.index.shape.MutableS2ShapeIndex" level="INFO" />
+    <logger name="dilivia.s2.index.shape.S2CrossingEdgePairsScanner" level="INFO" />
+    <logger name="dilivia.s2.index.shape.S2PolygonBoundariesBuilder" level="INFO" />
     <logger name="dilivia.s2.index.cell.S2CellIndex" level="INFO" />
     <logger name="dilivia.s2.index.point.S2ClosestPointQueryBase" level="INFO" />
     <logger name="dilivia.s2.index.point.S2PointIndex" level="INFO" />
@@ -38,6 +39,8 @@
     <logger name="dilivia.s2.region.S2LoopTest" level="INFO" />
     <logger name="dilivia.s2.region.S2RegionCovererTest" level="INFO" />
     <logger name="dilivia.s2.index.cell.S2CellIndexTest" level="INFO" />
+    <logger name="dilivia.s2.index.shape.S2ContainsPointQueryTest" level="TRACE" />
+    <logger name="dilivia.s2.index.shape.S2PolygonBoundariesBuilderTest" level="TRACE" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

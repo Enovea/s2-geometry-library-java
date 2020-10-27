@@ -74,6 +74,10 @@ open class S2Point(coords: List<Double>) : R3Vector<S2Point, Double>(coords.map 
         return "(" + s2LatLng.latDegrees() + ", " + s2LatLng.lngDegrees() + ")"
     }
 
+    override fun toString(): String {
+        return "(${"%.6f".format(x)}, ${"%.6f".format(y)}, ${"%.6f".format(z)})"
+    }
+
     /**
      * Return true if the given point is approximately unit length (this is mainly
      * useful for assertions).

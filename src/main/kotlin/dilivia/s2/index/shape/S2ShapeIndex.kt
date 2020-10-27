@@ -133,12 +133,13 @@ abstract class S2ShapeIndex: Iterable<S2Shape?> {
         while (!iterator.done()) {
             val cell = iterator.cell()
             val id = iterator.id()
-            cellMap += "\n$id => ${cell.toDebugString()}"
+            cellMap += "\n$id => ${cell.toDebugString(separator = "", prefix = "\n - ")}"
             iterator.next()
         }
         return """
             |${this.javaClass.simpleName} content
             |---------------------------------------------
+            |shapes: ${this.iterator().asSequence().joinToString(separator = ",\n", prefix = "[\n", postfix = "\n]")}
             |CellMap:$cellMap
             |---------------------------------------------
         """.trimMargin()

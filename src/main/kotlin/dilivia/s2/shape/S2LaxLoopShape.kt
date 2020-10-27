@@ -119,6 +119,11 @@ open class S2LaxLoopShape : S2Shape {
 
     override fun chainPosition(edgeId: Int): ChainPosition = ChainPosition(0, edgeId)
 
+    override fun toString(): String {
+        return "${this.javaClass.simpleName}(id=$id, vertices=${vertices.contentToString()})"
+    }
+
+
 }
 
 // S2LaxClosedPolylineShape is like S2LaxPolylineShape except that the last

@@ -18,6 +18,7 @@
  */
 package dilivia.s2.index.shape
 
+import dilivia.s2.S1Angle
 import dilivia.s2.S2GeometryTestCase
 import dilivia.s2.S2Point
 import dilivia.s2.S2Random
@@ -27,10 +28,13 @@ import dilivia.s2.region.S2Cap
 import dilivia.s2.region.S2Loop
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.ShapeEdgeId
+import mu.KotlinLogging
 
 typealias EdgeIdVector = MutableList<ShapeEdgeId>
 
 class S2ContainsPointQueryTest : S2GeometryTestCase() {
+
+    private val logger = KotlinLogging.logger {  }
 
     fun testS2ContainsPointQueryVertexModelOpen() {
         val index = S2TextParser.makeIndex("0:0 # -1:1, 1:1 # 0:5, 0:7, 2:6")
@@ -107,24 +111,33 @@ class S2ContainsPointQueryTest : S2GeometryTestCase() {
         val kNumVerticesPerLoop = 10
         val kMaxLoopRadius = kmToAngle(10.0)
         val centerCap = S2Cap.fromCenterAngle(S2Random.randomPoint(), kMaxLoopRadius)
+
+        logger.trace { "Test params: num vertices per loop = $kNumVerticesPerLoop, max loop radius = $kMaxLoopRadius, center cap = $centerCap" }
+
         val index = MutableS2ShapeIndex()
-        repeat(100) {
-            val loop = S2Loop.makeRegularLoop(
-                    S2Random.samplePoint(centerCap),
-                    kMaxLoopRadius * S2Random.randomDouble(), kNumVerticesPerLoop)
+        repeat(100) { i ->
+            val center = S2Random.samplePoint(centerCap)
+            val radius = kMaxLoopRadius * S2Random.randomDouble()
+            val loop = S2Loop.makeRegularLoop(center, radius, kNumVerticesPerLoop)
+            logger.trace { "Create loop $i: center = $center, radius = ${radius.radians} => $loop" }
             index.add(S2Loop.Shape(loop = loop))
         }
+
+        logger.trace { "Index:\n-------------------\n${index.toDebugString()}\n--------------------" }
+
         val query = makeS2ContainsPointQuery(index)
         repeat(100) {
             val p = S2Random.samplePoint(centerCap)
             val expected = mutableListOf<S2Shape>()
             for (shape in index) {
                 val loop = (shape as S2Loop.Shape).loop
-                if (loop.contains(p)) {
-                    assertTrue(query.shapeContains(shape, p))
+                val loopContainsPoint = loop.contains(p)
+                val shapeContainsPoint = query.shapeContains(shape, p)
+                if (loopContainsPoint) {
+                    assertTrue("loop contains point $p but query result is false: id = ${shape.id}, loop = $loop", shapeContainsPoint)
                     expected.add(shape)
                 } else {
-                    assertFalse(query.shapeContains(shape, p))
+                    assertFalse(shapeContainsPoint)
                 }
             }
             val actual = query.getContainingShapes(p)

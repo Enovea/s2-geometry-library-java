@@ -27,10 +27,14 @@ import dilivia.s2.collections.assignWith
 import dilivia.s2.index.shape.S2ContainsPointQuery.Companion.makeS2ContainsPointQuery
 import dilivia.s2.shape.S2Shape
 import dilivia.s2.shape.S2Shape.Companion.containsBruteForce
+import mu.KotlinLogging
 import java.util.*
 import kotlin.collections.ArrayList
 
 object S2PolygonBoundariesBuilder {
+
+    private val logger = KotlinLogging.logger {  }
+
     // The purpose of this function is to construct polygons consisting of
     // multiple loops.  It takes as input a collection of loops whose boundaries
     // do not cross, and groups them into polygons whose interiors do not
@@ -98,7 +102,6 @@ object S2PolygonBoundariesBuilder {
             val component = components[i]
             for (loop in component) {
                 if (component.size > 1 && !containsBruteForce(loop, S2Point.origin())) {
-                    // Ownership is transferred back at the end of this function.
                     index.add(loop);
                     component_ids.add(i)
                 } else {
@@ -108,6 +111,9 @@ object S2PolygonBoundariesBuilder {
             // Check that there is exactly one outer loop in each component.
             Assertions.assertEQ(i + 1, outer_loops.size) { "Component is not a subdivision" }
         }
+
+        logger.trace { "Outer loops: $outer_loops\nIndex\n${index.toDebugString()}" }
+
         // Find the loops containing each component.
         val ancestors = ArrayList<List<S2Shape>>(components.size)
         ancestors.assign(components.size, emptyList())

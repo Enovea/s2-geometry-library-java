@@ -90,12 +90,12 @@ class S2ShapeIndexCell {
      * Returns a string representation of this cell.
      */
     override fun toString(): String {
-        return "S2ShapeIndexCell(shapes=$shapes)"
+        return "S2ShapeIndexCell(${shapes.joinToString(", ") { s -> "[sid=${s.shapeId}, edges=${s.edges}, cc=${s.containsCenter}]" }})"
     }
 
     fun toDebugString(separator: String = ", ", prefix: String = "  - "): String =
             shapes.joinToString(separator = separator) { shape ->
-                "$prefix${shape.shapeId}, ${shape.containsCenter}, ${shape.edges})"
+                "$prefix(${shape.shapeId}, ${shape.containsCenter}, ${shape.edges})"
             }
 
 }

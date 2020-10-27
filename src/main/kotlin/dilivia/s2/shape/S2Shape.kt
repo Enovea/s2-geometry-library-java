@@ -52,6 +52,11 @@ data class Edge(val v0: S2Point = S2Point(), val v1: S2Point = S2Point()): Compa
         } else v0Comparison
     }
 
+    override fun toString(): String {
+        return "Edge(v0=$v0, v1=$v1)"
+    }
+
+
 };
 // The purpose of S2Shape is to represent polygonal geometry in a flexible
 // way.  It is organized as a collection of edges that optionally defines an
